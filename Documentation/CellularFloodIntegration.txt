@@ -1,0 +1,11 @@
+Cellular automata integration — 2026-10-05
+
+SIBUCAO_RAIN now selects the existing continuous-state cellular rainfall/runoff solver by setting FloodSimulationManager.groundRelativeInundation=false. The legacy authored inundation option remains available in the Inspector.
+
+Rules: a fixed 0.1-second step adds rainfall to uncovered ground cells, computes exchange across four cardinal neighbors from elevation plus water depth, limits transfer by edge barriers and available donor water, then applies buffered changes synchronously. Open outlet cells remove water with volume accounting. Difficulty depth caps also remove and account for overflow. These are existing experimental project rules, not yet verified against the thesis equations.
+
+The same depth/flow query API and surface mesh feed existing rendering and gameplay. Rainfall is compressed for gameplay. The difficulty peak is an upper bound, not a guaranteed depth on every road. Route balance must be checked because runoff can leave some locations shallower than scripted inundation did.
+
+Save restoration resets the grid and replays fixed simulation steps to the saved storm clock, under the existing per-frame time budget. Long saves can require catch-up. No new save format is introduced.
+
+Validation entry point: StormSim.Sibucao.Editor.CellularFloodChecks.Run(). It runs isolated fixtures against the production Advance method for neighbor exchange, barriers, drainage, rainfall, conservation, nonnegative depths and repeatability. Successful execution writes Reports/CellularFloodChecks.txt. Full route playthrough and headset performance require separate validation.

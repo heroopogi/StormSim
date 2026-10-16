@@ -1,0 +1,6 @@
+if (UnityEditor.EditorApplication.isPlaying) throw new System.InvalidOperationException("Stop Play mode first.");
+var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+if (scene.path != "Assets/Scenes/SIBUCAO_AFTERMATH.unity") throw new System.InvalidOperationException("Expected aftermath scene.");
+if (scene.isDirty) throw new System.InvalidOperationException("Unsaved scene changes must be preserved before installation.");
+StormSim.Sibucao.Editor.SibucaoAftermathBuilder.Install();
+return "Aftermath installed, saved, and three previews captured.";

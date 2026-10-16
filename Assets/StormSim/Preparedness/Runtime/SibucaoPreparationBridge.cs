@@ -1,0 +1,171 @@
+using System.Linq;
+using System.Collections.Generic;
+using UnityEngine;
+using StormSim.Sibucao;
+
+namespace StormSim.Preparedness
+{
+    public sealed class SibucaoPreparationBridge : MonoBehaviour
+    {
+        public GameObject content;
+        public PreparednessSession preparation;
+        public SibucaoHomeOpening firstHome;
+        public GameObject[] hiddenDuringPreparation;
+        public PreparednessItem[] houseDoors;
+        [Tooltip("Temporary desktop testing shortcut. Disable to hide the button and F8 shortcut.")]
+        public bool showTemporarySkip=true;
+        public bool CanSkipToDuring=>SibucaoDevelopmentControls.Enabled&&showTemporarySkip&&Active&&!HandingOff;
+        public Rect SkipButtonRect=>new Rect(Mathf.Max(12,Screen.width-282),18,Mathf.Min(264,Screen.width-24),42);
+        public bool PointerOverSkip(Vector2 screenPosition)=>CanSkipToDuring&&SkipButtonRect.Contains(new Vector2(screenPosition.x,Screen.height-screenPosition.y));
+        public bool HandingOff {get;private set;}
+        public bool Active {get;private set;}
+        SibucaoSession game;
+        readonly Dictionary<Behaviour,bool> suspended=new Dictionary<Behaviour,bool>();
+        readonly Dictionary<GameObject,bool> hidden=new Dictionary<GameObject,bool>();
+        readonly Dictionary<Rigidbody,bool> frozen=new Dictionary<Rigidbody,bool>();
+        void FreezeSceneProps()
+        {
+            foreach(var body in Object.FindObjectsByType<Rigidbody>(FindObjectsInactive.Include,FindObjectsSortMode.None))
+            {
+                if(body.transform.IsChildOf(content.transform))continue;
+                if(!frozen.ContainsKey(body))frozen[body]=body.isKinematic;
+                if(!body.isKinematic){body.linearVelocity=Vector3.zero;body.angularVelocity=Vector3.zero;body.isKinematic=true;}
+            }
+        }
+        void RestoreSceneProps(){foreach(var pair in frozen)if(pair.Key)pair.Key.isKinematic=pair.Value;frozen.Clear();}
+        Material sky;bool fog;Color ambient;UnityEngine.Rendering.AmbientMode ambientMode;
+        Vector3 sunRotation;float sunIntensity;Color sunColor;
+        void Awake(){game=GetComponent<SibucaoSession>();content.SetActive(false);FreezeSceneProps();}
+        public bool TryBegin()
+        {
+            if(!Application.isPlaying)return false;
+            if(!game)game=GetComponent<SibucaoSession>();
+            if(HandingOff)return false;
+            // A restart can interrupt the wake-up animation before its eyelids open.
+            // Release the previous home's camera before assigning the new home.
+            if(!Active&&game.home)game.home.Suspend();
+            if(!Active)game.GetComponent<CoastalAreaProfile>()?.SelectNewHome(this);
+            if(Active)
+            {
+                // Restarting from the menu must reset the active preparation as well as its mode.
+                game.home=firstHome;game.state=new RunState{homeIndex=System.Array.IndexOf(game.homes,firstHome),difficultyLevel=game.selectedDifficulty};
+                preparation.player.ReleaseAll();preparation.Restart();preparation.BeginCoachingChoice();
+                preparation.player.CloseDesktopPanels();preparation.player.Warp(firstHome.standingPoint.position,firstHome.standingPoint.rotation);
+                game.SetMode(SibucaoMode.Preparation);return true;
+            }
+            FreezeSceneProps();
+            game.home=firstHome;game.state=new RunState{homeIndex=System.Array.IndexOf(game.homes,firstHome),difficultyLevel=game.selectedDifficulty};game.SetMode(SibucaoMode.Preparation);
+            sky=RenderSettings.skybox;fog=RenderSettings.fog;ambient=RenderSettings.ambientLight;ambientMode=RenderSettings.ambientMode;
+            suspended.Clear();hidden.Clear();
+            foreach(var b in Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include,FindObjectsSortMode.None))
+            {
+                if(b==game||b is SibucaoUI||b is SibucaoSoundFeedback||b.GetType().Namespace!="StormSim.Sibucao")continue;
+                // The preparation residents have independent animation and dialogue components.
+                suspended[b]=b.enabled;b.enabled=false;
+            }
+            void Hide(GameObject go){if(!go||hidden.ContainsKey(go))return;hidden[go]=go.activeSelf;go.SetActive(false);}
+            foreach(var go in hiddenDuringPreparation)Hide(go);
+            foreach(var resident in Object.FindObjectsByType<SibucaoResident>(FindObjectsInactive.Include,FindObjectsSortMode.None))Hide(resident.gameObject);
+            foreach(var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))if(!canvas.GetComponentInParent<StormSim.UI.StormglassUI>())Hide(canvas.gameObject);
+            Hide(game.player.gameObject);
+            if(game.weather.rain)game.weather.rain.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
+            foreach(var audio in new[]{game.weather.rainAudio,game.weather.windAudio,game.weather.thunderAudio})if(audio){suspended[audio]=audio.enabled;audio.enabled=false;}
+            if(game.weather.sun){sunIntensity=game.weather.sun.intensity;sunColor=game.weather.sun.color;sunRotation=game.weather.sun.transform.eulerAngles;game.weather.sun.intensity=1.8f;game.weather.sun.color=Color.white;game.weather.sun.transform.rotation=Quaternion.Euler(45,-30,0);}
+            RenderSettings.skybox=null;RenderSettings.fog=false;RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Flat;RenderSettings.ambientLight=new Color(.64f,.7f,.76f);
+            Shader.SetGlobalFloat("_SibucaoHomeGust",0);
+            content.SetActive(true);preparation.enabled=true;preparation.player.gameObject.SetActive(true);preparation.player.enabled=true;
+            foreach(var task in content.GetComponentsInChildren<PreparednessHouseTask>(true))task.enabled=true;
+            foreach(var npc in content.GetComponentsInChildren<PreparednessNeighbor>(true))npc.gameObject.SetActive(true);
+            if(preparation.television)preparation.television.gameObject.SetActive(true);
+            preparation.EnsureInitial();preparation.Restart();preparation.BeginCoachingChoice();
+            preparation.player.Warp(firstHome.standingPoint.position,firstHome.standingPoint.rotation);
+            Active=true;preparation.player.RefreshPanelCursor();return true;
+        }
+        void Update()
+        {
+            if(CanSkipToDuring&&UnityEngine.InputSystem.Keyboard.current!=null&&UnityEngine.InputSystem.Keyboard.current.f8Key.wasPressedThisFrame){SkipToDuring();return;}
+            if(Active&&preparation.phase==PrepPhase.ReadyForStorm)BeginStorm();
+        }
+        void OnGUI()
+        {
+            if(!CanSkipToDuring||preparation.player.XRActive)return;
+            int oldDepth=GUI.depth;GUI.depth=-100;
+            var style=new GUIStyle(GUI.skin.button){font=SignalStationUI.Font(),fontSize=14};
+            if(GUI.Button(SkipButtonRect,"Skip to DURING (Temporary)",style))SkipToDuring();
+            GUI.Label(new Rect(SkipButtonRect.x,64,SkipButtonRect.width,24),"F8, or Esc then click",new GUIStyle(GUI.skin.label){alignment=TextAnchor.MiddleCenter,fontSize=13});
+            GUI.depth=oldDepth;
+        }
+        public void SkipToDuring()
+        {
+            if(!CanSkipToDuring)return;
+            // Keep the actual preparation state without treating skipped tasks as completed
+            // or overwriting the player's preparation save with a testing shortcut.
+            preparation.departure="temporary-skip";
+            TransitionToStorm(false);
+            game.physicalDecisions.SetFlag("temporary_preparation_skip");
+            game.Notify("Preparation skipped","DURING phase started with your current supplies and preparations.");
+        }
+        public void BeginStorm()
+        {
+            TransitionToStorm(true);
+        }
+        void TransitionToStorm(bool savePreparation)
+        {
+            if(!Active)return;
+            var snapshot=preparation.Capture();var position=preparation.player.transform.position;var rotation=preparation.player.transform.rotation;
+            float health=game.state.physical.health,stamina=game.state.physical.stamina,hunger=game.state.physical.hunger;
+            if(savePreparation)preparation.Save();preparation.player.Release();preparation.player.gameObject.SetActive(false);preparation.enabled=false;
+            if(preparation.television)preparation.television.gameObject.SetActive(false);
+            foreach(var npc in content.GetComponentsInChildren<PreparednessNeighbor>(true))npc.gameObject.SetActive(false);
+            foreach(var task in content.GetComponentsInChildren<PreparednessHouseTask>(true))task.enabled=false;
+            foreach(var pair in hidden)if(pair.Key)pair.Key.SetActive(pair.Value);
+            foreach(var pair in suspended)if(pair.Key)pair.Key.enabled=pair.Value;
+            RenderSettings.skybox=sky;RenderSettings.fog=fog;RenderSettings.ambientMode=ambientMode;RenderSettings.ambientLight=ambient;
+            if(game.weather.sun){game.weather.sun.intensity=sunIntensity;game.weather.sun.color=sunColor;game.weather.sun.transform.eulerAngles=sunRotation;}
+            if(game.weather.rain)game.weather.rain.Play();
+            Active=false;HandingOff=true;
+            RestoreSceneProps();
+            try{game.StartRun();}finally{HandingOff=false;}
+            // ResetRun restores original physical poses. Reapply the actual preparation
+            // state before handing the same objects to the storm inventory.
+            preparation.Restore(snapshot);
+            preparation.player.ReleaseAll();preparation.player.gameObject.SetActive(false);
+            GetComponent<PreparationContinuity>()?.Transfer(snapshot);
+            game.state.physical.health=health;game.state.physical.stamina=stamina;game.state.physical.hunger=hunger;
+            // Overnight starts the original eyelid / television / stand-up sequence from zero.
+            // An immediate evacuation keeps its direct storm departure.
+            bool waking=snapshot.departure=="overnight";
+            game.state.homeSeconds=DepartureClock(firstHome,snapshot.departure);
+            game.state.elapsed=game.state.homeSeconds;
+            game.state.preparationSnapshot=JsonUtility.ToJson(snapshot);
+            int doorIndex=System.Array.IndexOf(game.homes,firstHome);
+            game.state.homeDoorOpen=doorIndex>=0&&doorIndex<houseDoors.Length&&!houseDoors[doorIndex].closed;
+            firstHome.Restore();if(!waking)game.player.Teleport(position,rotation*Vector3.forward);
+            if(preparation.television)preparation.television.gameObject.SetActive(false);
+            foreach(var item in preparation.items.Where(i=>i.prepared))game.state.physical.flags.Add("prepared:"+item.id);
+            game.Notify(snapshot.departure=="early-evacuation"?"Leaving early":"Preparation carried forward",snapshot.departure=="early-evacuation"?"Your preparations are saved. You have extra scenario time before floodwater begins rising.":"Your preparations are saved. Follow the evacuation route now.");
+        }
+        public static float DepartureClock(SibucaoHomeOpening home,string departure)
+        {
+            if(departure=="overnight")return 0; // Compatibility with existing storm saves.
+            float start=SibucaoStormTimeline.FloodStart(home);
+            // A bounded head start in compressed scenario time, not a forecast.
+            return departure=="early-evacuation"?Mathf.Max(home.wakeDuration+home.newsDuration+home.standDuration,start-60):start;
+        }
+        public void RestoreStormSnapshot(string json)
+        {
+            RestoreSceneProps();
+            game.GetComponent<CoastalAreaProfile>()?.SelectHome(this,game.state.homeIndex);
+            if(string.IsNullOrEmpty(json)){content.SetActive(false);return;}
+            content.SetActive(true);preparation.EnsureInitial();
+            if(!preparation.Restore(JsonUtility.FromJson<PrepSave>(json)))Debug.LogWarning("Stored preparation snapshot is incompatible with this layout.");
+            preparation.player.gameObject.SetActive(false);preparation.enabled=false;
+            if(preparation.television)preparation.television.gameObject.SetActive(false);
+            foreach(var npc in content.GetComponentsInChildren<PreparednessNeighbor>(true))npc.gameObject.SetActive(false);
+            foreach(var task in content.GetComponentsInChildren<PreparednessHouseTask>(true))task.enabled=false;
+            GetComponent<PreparationContinuity>()?.HideLegacyBag();
+            if(preparation.chapter)preparation.chapter.HideUnpurchased();
+            game.LockCursor();
+        }
+    }
+}

@@ -1,0 +1,30 @@
+var s=StormSim.Sibucao.SibucaoSession.Instance;if(!EditorApplication.isPlaying||!s)throw new Exception("Play Mode required");
+string folder="Captures/Batches4-7_20260930/Audio/";System.IO.Directory.CreateDirectory(folder);var lines=new List<string>();var original=s.settings;var mode=s.Mode;
+void Check(bool okay,string label){lines.Add((okay?"PASS ":"FAIL ")+label);System.IO.File.WriteAllLines(folder+"checks.txt",lines);}
+System.Collections.IEnumerator Cases()
+{
+    s.settings=JsonUtility.FromJson<StormSim.Sibucao.SibucaoSettings>(JsonUtility.ToJson(original));s.settings.speechVolume=1;s.settings.environmentVolume=1;s.settings.effectsVolume=1;
+    s.SetMode(StormSim.Sibucao.SibucaoMode.Playing);if(s.home)s.home.SkipTV();s.inventory.Close();s.missionGuide.Close();yield return null;yield return null;
+    var narration=s.GetComponent<StormSim.Sibucao.SibucaoNarration>();var voice=(AudioSource)typeof(StormSim.Sibucao.SibucaoNarration).GetField("voice",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(narration);var routes=s.RouteChoices;
+    var left=routes.sections[0].left;var right=routes.sections[0].right;
+    Check(narration.PlayCue("depart",true),"Narration cue is assigned and can start");yield return null;Check(voice.isPlaying&&narration.Caption!=null,"Playing narration supplies a caption");
+    left.Call();yield return null;Check(!voice.isPlaying&&left.voice.isPlaying&&s.subtitle.StartsWith("From the left:"),"Resident call replaces narration and receives subtitle priority");
+    right.Call();yield return null;Check(!left.voice.isPlaying&&right.voice.isPlaying,"A new resident call stops the previous route voice");
+    s.Say("Work feedback fixture",3);yield return null;Check(!right.voice.isPlaying,"Work feedback stops a route call before replacing its caption");right.Call();yield return null;
+    narration.PlayCue("depart",true);yield return null;Check(!right.voice.isPlaying&&voice.isPlaying,"Explicit narration replay stops the route call");
+    s.missionGuide.Open();yield return null;yield return null;Check(!voice.isPlaying&&narration.Speaking,"Opening the guide pauses narration");
+    s.subtitleUntil=0;s.missionGuide.Close();yield return null;yield return null;Check(voice.isPlaying&&s.subtitleUntil>Time.unscaledTime&&StormSim.Sibucao.SibucaoAudioMix.Environment==.5f,"Resuming narration renews its caption duration and storm ducking");
+    s.Say("Resident feedback fixture",3);yield return null;Check(!voice.isPlaying&&narration.Caption==null&&s.subtitle=="Resident feedback fixture","Contextual feedback is not hidden behind stale narration");
+    var all=new List<AudioClip>();all.AddRange(narration.cues.Select(c=>c.clip));foreach(var section in routes.sections){all.Add(section.left.voice?section.left.voice.clip:null);all.Add(section.right.voice?section.right.voice.clip:null);all.Add(section.centerVoice?section.centerVoice.clip:null);}all.Add(s.weather.rainAudio.clip);all.Add(s.weather.windAudio.clip);
+    var stats=new List<object>();foreach(var clip in all.Where(c=>c).Distinct())
+    {
+        const int frames=2048;var data=new float[frames*clip.channels];double square=0;float peak=0;long total=0;bool available=true;
+        for(int offset=0;offset<clip.samples;offset+=frames){if(!clip.GetData(data,offset)){available=false;break;}int count=Mathf.Min(frames,clip.samples-offset)*clip.channels;for(int i=0;i<count;i++){square+=data[i]*data[i];peak=Mathf.Max(peak,Mathf.Abs(data[i]));}total+=count;}
+        double rms=total>0?Math.Sqrt(square/total):-1;stats.Add(new{clip=clip.name,seconds=clip.length,available,rms,peak});if(available)Check(rms>.0001&&peak<=1,"Non-silent unclipped source "+clip.name);yield return null;
+    }
+    System.IO.File.WriteAllText(folder+"clip-levels.json",Newtonsoft.Json.JsonConvert.SerializeObject(stats,Newtonsoft.Json.Formatting.Indented));
+    foreach(StormSim.Sibucao.SibucaoSoundKind kind in Enum.GetValues(typeof(StormSim.Sibucao.SibucaoSoundKind))){StormSim.Sibucao.SibucaoSoundFeedback.Play(kind);yield return null;yield return new WaitForSeconds(.3f);}
+    Check(StormSim.Sibucao.SibucaoSoundFeedback.Instance!=null,"Procedural movement, mechanism and placement sound component is active");
+}
+System.Collections.IEnumerator Guard(){var stack=new Stack<System.Collections.IEnumerator>();stack.Push(Cases());Exception error=null;try{while(stack.Count>0){bool more=false;object value=null;try{more=stack.Peek().MoveNext();if(more)value=stack.Peek().Current;}catch(Exception ex){error=ex;break;}if(!more){stack.Pop();continue;}if(value is System.Collections.IEnumerator nested){stack.Push(nested);continue;}yield return value;}}finally{s.settings=original;s.SetMode(mode);s.RouteChoices.StopVoices();if(error!=null)Check(false,error.ToString());lines.Add("Playback-state and PCM measurements; listening acceptance remains separate.");System.IO.File.WriteAllLines(folder+"checks.txt",lines);System.IO.File.WriteAllText(folder+"finished.txt",error==null?"Finished; inspect all checks and clip levels":"FAIL");}}
+s.StartCoroutine(Guard());return "Live speech-priority and audio-level checks started";

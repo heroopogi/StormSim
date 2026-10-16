@@ -1,0 +1,150 @@
+int difficulty=1;string role="Student";int side=0;bool resume=true;
+
+// Continuous route segment: one explicit starting-position fixture, then production input only.
+
+var s=StormSim.Sibucao.SibucaoSession.Instance;if(!EditorApplication.isPlaying||!s)throw new Exception("Play Mode required");
+var d=s.physicalDecisions.GetComponent<StormSim.Sibucao.SibucaoRouteChoices>();
+string folder="Captures/Batches4-7_20260930/Journeys/"+role+"-D"+difficulty+"-"+side+(resume?"-resumed-nav":"")+"/";System.IO.Directory.CreateDirectory(folder);
+var notes=new List<string>();string status="starting";int current=-1;float began=Time.realtimeSinceStartup;var originalSettings=s.settings;
+bool oldDev=EditorPrefs.GetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,false);
+void Save(string line){notes.Add(DateTime.Now.ToString("HH:mm:ss")+" "+line);System.IO.File.WriteAllLines(folder+"journey.txt",notes);System.IO.File.WriteAllText(folder+"state.json",JsonUtility.ToJson(s.state,true));}
+void Check(bool okay,string message){if(!okay)throw new Exception(message);}
+System.Collections.IEnumerator E(){StormSim.Sibucao.SibucaoEditorInput.Interact=true;yield return null;yield return null;}
+System.Collections.IEnumerator Walk(Vector3 destination)
+{
+    float deadline=Time.time+Mathf.Max(30,Vector3.Distance(s.player.transform.position,destination)/.3f),lastMoved=Time.time;Vector3 last=s.player.transform.position;
+    while(Time.time<deadline)
+    {
+        if(s.Mode==StormSim.Sibucao.SibucaoMode.ArrivalReview||s.Mode==StormSim.Sibucao.SibucaoMode.Complete)break;
+        if(s.Mode==StormSim.Sibucao.SibucaoMode.Cinematic){yield return null;continue;}
+        Check(s.Mode==StormSim.Sibucao.SibucaoMode.Playing,"Travel interrupted by "+s.Mode);
+        var delta=destination-s.player.transform.position;delta.y=0;if(delta.magnitude<.08f)break;
+        if(Vector3.Distance(last,s.player.transform.position)>.08f){last=s.player.transform.position;lastMoved=Time.time;}
+        Check(Time.time-lastMoved<30,"Movement stalled at "+last+" toward "+destination);
+        var direction=delta.normalized;var yaw=Mathf.Atan2(direction.x,direction.z)*Mathf.Rad2Deg;
+        StormSim.Sibucao.SibucaoEditorInput.Look=new Vector2(Mathf.DeltaAngle(s.player.transform.eulerAngles.y,yaw),Mathf.DeltaAngle(0,s.player.view.transform.localEulerAngles.x));
+        StormSim.Sibucao.SibucaoEditorInput.Move=new Vector2(0,Mathf.Min(1,delta.magnitude/.45f));
+        StormSim.Sibucao.SibucaoEditorInput.Ascend=s.player.swimming&&s.player.swimming.IsSwimming;
+        yield return null;
+    }
+    StormSim.Sibucao.SibucaoEditorInput.Move=Vector2.zero;StormSim.Sibucao.SibucaoEditorInput.Ascend=false;
+    Check(StormSim.Sibucao.SibucaoRouteChoices.Flat(s.player.transform.position,destination)<.15f||s.Mode==StormSim.Sibucao.SibucaoMode.ArrivalReview||s.Mode==StormSim.Sibucao.SibucaoMode.Complete,"Did not reach "+destination);
+}
+Transform carried=null;
+bool IsPlayer(Collider collider)=>collider.transform.IsChildOf(s.player.transform)||(carried&&collider.transform.IsChildOf(carried));
+bool Clear(Vector3 a,Vector3 b){var delta=b-a;return !Physics.CapsuleCastAll(a+Vector3.up*.38f,a+Vector3.up*1.55f,.29f,delta.normalized,delta.magnitude,~0,QueryTriggerInteraction.Ignore).Any(h=>!IsPlayer(h.collider)&&!(h.distance<.02f&&(Vector3.Dot(delta,(a+Vector3.up*.9f)-(h.collider.GetComponentInParent<StormSim.Sibucao.SibucaoActor>()?h.collider.bounds.center:h.collider.bounds.ClosestPoint(a+Vector3.up*.9f)))>0)));}
+bool Stand(Vector3 requested,out Vector3 position)
+{
+    position=requested;
+    var ground=Physics.RaycastAll(requested+Vector3.up*.65f,Vector3.down,1.5f,~0,QueryTriggerInteraction.Ignore).Where(h=>!IsPlayer(h.collider)&&h.normal.y>.7f).OrderBy(h=>h.distance).ToArray();
+    if(ground.Length==0)return false;position=ground[0].point+Vector3.up*.025f;
+    return !Physics.OverlapCapsule(position+Vector3.up*.38f,position+Vector3.up*1.55f,.29f,~0,QueryTriggerInteraction.Ignore).Any(c=>!IsPlayer(c));
+}
+bool Supported(Vector3 a,Vector3 b)
+{
+    int count=Mathf.Max(1,Mathf.CeilToInt(StormSim.Sibucao.SibucaoRouteChoices.Flat(a,b)/.25f));var previous=a;
+    for(int i=1;i<=count;i++){var expected=Vector3.Lerp(a,b,i/(float)count);if(!Stand(expected,out var ground)||Mathf.Abs(ground.y-previous.y)>.42f||Mathf.Abs(ground.y-expected.y)>.45f)return false;previous=ground;}
+    return true;
+}
+Vector3[] LocalPath(Vector3 goal,Vector3 origin)
+{
+    Physics.SyncTransforms();var start=s.player.transform.position;origin=start;if(Clear(start,goal)&&Supported(start,goal))return new[]{goal};
+    const float cell=.35f;var a=new Vector2Int(Mathf.RoundToInt((start.x-origin.x)/cell),Mathf.RoundToInt((start.z-origin.z)/cell));var b=new Vector2Int(Mathf.RoundToInt((goal.x-origin.x)/cell),Mathf.RoundToInt((goal.z-origin.z)/cell));
+    var queue=new Queue<Vector2Int>();var parent=new Dictionary<Vector2Int,Vector2Int>();var positions=new Dictionary<Vector2Int,Vector3>{{a,start}};var seen=new HashSet<Vector2Int>{a};queue.Enqueue(a);
+    while(queue.Count>0){var cur=queue.Dequeue();if(cur==b){var path=new List<Vector3>{goal};while(cur!=a){path.Add(positions[cur]);cur=parent[cur];}path.Reverse();return path.ToArray();}foreach(var offset in new[]{Vector2Int.up,Vector2Int.right,Vector2Int.down,Vector2Int.left}){var next=cur+offset;if(Mathf.Abs(next.x)>Mathf.Max(Mathf.Abs(a.x),Mathf.Abs(b.x))+10||Mathf.Abs(next.y)>Mathf.Max(Mathf.Abs(a.y),Mathf.Abs(b.y))+10||!seen.Add(next))continue;var p=origin+new Vector3(next.x*cell,positions[cur].y-origin.y,next.y*cell);if(!Stand(p,out p)||Mathf.Abs(p.y-positions[cur].y)>.45f||!Clear(positions[cur],p))continue;positions[next]=p;parent[next]=cur;queue.Enqueue(next);}}
+    throw new Exception("Automation could not plan a local path to "+goal+" from "+start);
+}
+System.Collections.IEnumerator Transit(Vector3 goal)
+{
+    Physics.SyncTransforms();
+    var start=s.player.transform.position;
+    if(Clear(start,goal)&&Stand(goal,out var footing)&&Supported(start,goal)){yield return Walk(goal);yield break;}
+    var origin=(start+goal)*.5f;var candidates=new List<Vector3>{goal};
+    foreach(float radius in new[]{.55f,.85f,1.2f})for(int angle=0;angle<360;angle+=30)candidates.Add(goal+Quaternion.Euler(0,angle,0)*Vector3.forward*radius);
+    Vector3[] route=null;
+    foreach(var candidate in candidates){if(!Stand(candidate,out var safe))continue;try{route=LocalPath(safe,origin);break;}catch(Exception){}}
+    Check(route!=null,"No clear local walking path around approach props near "+goal);
+    Save("NAV walking around approach props near "+goal+" using "+route.Length+" grounded steps");
+    foreach(var point in route)yield return Walk(point);
+}
+System.Collections.IEnumerator Focus(StormSim.Sibucao.SibucaoSideMission mission,Transform item)
+{
+    Physics.SyncTransforms();var collider=item.GetComponentsInChildren<Collider>().First(c=>c.enabled&&!c.isTrigger);var target=collider.bounds.center;var candidates=new List<Vector3>();int originalStep=mission.State.step;
+    foreach(float radius in new[]{1.15f,1.65f,2.2f})for(int angle=0;angle<360;angle+=30){var at=target+Quaternion.Euler(0,angle,0)*Vector3.forward*radius;at.y=mission.transform.position.y+.05f;if(!Stand(at,out at))continue;var eye=at+Vector3.up*1.63f;var direction=target-eye;var hits=Physics.RaycastAll(eye,direction.normalized,3,~0,QueryTriggerInteraction.Ignore).Where(h=>!IsPlayer(h.collider)).OrderBy(h=>h.distance).ToArray();if(hits.Length>0&&(hits[0].transform==item||hits[0].transform.IsChildOf(item)))candidates.Add(at);}
+    Check(candidates.Count>0,"No accessible focus position for "+item.name);
+    foreach(var at in candidates.OrderBy(p=>(p-s.player.transform.position).sqrMagnitude).ToArray())
+    {
+        Vector3[] path=null;try{path=LocalPath(at,mission.transform.position);}catch(Exception){continue;}
+        foreach(var point in path)yield return Walk(point);
+        Physics.SyncTransforms();var bounds=collider.bounds;var offset=bounds.extents*.65f;
+        foreach(var aim in new[]{bounds.center,bounds.center+Vector3.up*offset.y,bounds.center-Vector3.up*offset.y,bounds.center+Vector3.right*offset.x,bounds.center-Vector3.right*offset.x,bounds.center+Vector3.forward*offset.z,bounds.center-Vector3.forward*offset.z})
+        {yield return StormSim.Sibucao.Editor.SibucaoPlaythroughProbe.Get().Aim(aim);if(mission.State.step!=originalStep||d.Focused()==mission)yield break;}
+        Save("NAV adjusting view of "+item.name+" from "+s.player.transform.position);
+    }
+    throw new Exception("No reachable visible work position for "+item.name);
+}
+System.Collections.IEnumerator SideMission(StormSim.Sibucao.SibucaoRouteSection section,StormSim.Sibucao.SibucaoSideMission mission)
+{
+    var f=typeof(StormSim.Sibucao.SibucaoRouteSection).GetField("levelLayout",BindingFlags.NonPublic|BindingFlags.Instance);var layout=(StormSim.Sibucao.RouteSectionLayout)f.GetValue(section)??section.layouts.First(x=>x.home==s.state.homeIndex);
+    var input=mission==section.left?layout.leftApproach:layout.rightApproach;float lift=mission.transform.position.y-(mission==section.left?layout.left.y:layout.right.y);
+    if(d.Working!=mission)foreach(var raw in input){var p=raw+Vector3.up*lift;if(StormSim.Sibucao.SibucaoRouteChoices.Flat(p,mission.transform.position)<2.5f)break;yield return Transit(p);}
+    if(mission.Step==null&&d.Working!=mission){yield return Focus(mission,mission.caller);yield return E();}
+    while(mission.Step!=null)
+    {
+        Check(!mission.Closed,"Selected side passage flooded before work could finish");var step=mission.Step;int before=mission.State.step;status=mission.id+" step "+before;Save("WORK "+status+" "+step.instruction);ScreenCapture.CaptureScreenshot(folder+"working-B"+(section.station.index+1)+"-"+before+".png");
+        if(!(step.work==StormSim.Sibucao.RouteWork.Escort&&d.Working==mission)&&!(step.work==StormSim.Sibucao.RouteWork.Carry&&d.HeldBy==mission)){yield return Focus(mission,step.item);if(mission.State.step!=before)continue;if(step.work==StormSim.Sibucao.RouteWork.Check){float observeUntil=Time.time+1.6f;while(mission.State.step==before&&Time.time<observeUntil)yield return null;if(mission.State.step!=before)continue;}if(step.work==StormSim.Sibucao.RouteWork.Slide||step.work==StormSim.Sibucao.RouteWork.Turn)StormSim.Sibucao.SibucaoEditorInput.UseHeld=true;yield return E();}
+        if(step.work==StormSim.Sibucao.RouteWork.Slide||step.work==StormSim.Sibucao.RouteWork.Turn){StormSim.Sibucao.SibucaoEditorInput.UseHeld=true;float end=Time.time+step.seconds*3+10;while(mission.State.amount<.999f&&Time.time<end){StormSim.Sibucao.SibucaoEditorInput.ToolTurn=new Vector2(20,0);yield return null;}StormSim.Sibucao.SibucaoEditorInput.UseHeld=false;StormSim.Sibucao.SibucaoEditorInput.ToolTurn=Vector2.zero;yield return null;yield return null;}
+        else if(step.work==StormSim.Sibucao.RouteWork.Carry)
+        {
+            carried=step.item;var goal=step.target.position;var candidates=new List<Vector3>();
+            foreach(float radius in new[]{.85f,1.15f,1.45f})for(int angle=0;angle<360;angle+=30){var at=goal+Quaternion.Euler(0,angle,0)*Vector3.forward*radius;at.y=mission.transform.position.y+.05f;if(Stand(at,out at))candidates.Add(at);}
+            Vector3[] placementPath=null;foreach(var at in candidates.OrderBy(v=>(v-s.player.transform.position).sqrMagnitude)){try{placementPath=LocalPath(at,mission.transform.position);break;}catch(Exception){}}
+            Check(placementPath!=null,"Automation could not plan a standing position at placement "+step.target.name);foreach(var p in placementPath)yield return Walk(p);yield return StormSim.Sibucao.Editor.SibucaoPlaythroughProbe.Get().Aim(goal+Vector3.up*.2f);float end=Time.time+8;while(!mission.PlacementReady&&Time.time<end)yield return null;Check(mission.PlacementReady,"Carried object cannot reach placement "+step.target.name);yield return E();carried=null;
+        }
+        else if(step.work==StormSim.Sibucao.RouteWork.Escort)
+        {
+            float end=Time.time+600;while(mission.State.step==before&&Time.time<end){var goal=mission.WorkTarget;if(StormSim.Sibucao.SibucaoRouteChoices.Flat(s.player.transform.position,goal)>3.2f){int follow=Mathf.Max(0,mission.State.escortPoint-6);yield return Transit(mission.route[follow]);}yield return null;Check(!mission.EscortStatus?.StartsWith("Group blocked")??true,"Escort blocked at "+goal);}
+        }
+        Check(mission.State.step>before,"Work did not advance: "+step.instruction);
+    }
+    int nearest=Enumerable.Range(0,mission.route.Length).OrderBy(i=>(mission.route[i]-s.player.transform.position).sqrMagnitude).First();foreach(var p in mission.route.Skip(nearest))yield return Transit(p);yield return Transit(section.Merge);
+    Check(mission.State.complete,"Side work did not record at the merge");
+}
+System.Collections.IEnumerator Journey()
+{
+    Application.runInBackground=true;EditorPrefs.SetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,true);
+    if(resume){s.UseTestSaveDirectory(System.IO.Path.GetFullPath("Captures/Batches4-7_20260930/Journeys/"+role+"-D"+difficulty+"-"+side+"/saves"));Check(s.LoadSlot(false),"Cannot restore the preceding continuous run");Check(s.state.difficultyLevel==difficulty&&s.state.physical.role.ToString()==role,"Saved run differs from requested route");}
+    else{s.UseTestSaveDirectory(System.IO.Path.GetFullPath(folder+"saves"));s.StartWithRole(role);s.StartWithDifficulty(difficulty);yield return null;var bridge=s.GetComponent<StormSim.Preparedness.SibucaoPreparationBridge>();if(bridge&&bridge.Active)bridge.SkipToDuring();if(s.home)s.home.SkipTV();}
+    StormSim.Sibucao.SibucaoEditorInput.Reset();StormSim.Sibucao.SibucaoEditorInput.Active=true;s.settings=JsonUtility.FromJson<StormSim.Sibucao.SibucaoSettings>(JsonUtility.ToJson(originalSettings));s.settings.toggleGrip=false;
+    int firstStage=resume?s.physicalDecisions.NextCoreStage:0;
+    if(!resume){var first=d.sections[0];s.player.Teleport(first.EntryGround+Vector3.up*.05f,first.station.transform.forward);}yield return null;yield return null;
+    Save("BEGIN route-only continuous run; role="+role+" difficulty="+difficulty+" side="+side+" home="+s.state.homeIndex+". "+(resume?"Resumed the preceding continuous run through production manual-load; no fixture placement or outcome writes.":"Preparation skipped and one starting-position fixture at the first junction. No later teleports, clock writes or direct outcome completion."));
+    if(resume&&firstStage>0){var previousSection=d.sections[firstStage-1];for(int exitStep=0;exitStep<3&&previousSection.TryExitTarget(s.player.transform.position,out var exitTarget);exitStep++)yield return Transit(exitTarget);}
+    for(int n=firstStage;n<9;n++)
+    {
+        current=n;var section=d.sections[n];status="approaching B"+(n+1);Save(status);
+        bool continuing=resume&&n==firstStage&&d.Working&&d.Working.section==section;
+        if(!continuing){
+        if(n>0&&s.state.physical.results[n-1]>=100&&StormSim.Sibucao.SibucaoStreetConnections.TryGet(s.state.homeIndex,difficulty,n-1,out var connection)){int firstPoint=resume&&n==firstStage?Enumerable.Range(0,connection.Length).OrderBy(i=>(connection[i]-s.player.transform.position).sqrMagnitude).First():0;foreach(var point in connection.Skip(firstPoint))yield return Walk(point);}
+        else if(n>0){float start=s.route.Progress(s.player.transform.position),end=s.route.Progress(section.EntryGround);var joinOffset=s.player.transform.position-s.route.Sample(start);joinOffset.y=0;start=Mathf.Min(end,start+Mathf.Min(24,joinOffset.magnitude));for(float progress=start+2;progress<end-2;progress+=2)yield return Walk(s.route.Sample(progress));}
+        yield return Walk(section.EntryGround);yield return Walk(section.Approach);
+        }
+        if(side<2)yield return SideMission(section,side==0?section.left:section.right);
+        else {int[] choices={2,0,1,0,2,2,0,2,0};yield return StormSim.Sibucao.Editor.SibucaoBranchPlayProbe.Get().ExerciseExisting(section.station.branches[choices[n]],false);}
+        Check(s.state.physical.results[n]>=0,"No recorded outcome for B"+(n+1));Save("PASS encounter B"+(n+1)+" result="+s.state.physical.results[n]+" clock="+s.state.homeSeconds);
+        ScreenCapture.CaptureScreenshot(folder+"B"+(n+1)+".png");yield return null;
+        while(s.Mode==StormSim.Sibucao.SibucaoMode.Cinematic)yield return null;
+        if(side<2){var layout=(StormSim.Sibucao.RouteSectionLayout)typeof(StormSim.Sibucao.SibucaoRouteSection).GetField("levelLayout",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(section);if(layout!=null&&layout.fittedRamps)yield return Transit(layout.exitGround);}
+    }
+    if(side<2&&StormSim.Sibucao.SibucaoStreetConnections.TryGet(s.state.homeIndex,difficulty,8,out var schoolConnection))foreach(var point in schoolConnection)yield return Walk(point);
+    for(float progress=s.route.Progress(s.player.transform.position)+2;progress<s.route.length&&s.Mode==StormSim.Sibucao.SibucaoMode.Playing;progress+=2)yield return Walk(s.route.Sample(progress));if(s.Mode==StormSim.Sibucao.SibucaoMode.Playing)yield return Walk(s.physicalDecisions.evacuationCenter.arrivalPoint.position);
+    Check(s.Mode==StormSim.Sibucao.SibucaoMode.ArrivalReview,"School reception did not open");s.physicalDecisions.ConfirmArrivalReport();Check(s.state.physical.arrivalReceived&&!s.state.physical.arrivalReported,"Reception did not precede handover");s.physicalDecisions.ConfirmArrivalReport();Check(s.Mode==StormSim.Sibucao.SibucaoMode.Complete,"Handover did not complete the run");Save("PASS JOURNEY wallSeconds="+(Time.realtimeSinceStartup-began));
+}
+System.Collections.IEnumerator Guard()
+{
+    var stack=new Stack<System.Collections.IEnumerator>();stack.Push(Journey());Exception error=null;
+    try{while(stack.Count>0){bool more=false;object value=null;try{more=stack.Peek().MoveNext();if(more)value=stack.Peek().Current;}catch(Exception ex){error=ex;break;}if(!more){stack.Pop();continue;}if(value is System.Collections.IEnumerator nested){stack.Push(nested);continue;}yield return value;}}
+    finally{StormSim.Sibucao.SibucaoEditorInput.Reset();s.settings=originalSettings;EditorPrefs.SetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,oldDev);if(error!=null){s.SaveRun();Save("FAIL "+status+": "+error);Save("Recovery: saved the actual stopped run through production SaveRun for a later resume.");}System.IO.File.WriteAllText(folder+"finished.txt",error==null?"PASS":"FAIL");}
+}
+s.StartCoroutine(Guard());return "Continuous route segment started: "+folder;
+

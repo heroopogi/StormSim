@@ -1,0 +1,1 @@
+return string.Join("\n",new[]{"Assets/StormSim/Generated/BanagoArchitecture_20260907_015351/Neighbourhood 11.asset","Assets/StormSim/Generated/BanagoArchitecture_20260907_015351/Neighbourhood 12.asset"}.SelectMany(p=>AssetDatabase.LoadAllAssetsAtPath(p).OfType<Mesh>().Select(m=>p+" | "+m.name)));

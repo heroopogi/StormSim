@@ -1,0 +1,69 @@
+using UnityEngine;
+using UnityEditor;
+using StormSim.Sibucao;
+using System;
+using System.IO;
+using System.Linq;
+using System.Collections.Generic;
+using Object=UnityEngine.Object;
+internal class CommandScript:IRunCommand {
+ const string Dir="Captures/Aftermath/Phase1_20261012";
+ public void Execute(ExecutionResult result) {
+  if(!EditorApplication.isPlaying)throw new Exception("Requires Play Mode");
+  var s=Object.FindFirstObjectByType<SibucaoSession>();
+  s.UseTestSaveDirectory(Path.GetFullPath(Dir+"/test-saves"));
+  var points=new List<Vector3>();
+  for(float d=s.route.length-76;d<s.route.length;d+=4)points.Add(s.route.Sample(d));
+  points.Add(s.route.Sample(s.route.length));points.Add(s.initialPlayerSpawn.position+Vector3.forward*4);
+  s.player.Teleport(points[0],points[1]-points[0]);
+  if(s.physicalDecisions)s.physicalDecisions.EnsureNodeCapacity();
+  s.SetMode(SibucaoMode.Playing);SibucaoEditorInput.Reset();SibucaoEditorInput.Active=true;
+  var rows=new List<string>{"frame,elapsed,x,y,z,waypoint,mode,delta_ms,draw_calls,triangles"};
+  var errors=new List<string>();Application.LogCallback log=(message,stack,type)=>{if(type==LogType.Error||type==LogType.Exception)errors.Add(message+"\n"+stack);};Application.logMessageReceived+=log;
+  var samples=new List<float>();int index=1,lastFrame=-1,frames=0;
+  double began=EditorApplication.timeSinceStartup,lastProgress=began;float nearest=float.MaxValue;
+  bool captured=false;bool oldBackground=Application.runInBackground;Application.runInBackground=true;
+  EditorApplication.CallbackFunction tick=null;
+  Action<string> finish=reason=>{
+   EditorApplication.update-=tick;Application.logMessageReceived-=log;SibucaoEditorInput.Reset();Application.runInBackground=oldBackground;
+   var pos=s.player.transform.position;
+   var nearby=Physics.OverlapCapsule(pos+Vector3.up*.35f,pos+Vector3.up*1.5f,.4f,~0,QueryTriggerInteraction.Ignore).Where(c=>!c.transform.IsChildOf(s.player.transform)).Select(c=>c.name).Distinct().ToArray();
+   var sorted=samples.OrderBy(v=>v).ToArray();
+   var w=s.weather;
+   string report="Outcome: "+reason+"\nWaypoints reached: "+index+"/"+points.Count+"\nFinal position: "+pos+"\nMode: "+s.Mode+"\nNearby non-player colliders: "+string.Join("; ",nearby)+"\nAftermath="+w.aftermath+" rain="+(w.rain&&w.rain.isPlaying)+" rainAudio="+(w.rainAudio&&w.rainAudio.isPlaying)+" thunderAudio="+(w.thunderAudio&&w.thunderAudio.isPlaying)+" floodEnabled="+s.GetComponent<FloodSimulationManager>().enabled+"\nSamples="+sorted.Length;
+   if(sorted.Length>0)report+="\nMean frame ms="+sorted.Average().ToString("F2")+" median="+sorted[sorted.Length/2].ToString("F2")+" p95="+sorted[Math.Min(sorted.Length-1,(int)(sorted.Length*.95))].ToString("F2");
+   report+="\nGraphics="+SystemInfo.graphicsDeviceName+" screen="+Screen.width+"x"+Screen.height+" quality="+QualitySettings.names[QualitySettings.GetQualityLevel()]+"\nAllocated MB="+(UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong()/1048576)+"\nEditor diagnostic only; excludes first 20 sampled frames; not a player-build benchmark. Synthetic movement uses SibucaoEditorInput, normal player controller and existing gameplay systems. New-game flow bypassed; test saves isolated.";
+   report+="\nErrors during diagnostic="+errors.Count;File.WriteAllLines(Dir+"/runtime-errors.txt",errors);
+   File.WriteAllLines(Dir+"/walkthrough-frames.csv",rows);File.WriteAllText(Dir+"/walkthrough-result.txt",report);
+   Capture(s.player.view,"runtime-walkthrough-end");
+   File.WriteAllText(Dir+"/runtime-npcs.txt",string.Join("\n",Object.FindObjectsByType<SibucaoResident>(FindObjectsSortMode.None).Where(n=>n.transform.position.z>630).Select(n=>n.name+" position="+n.transform.position+" speed="+n.speed+" sheltered="+n.Sheltered)));
+   s.SetMode(SibucaoMode.Menu);Debug.Log("Phase 1 walkthrough: "+reason);
+  };
+  tick=()=>{
+   try{
+    if(!EditorApplication.isPlaying||!s){EditorApplication.update-=tick;SibucaoEditorInput.Reset();return;}
+    if(Time.frameCount==lastFrame)return;lastFrame=Time.frameCount;frames++;
+    double elapsed=EditorApplication.timeSinceStartup-began;
+    var p=s.player.transform.position;
+    if(frames>20)samples.Add(Time.unscaledDeltaTime*1000);
+    rows.Add(FormattableString.Invariant($"{Time.frameCount},{elapsed:F3},{p.x:F4},{p.y:F4},{p.z:F4},{index},{s.Mode},{Time.unscaledDeltaTime*1000:F3},{UnityStats.drawCalls},{UnityStats.triangles}"));
+    if(!captured&&frames>30){captured=true;Capture(s.player.view,"runtime-approach");}
+    var delta=points[index]-p;delta.y=0;float dist=delta.magnitude;
+    if(dist<.65f){index++;nearest=float.MaxValue;lastProgress=EditorApplication.timeSinceStartup;if(index>=points.Count){finish("Completed approach and 4 m entrance segment");return;}delta=points[index]-p;delta.y=0;dist=delta.magnitude;}
+    if(dist<nearest-.15f){nearest=dist;lastProgress=EditorApplication.timeSinceStartup;}
+    if(elapsed>90){finish("Stopped at 90 second diagnostic limit");return;}
+    if(EditorApplication.timeSinceStartup-lastProgress>12){finish("No waypoint progress for 12 seconds");return;}
+    s.player.transform.rotation=Quaternion.LookRotation(delta.normalized);
+    SibucaoEditorInput.Move=Vector2.up;
+    if(frames%30==0)File.WriteAllText(Dir+"/walkthrough-status.txt","Running: waypoint "+index+"/"+points.Count+" at "+p+" elapsed="+elapsed.ToString("F1")+" mode="+s.Mode);
+   }catch(Exception e){finish("Exception: "+e);}
+  };
+  EditorApplication.update+=tick;result.Log("Started 80 m approach plus entrance walkthrough; automatic limit 90 seconds.");
+ }
+ void Capture(Camera cam,string name) {
+  var previousTarget=cam.targetTexture;var previous=RenderTexture.active;
+  var rt=new RenderTexture(1600,900,24);var tex=new Texture2D(1600,900,TextureFormat.RGB24,false);
+  try{cam.targetTexture=rt;cam.Render();RenderTexture.active=rt;tex.ReadPixels(new Rect(0,0,1600,900),0,0);tex.Apply();File.WriteAllBytes(Dir+"/"+name+".png",tex.EncodeToPNG());}
+  finally{RenderTexture.active=previous;cam.targetTexture=previousTarget;rt.Release();Object.Destroy(rt);Object.Destroy(tex);}
+ }
+}

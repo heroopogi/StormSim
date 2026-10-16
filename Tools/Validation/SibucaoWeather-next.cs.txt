@@ -1,0 +1,54 @@
+using UnityEngine;
+using UnityEngine.Rendering;
+
+namespace StormSim.Sibucao
+{
+    public sealed class SibucaoWeather : MonoBehaviour
+    {
+        public Transform player;
+        public ParticleSystem rain;
+        public AudioSource rainAudio,windAudio,thunderAudio;
+        public AudioClip[] thunder;
+        public Light sun;
+        public Material stormSky;
+        public float tierSwell;
+        public float Intensity=>strength;
+        float strength=.3f,nextThunder,flash,thunderDelay=-1;
+        bool storm;
+        int quality=1;
+        void Start(){
+            if(rain){var collision=rain.collision;collision.enabled=true;collision.type=ParticleSystemCollisionType.World;collision.quality=ParticleSystemCollisionQuality.High;collision.enableDynamicColliders=true;collision.lifetimeLoss=1;collision.radiusScale=.05f;collision.collidesWith=~0;collision.maxCollisionShapes=1024;}
+            nextThunder=Time.time+Random.Range(18,30);RenderSettings.skybox=stormSky;ApplyLighting();}
+        public void SetStorm(bool value){storm=value;}
+        public void ApplyQuality(int value){quality=value; if(rain){var main=rain.main;main.maxParticles=value==0?2500:value==1?5000:8000;}}
+        void ApplyLighting()
+        {
+            float brightness=SibucaoSession.Instance?SibucaoSession.Instance.settings.brightness:.7f;
+            RenderSettings.ambientMode=AmbientMode.Trilight;
+            float darkness=Mathf.Lerp(1,.62f,Mathf.InverseLerp(.6f,1.35f,strength));
+            RenderSettings.ambientSkyColor=new Color(.28f,.32f,.37f)*(.6f+brightness)*darkness;
+            RenderSettings.ambientEquatorColor=new Color(.23f,.26f,.28f)*(.6f+brightness)*darkness;
+            RenderSettings.ambientGroundColor=new Color(.13f,.14f,.15f);
+            RenderSettings.fog=true;RenderSettings.fogMode=FogMode.ExponentialSquared;
+            RenderSettings.fogColor=new Color(.24f,.28f,.32f);RenderSettings.fogDensity=Mathf.Lerp(.006f,.011f,Mathf.InverseLerp(.6f,1.35f,strength));
+            if(sun){sun.intensity=(.15f+brightness*.22f)*darkness+(SibucaoSession.Instance&&SibucaoSession.Instance.settings.reducedFlashes?0:flash*2.5f);sun.color=new Color(.7f,.78f,.9f);sun.useColorTemperature=false;}
+        }
+        void Update()
+        {
+            var session=SibucaoSession.Instance;
+            float target=storm?SibucaoStormTimeline.Intensity(session?session.home:null,session?session.state.homeSeconds:0):.3f;
+            if(storm&&session&&session.physicalDecisions)
+            {
+                float progress=Mathf.InverseLerp(session.state.physical.routeStart,session.route.length,session.route.Progress(player.position));
+                target=Mathf.Max(target,Mathf.Lerp(.6f,1.35f,progress)); // Geography/time only; never score, branch or roll.
+            }
+            strength=Mathf.MoveTowards(strength,target,Time.deltaTime*.3f);
+            float severity=Mathf.InverseLerp(.6f,1.35f,strength);
+            if(rain){rain.transform.position=player.position+Vector3.up*10;var emission=rain.emission;emission.rateOverTime=(quality==0?1200:quality==1?2600:4000)*strength;var v=rain.velocityOverLifetime;v.x=5+severity*4+Mathf.Sin(Time.time*.8f)*2;v.z=2;}
+            rainAudio.volume=Mathf.Clamp01(.6f*strength+tierSwell)*SibucaoAudioMix.Environment;windAudio.volume=Mathf.Clamp01(.55f*strength+tierSwell)*SibucaoAudioMix.Environment;thunderAudio.volume=SibucaoAudioMix.Environment;
+            if(storm && Time.time>=nextThunder){flash=1;thunderDelay=Time.time+Random.Range(.6f,1.8f);nextThunder=Time.time+Mathf.Lerp(48,20,severity)+Random.Range(0,12);}
+            if(thunderDelay>=0 && Time.time>=thunderDelay){if(thunder.Length>0)thunderAudio.PlayOneShot(thunder[Random.Range(0,thunder.Length)],.65f);thunderDelay=-1;}
+            flash=Mathf.MoveTowards(flash,0,Time.deltaTime*5);ApplyLighting();
+        }
+    }
+}

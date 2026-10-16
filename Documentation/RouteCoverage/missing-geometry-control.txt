@@ -1,0 +1,1 @@
+PASS: missing obstruction rejected — D44 - storm-damaged home exit: no active visible collision geometry.

@@ -1,0 +1,25 @@
+{
+  "channels": {
+    "R": "grass",
+    "G": "soil",
+    "B": "sand",
+    "A": "concrete"
+  },
+  "size": [
+    2048,
+    2048
+  ],
+  "uvMapping": {
+    "xmin": -385.48376,
+    "zmin": 59.08043999999995,
+    "spanMeters": 1420.0
+  },
+  "dominantSurfacePercent": {
+    "grass": 26.96,
+    "soil": 52.77,
+    "sand": 0.05,
+    "concrete": 20.22
+  },
+  "source": "Existing imagery-based vegetation classification, road/building footprints and traced coast/pond polygons.",
+  "note": "An approximate visual land-cover classification; no photographic albedo or shadows are used by the new ground materials."
+}

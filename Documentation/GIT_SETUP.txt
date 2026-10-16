@@ -1,0 +1,50 @@
+STORMSIM GIT SETUP
+==================
+
+Purpose
+-------
+This repository protects the game scripts, Unity project configuration,
+documentation, gameplay scenes, and the smaller project-owned assets.
+
+Large content excluded from this local repository
+-------------------------------------------------
+- Generated StormSim world data
+- Imported Organized Assets package
+- Crest package
+- NPC and low-poly model packages
+- Unity recovery files
+- Captures, reports, backups, and generated output
+
+These folders remain on this computer. They are excluded because Git LFS must
+store another local copy of tracked binary files, and the C: drive did not have
+enough free space for the complete 9+ GB Assets folder.
+
+Daily workflow
+--------------
+1. Before changing the game:
+   git status
+   git add -A
+   git commit -m "Describe the change"
+
+2. To view history:
+   git log --oneline --decorate
+
+3. To discard uncommitted changes in one tracked file:
+   git restore "path/to/file"
+
+4. To undo the last commit while keeping the files editable:
+   git reset --soft HEAD~1
+
+5. To make a new commit that reverses an older commit:
+   git revert COMMIT_ID
+
+Remote backup
+-------------
+No online remote is configured yet. To back up the repository online, create
+an empty GitHub repository, then run:
+
+git remote add origin YOUR_REPOSITORY_URL
+git push -u origin main
+
+The remote must support Git LFS. A larger LFS storage plan or a separate asset
+backup is required before adding the excluded asset folders.

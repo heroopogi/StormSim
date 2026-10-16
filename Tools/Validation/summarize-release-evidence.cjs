@@ -1,0 +1,8 @@
+const fs=require('fs'),path=require('path');
+const base='Captures/Batches4-7_20260930';
+const reports=['release-checks.txt','batch2-regression.txt','batch3-regression.txt','compatibility.txt','physical-access.txt','side-interactions.txt','route-structure.txt','live-accessibility.txt','hand-geometry.txt','UI/capture-log.txt','Preparation/checks.txt','NPC/checks.txt','Assistance/checks.txt','Audio/checks.txt'];
+const summary={generatedUtc:new Date().toISOString(),reports:[],builds:[],coverage:{},note:'Counts describe stored reports. Check timestamps, source versions and visual evidence before accepting a task.'};
+for(const file of reports){const full=path.join(base,file);if(!fs.existsSync(full)){summary.reports.push({file,status:'NOT RUN'});continue;}const text=fs.readFileSync(full,'utf8');summary.reports.push({file,updatedUtc:fs.statSync(full).mtime.toISOString(),pass:(text.match(/^PASS\b/gm)||[]).length,fail:(text.match(/^FAIL\b/gm)||[]).length,notRun:(text.match(/^NOT RUN\b/gm)||[]).length});}
+for(const file of ['build-report.txt','release-build-report.txt']){const full=path.join(base,file);if(fs.existsSync(full)){const text=fs.readFileSync(full,'utf8');summary.builds.push({file,updatedUtc:fs.statSync(full).mtime.toISOString(),result:text.match(/^Result: (.+)$/m)?.[1],errors:text.match(/^Errors: (\d+)/m)?.[1],warnings:text.match(/^Warnings: (\d+)/m)?.[1]});}}
+const matrix=path.join(base,'continuous-coverage.csv');if(fs.existsSync(matrix))for(const row of fs.readFileSync(matrix,'utf8').trim().split(/\r?\n/).slice(1)){const state=row.split(',')[6];summary.coverage[state]=(summary.coverage[state]||0)+1;}
+fs.writeFileSync(path.join(base,'evidence-summary.json'),JSON.stringify(summary,null,2)+'\n');console.log(JSON.stringify(summary,null,2));

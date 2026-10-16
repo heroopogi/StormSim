@@ -1,0 +1,189 @@
+DRRMO AND ADVISER GAMEPLAY IMPROVEMENT CHECKLIST
+================================================
+
+Scope: Requested improvements to preparation, the go-bag, difficulty
+progression, and flood-safety learning in SIBUCAO_RAIN.
+
+Legend:
+[x] Present in the current source
+[ ] Proposed, incomplete, or awaiting confirmation
+
+The 16 October 2026 update has Unity compile errors. A feature found in the
+source is not considered runtime-verified until the project compiles and is
+checked in Play Mode.
+
+
+CURRENT PREPARATION AND ROLE FLOW
+---------------------------------
+
+[x] Preparation includes a weather bulletin, household activities, go-bag
+    packing, optional neighbor contact, and a departure or rest choice.
+
+[x] The current menu starts the player as Resident without offering a role
+    choice; difficulty selection remains.
+
+[x] Players can choose Guided or Explore preparation. Guidance can be changed
+    later.
+
+[x] Player role selection is bypassed in the current menu flow. The legacy
+    role field remains for compatibility.
+
+[x] The update adds a one-day-before opening, voice and subtitle guidance,
+    a physical handbook with a progress pencil, and an item-information panel.
+
+[ ] Replace the prescriptive "What to Prepare" list with a short current
+    objective, the active warning, and contextual item guidance.
+
+[x] Optional preparation can be left unfinished. An evacuation instruction
+    takes priority over household tasks.
+
+
+GO-BAG AND ITEM INTERACTIONS
+----------------------------
+
+[x] The desktop bag panel shows packed-item names, weight, readiness, bag
+    capacity, and individual retrieval actions.
+
+[x] The departure review summarizes packed supplies and the household plan.
+
+[x] Retrieving an item restores it as a physical object in the player's hand.
+    The player can then drop it manually.
+
+[x] The storm inventory has separate "Take out" and "Drop selected" actions.
+
+[ ] Add useful inventory grouping or sorting, such as Communication, Health,
+    Food and Water, and Documents.
+
+[ ] Confirm that the new preparation item-information panel has a valid
+    purpose description for every relevant supply.
+
+[ ] Change the preparation bag's removal action to place the item directly in
+    a safe, reachable place in the world, with no loss or duplication.
+
+[ ] Show a brief pickup explanation and connect representative supplies to an
+    in-game check or action where appropriate.
+
+
+FLOOD DIFFICULTY AND TASK PROGRESSION
+-------------------------------------
+
+[x] The storm has five authored difficulty profiles, and floodwater rises over
+    the scenario timeline.
+
+[ ] Make water-height changes and their effects on routes clear at relevant
+    mission stages.
+
+[ ] Define how mission stage and selected difficulty affect the water profile
+    and route availability.
+
+[ ] Keep optional chores from causing sudden water increases. Evacuation
+    remains the priority as conditions worsen.
+
+[ ] Keep flood depth and route changes tied to the authored game scenario. Do
+    not present scenario values as calibrated local flood predictions.
+
+
+APPLY THE DRRMO FLOOD GUIDANCE
+------------------------------
+
+[ ] Use the leaflet's Monitoring, Alert, and Evacuate states to drive
+    consistent radio, television, and objective updates.
+
+[x] An evacuation instruction already overrides unfinished preparation and
+    optional activities.
+
+[ ] Provide a safe route to higher ground when flooding blocks a route. Do not
+    reward walking or driving through floodwater.
+
+[ ] If an aftermath activity is included, require an official all-clear before
+    return and inspection. Teach players to avoid and report hazards such as
+    downed electrical wires.
+
+[ ] Confirm local wording, warning stages, routes, and emergency information
+    with DRRMO before presenting them as official guidance.
+
+
+DECISIONS TO CONFIRM BEFORE IMPLEMENTATION
+------------------------------------------
+
+[ ] Confirm that "remove roles" means removing the player role-selection
+    screen. The current source already bypasses this screen.
+
+[ ] Confirm that "remove what to prepare" means removing the prescriptive
+    checklist from the UI while retaining preparation gameplay and contextual
+    item explanations.
+
+[ ] Confirm that "flood height per task" means staged progression through
+    required mission phases, rather than raising water after every optional
+    task.
+
+
+ACCEPTANCE CRITERIA
+-------------------
+
+[ ] The bag clearly explains what the player packed, why relevant items matter,
+    and how to retrieve or drop them.
+
+[ ] The opening flow no longer asks the player to choose a role.
+
+[ ] The preparation UI gives useful next steps without relying on the removed
+    prescriptive list.
+
+[ ] Flood progression is visible, follows the selected difficulty, and
+    supports evacuation decisions.
+
+[ ] DRRMO lessons appear in player choices and consequences across preparation
+    and flooding.
+
+[ ] A first-time participant completes a continuous playthrough and can explain
+    the warnings, important supplies, evacuation decision, and flood hazards.
+
+
+UPDATE FINDINGS - 16 OCTOBER 2026
+---------------------------------
+
+[x] Source inspection confirms that the role chooser is bypassed and the
+    player role is set to Resident.
+
+[x] New onboarding and presentation components are present: an opening title,
+    narration and subtitle fallback, a physical handbook, and focused item
+    information.
+
+[x] Bag summaries, item readiness, and individual retrieval are present.
+
+[ ] The preparation guide still contains the grouped Supplies, Go-bag, Home
+    safety, Household plan, and Departure checklist.
+
+[ ] The preparation bag's "Take out this item" action still retrieves the item
+    into the player's hand. It does not directly drop the item into the world.
+
+[ ] Inventory sorting is not present in the preparation bag panel.
+
+[ ] The current flood source still uses the existing five difficulty profiles
+    and timeline-driven water rise. No new per-task water-stage progression was
+    found.
+
+[ ] Resolve the current Unity Console errors: duplicate PrepWorkSave definition
+    and duplicate Serializable attribute in PreparednessSupport.cs and
+    PreparednessSession.cs.
+
+[ ] The new item panel calls ItemPurpose, but no implementation or item-purpose
+    records were found in the current Assets source. Add or confirm these after
+    resolving the duplicate-definition errors.
+
+
+REVIEW LIMITS
+-------------
+
+This is a source and Unity Console review. It is not a successful build or a
+continuous playthrough. The workspace has no Git metadata, so an exact
+before-and-after diff was unavailable.
+
+
+PROJECT REFERENCES
+------------------
+
+Documentation/SIBUCAO_PREPARATION_IMPROVEMENT_CHECKLIST.md
+Documentation/SIBUCAO_PREPARATION_COACHING.md
+Documentation/SIBUCAO_BATCH3_FLOOD_MOVEMENT.md
+Documentation/TORMSIM_SIBUCAO_INTEGRATION.md

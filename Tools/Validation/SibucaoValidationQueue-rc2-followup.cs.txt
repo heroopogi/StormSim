@@ -1,0 +1,44 @@
+using System;
+using System.IO;
+using UnityEditor;
+using UnityEngine;
+
+namespace StormSim.Sibucao.Editor
+{
+    // Local development queue. Files are outside Assets and never included in players.
+    [InitializeOnLoad]
+    public static class SibucaoValidationQueue
+    {
+        const string Request="Temp/stormsim-validation-request.json";
+        const string Response="Temp/stormsim-validation-response.json";
+        [Serializable] class Job { public string action,code,role="Student";public int difficulty=1,side;public bool resume; }
+        static double next;
+        static SibucaoValidationQueue(){EditorApplication.update+=Tick;}
+        static void Tick()
+        {
+            if(EditorApplication.timeSinceStartup<next||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
+            next=EditorApplication.timeSinceStartup+.5;
+            if(!File.Exists(Request))return;
+            try
+            {
+                var job=JsonUtility.FromJson<Job>(File.ReadAllText(Request));File.Delete(Request);
+                if(job.action=="refresh"){File.WriteAllText(Response,"Refresh requested");AssetDatabase.Refresh();return;}
+                if(job.action=="play"){File.WriteAllText(Response,"Play requested");EditorApplication.isPlaying=true;return;}
+                if(job.action=="stop"){File.WriteAllText(Response,"Stop requested");EditorApplication.isPlaying=false;return;}
+                if(job.action=="regressions"){SibucaoReleasePipeline.Start();File.WriteAllText(Response,"Regression pipeline started");return;}
+                if(job.action=="build"){SibucaoReleaseChecks.BuildDesktop();File.WriteAllText(Response,"Development build completed");return;}
+                if(job.action=="review"){SibucaoDesktopReviewSuite.Start();File.WriteAllText(Response,"Compiled desktop review suite started");return;}
+                if(job.action=="journey"){var result=SibucaoDesktopReviewSuite.StartJourney(job.difficulty,job.role,job.side,job.resume);File.WriteAllText(Response,result.ToString());return;}
+                if(job.action=="buildRelease"){SibucaoReleaseChecks.BuildRelease();File.WriteAllText(Response,"Non-development release build completed");return;}
+                if(job.action=="execute")
+                {
+                    var result=MCPForUnity.Editor.Tools.ExecuteCode.HandleCommand(new Newtonsoft.Json.Linq.JObject{{"action","execute"},{"code",job.code}});
+                    File.WriteAllText(Response,Newtonsoft.Json.JsonConvert.SerializeObject(result));return;
+                }
+                File.WriteAllText(Response,JsonUtility.ToJson(new Status()));
+            }
+            catch(Exception ex){File.WriteAllText(Response,ex.ToString());}
+        }
+        [Serializable] class Status { public bool playing=EditorApplication.isPlaying; public string scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene().path; }
+    }
+}

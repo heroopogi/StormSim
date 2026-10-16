@@ -1,0 +1,141 @@
+// Roof-and-yard authoring pass. Run aftermath-finalize-house-damage.cs.txt afterward to apply facade materials and verify the final scene.
+var scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+if(scene.path!="Assets/Scenes/SIBUCAO_AFTERMATH.unity"||EditorApplication.isPlaying)throw new Exception("Open aftermath in Edit mode.");
+const string rootName="Aftermath - damaged homes and yards";
+if(GameObject.Find(rootName))
+{
+    if(System.IO.File.Exists("Captures/Aftermath/house-damage.txt"))throw new Exception("Damage already complete; preserve manual edits.");
+    foreach(var f in UnityEngine.Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None))
+    {
+        if(!f.transform.parent||!AssetDatabase.GetAssetPath(f.sharedMesh).Contains("/Damaged neighborhood "))continue;
+        int batch=f.transform.parent.name=="Neighbourhood -1_6"?11:12;
+        var meshes=AssetDatabase.LoadAllAssetsAtPath("Assets/StormSim/Generated/BanagoArchitecture_20260907_015351/Neighbourhood "+batch+".asset").OfType<Mesh>();
+        var original=meshes.Single(m=>f.name=="metal"?m.name.EndsWith(" metal"):m.name=="Neighbourhood "+batch);
+        f.sharedMesh=original;var col=f.GetComponent<MeshCollider>();if(col)col.sharedMesh=original;
+    }
+    UnityEngine.Object.DestroyImmediate(GameObject.Find(rootName));
+}
+System.IO.Directory.CreateDirectory("Backups/Aftermath");
+if(!System.IO.File.Exists("Backups/Aftermath/BeforeHouseDamage.unity")&&!UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene,"Backups/Aftermath/BeforeHouseDamage.unity",true))throw new Exception("Backup failed");
+string folder="Assets/StormSim/Sibucao/Art/Aftermath";
+var root=new GameObject(rootName).transform;
+var allHouses=UnityEngine.Object.FindObjectsByType<BanagoHousePreview>(FindObjectsInactive.Include,FindObjectsSortMode.None);
+var names=new[]{"House 1446","House 1511","House 1420","House 1559","House 1572","House 1589","House 1579","House 1608"};
+var severity=new[]{2,1,0,1,2,0,1,2};
+var houses=names.Select(n=>allHouses.Single(h=>h.name==n)).ToArray();
+var bounds=houses.Select(h=>h.GetComponent<Renderer>().bounds).ToArray();
+var session=UnityEngine.Object.FindFirstObjectByType<StormSim.Sibucao.SibucaoSession>();
+var ground=UnityEngine.Object.FindObjectsByType<MeshCollider>(FindObjectsSortMode.None).Where(c=>c.enabled&&c.name.StartsWith("Measured terrain")).ToArray();
+float Ground(Vector3 p){float y=float.NegativeInfinity;foreach(var c in ground)if(c.Raycast(new Ray(new Vector3(p.x,40,p.z),Vector3.down),out var hit,80))y=Mathf.Max(y,hit.point.y);if(!float.IsFinite(y))throw new Exception("No ground "+p);return y;}
+Material Mat(string name,Color color){var path=folder+"/"+name+".mat";var m=AssetDatabase.LoadAssetAtPath<Material>(path);if(!m){m=new Material(Shader.Find("Universal Render Pipeline/Lit"));AssetDatabase.CreateAsset(m,path);}m.SetColor("_BaseColor",color);return m;}
+var timber=Mat("Exposed damaged rafters",new Color(.32f,.21f,.13f));
+var pale=Mat("Broken pale fence",new Color(.51f,.52f,.43f));
+var red=Mat("Recovery restricted red",new Color(.6f,.13f,.09f));
+var iron=AssetDatabase.LoadAssetAtPath<Material>(folder+"/Dented galvanized metal.mat");
+var leaf=AssetDatabase.LoadAssetAtPath<Material>(folder+"/Fallen olive leaves.mat");
+GameObject Box(string name,Vector3 position,Vector3 size,Material material,Quaternion rotation){var g=GameObject.CreatePrimitive(PrimitiveType.Cube);g.name=name;g.transform.SetParent(root,false);g.transform.SetPositionAndRotation(position,rotation);g.transform.localScale=size;g.GetComponent<Renderer>().sharedMaterial=material;UnityEngine.Object.DestroyImmediate(g.GetComponent<Collider>());return g;}
+void Beam(string name,Vector3 a,Vector3 b,float width,Material material){var delta=b-a;if(delta.sqrMagnitude<.02f)return;Box(name,(a+b)*.5f,new Vector3(width,width,delta.magnitude),material,Quaternion.LookRotation(delta));}
+int FindHouse(Vector3 p){int best=-1;float distance=float.MaxValue;for(int i=0;i<houses.Length;i++){var b=bounds[i];if(p.x<b.min.x+.1f||p.x>b.max.x-.1f||p.z<b.min.z+.1f||p.z>b.max.z-.1f)continue;float d=(p.x-b.center.x)*(p.x-b.center.x)+(p.z-b.center.z)*(p.z-b.center.z);if(d<distance){best=i;distance=d;}}return best;}
+bool Hole(Vector3 p,int h){if(severity[h]==0)return false;var b=bounds[h];float dx=(p.x-b.center.x)/b.extents.x,dz=(p.z-b.center.z)/b.extents.z;float r=severity[h]==2?.84f:.58f;return (dx-.2f)*(dx-.2f)+(dz+.15f)*(dz+.15f)<r*r;}
+var affected=new int[houses.Length];int meshCount=0,stained=0;
+var sources=UnityEngine.Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None).Where(f=>f.transform.parent&&(f.transform.parent.name=="Neighbourhood -1_6"||f.transform.parent.name=="Neighbourhood -1_7")&&f.name=="metal").OrderBy(f=>f.transform.parent.name+"/"+f.name).ToArray();
+foreach(var f in sources)
+{
+    var source=f.sharedMesh;if(!source.isReadable||source.subMeshCount!=1)throw new Exception("Unexpected mesh layout "+f.name);
+    var vertices=source.vertices.ToList();var normals=source.normals.ToList();var uv=source.uv.ToList();var colors=source.colors.ToList();
+    while(normals.Count<vertices.Count)normals.Add(Vector3.up);while(uv.Count<vertices.Count)uv.Add(Vector2.zero);while(colors.Count<vertices.Count)colors.Add(Color.white);
+    var output=new List<int>();bool changed=false;var rafters=new HashSet<int>();bool roof=f.name=="metal";
+    int Mid(int a,int b){int n=vertices.Count;vertices.Add((vertices[a]+vertices[b])*.5f);normals.Add((normals[a]+normals[b]).normalized);uv.Add((uv[a]+uv[b])*.5f);colors.Add((colors[a]+colors[b])*.5f);return n;}
+    void Tri(int a,int b,int c,int depth,int house)
+    {
+        if(depth>0){int ab=Mid(a,b),bc=Mid(b,c),ca=Mid(c,a);Tri(a,ab,ca,depth-1,house);Tri(ab,b,bc,depth-1,house);Tri(ca,bc,c,depth-1,house);Tri(ab,bc,ca,depth-1,house);return;}
+        var p=f.transform.TransformPoint((vertices[a]+vertices[b]+vertices[c])/3);
+        if(roof&&Hole(p,house)){affected[house]++;changed=true;return;}
+        if(!roof)
+        {
+            foreach(int id in new[]{a,b,c})
+            {
+                var wp=f.transform.TransformPoint(vertices[id]);float height=wp.y-houses[house].transform.position.y;
+                if(height<1.15f+.12f*Mathf.Sin(wp.x*2+wp.z*3))
+                {
+                    // Set from the source-like facade tint once; never compound shared-vertex tinting.
+                    var col=colors[id];if(col.a>.99f){col=Color.Lerp(col,new Color(.22f,.17f,.105f),.72f);col.a=.98f;colors[id]=col;stained++;}
+                }
+            }
+            changed=true;
+        }
+        output.Add(a);output.Add(b);output.Add(c);
+    }
+    var indices=source.triangles;
+    for(int k=0;k<indices.Length;k+=3)
+    {
+        int a=indices[k],b=indices[k+1],c=indices[k+2];var p=f.transform.TransformPoint((vertices[a]+vertices[b]+vertices[c])/3);int h=FindHouse(p);
+        bool eligible=h>=0&&(!roof||p.y>houses[h].transform.position.y+houses[h].wallHeightMeters-.6f);
+        if(!eligible){output.Add(a);output.Add(b);output.Add(c);continue;}
+        if(roof&&severity[h]>0)
+        {
+            var wa=f.transform.TransformPoint(vertices[a]);var wb=f.transform.TransformPoint(vertices[b]);var wc=f.transform.TransformPoint(vertices[c]);
+            // Rafters follow the actual pitched roof plane, beneath the missing sheets.
+            var normal=Vector3.Cross(wb-wa,wc-wa).normalized;
+            if(Mathf.Abs(normal.y)>.2f&&(wb-wa).magnitude>2)
+                for(int j=1;j<=5;j++)
+                {
+                    var ra=Vector3.Lerp(wa,wb,j/6f)-Vector3.up*.16f;var rb=Vector3.Lerp(wa,wc,j/6f)-Vector3.up*.16f;
+                    if(Hole((ra+rb)*.5f,h))Beam(names[h]+" exposed roof rafter",ra,rb,.10f,timber);
+                }
+        }
+        Tri(a,b,c,roof?3:2,h);
+    }
+    if(!changed)continue;
+    var copy=UnityEngine.Object.Instantiate(source);copy.name=f.transform.parent.name+" aftermath "+f.name;copy.indexFormat=UnityEngine.Rendering.IndexFormat.UInt32;
+    copy.Clear();copy.SetVertices(vertices);copy.SetNormals(normals);copy.SetUVs(0,uv);copy.SetColors(colors);copy.SetTriangles(output,0);copy.RecalculateBounds();
+    var meshPath=folder+"/Damaged neighborhood "+meshCount+".asset";var savedMesh=AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
+    if(savedMesh){EditorUtility.CopySerialized(copy,savedMesh);UnityEngine.Object.DestroyImmediate(copy);copy=savedMesh;}else AssetDatabase.CreateAsset(copy,meshPath);f.sharedMesh=copy;
+    var collider=f.GetComponent<MeshCollider>();if(collider)collider.sharedMesh=copy;
+    meshCount++;
+}
+for(int i=0;i<houses.Length;i++)
+{
+    var p=houses[i].transform.position;float progress=session.route.Progress(p);var road=session.route.Sample(progress);var toward=road-p;toward.y=0;toward.Normalize();var side=Vector3.Cross(Vector3.up,toward);
+    var yard=p+toward*(Mathf.Min(bounds[i].extents.x,bounds[i].extents.z)+.65f);
+    // Yard details stay back from the authored walking route.
+    if(Vector3.Distance(new Vector3(yard.x,0,yard.z),new Vector3(road.x,0,road.z))<2.7f)yard-=toward*1.5f;
+    yard.y=Ground(yard);
+    for(int j=0;j<6;j++)
+    {
+        var foot=yard+side*(j*.32f-.8f);foot.y=Ground(foot);
+        var rotation=Quaternion.LookRotation(toward)*Quaternion.Euler(j%3==0?65:8,0,j%2==0?-18:12);
+        Box(names[i]+" snapped fence picket",foot+Vector3.up*.38f,new Vector3(.18f,.8f,.045f),pale,rotation);
+    }
+    if(severity[i]>0)
+    {
+        var sheet=yard+side*1.1f-toward*.5f;sheet.y=Ground(sheet)+.12f;
+        Box(names[i]+" torn roof sheet in yard",sheet,new Vector3(1.2f,.035f,1.8f),iron,Quaternion.Euler(5,37+i*22,8));
+        for(int j=0;j<6;j++)Box("Raised corrugation",sheet+Quaternion.Euler(0,37+i*22,0)*new Vector3(j*.18f-.45f,.04f,0),new Vector3(.04f,.04f,1.7f),iron,Quaternion.Euler(5,37+i*22,8));
+    }
+    if(severity[i]==2)
+    {
+        var barrier=yard-toward*.25f;barrier.y=Ground(barrier)+.85f;
+        Box(names[i]+" red recovery barrier",barrier,new Vector3(1.6f,.16f,.08f),red,Quaternion.LookRotation(toward));
+        foreach(float dx in new[]{-.7f,.7f})Box("Barrier support",barrier+side*dx-Vector3.up*.38f,new Vector3(.08f,.9f,.08f),timber,Quaternion.identity);
+    }
+}
+// Wind-damaged vegetation on the roadside yards, away from the school assembly space.
+int plants=0;
+foreach(var t in UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsSortMode.None))
+{
+ if(!t.name.StartsWith("Banana courtyard clusters ")||!t.GetComponent<MeshFilter>())continue;
+ var p=t.position;if(p.x> -35||p.x< -80||p.z<650||p.z>710)continue;
+ Undo.RecordObject(t,"Aftermath bent banana clump");t.rotation=Quaternion.Euler(18,0,-24)*t.rotation;t.localScale=Vector3.Scale(t.localScale,new Vector3(1,.72f,1));plants++;if(plants==3)break;
+}
+if(meshCount==0||affected.Sum()==0)throw new Exception("No house roof damage was applied");
+AssetDatabase.SaveAssets();UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);
+if(!UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene))throw new Exception("Save failed");
+var report=new List<string>{"Saved aftermath-only mesh copies: "+meshCount,"Flood-stained vertices: "+stained,"Bent vegetation clumps: "+plants};
+for(int i=0;i<names.Length;i++)report.Add(names[i]+" severity "+severity[i]+" removed roof triangles "+affected[i]);
+System.IO.File.WriteAllLines("Captures/Aftermath/house-damage.txt",report);
+var capture=typeof(StormSim.Sibucao.Editor.SibucaoAftermathBuilder).GetMethod("Capture",BindingFlags.Static|BindingFlags.NonPublic);
+capture.Invoke(null,new object[]{"damaged-houses-street",new Vector3(-45,3,678),new Vector3(-38,2,653)});
+capture.Invoke(null,new object[]{"damaged-houses-roofs",new Vector3(-28,16,677),new Vector3(-44,1,660)});
+capture.Invoke(null,new object[]{"damaged-houses-north",new Vector3(-52,10,718),new Vector3(-44,2,697)});
+return string.Join("\n",report);

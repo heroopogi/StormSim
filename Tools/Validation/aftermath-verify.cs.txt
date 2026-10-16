@@ -1,0 +1,17 @@
+var scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+var s=UnityEngine.Object.FindFirstObjectByType<StormSim.Sibucao.SibucaoSession>();
+var root=UnityEngine.GameObject.Find("Aftermath - school relief and storm debris");
+if(scene.path!="Assets/Scenes/SIBUCAO_AFTERMATH.unity"||!root)throw new System.Exception("Wrong scene or missing dressing");
+if(!s.weather.aftermath||s.GetComponent<StormSim.Sibucao.FloodSimulationManager>().enabled)throw new System.Exception("Aftermath environment not configured");
+if(UnityEngine.Vector3.Distance(s.player.transform.position,new UnityEngine.Vector3(0,-1.478f,657))>.01f)throw new System.Exception("Spawn moved");
+if(UnityEditor.ShaderUtil.ShaderHasError(s.weather.stormSky.shader))throw new System.Exception("Sky shader failed");
+UnityEngine.Physics.SyncTransforms();
+for(int i=0;i<=8;i++)
+{
+    var p=s.initialPlayerSpawn.position+UnityEngine.Vector3.forward*(i*.5f);
+    foreach(var c in UnityEngine.Physics.OverlapCapsule(p+UnityEngine.Vector3.up*.35f,p+UnityEngine.Vector3.up*1.5f,.3f))
+        if(c.transform.IsChildOf(root.transform))throw new System.Exception("New dressing blocks entrance: "+c.name);
+}
+var result="PASS: correct scene, school spawn, aftermath weather, disabled storm runoff, valid sky shader, and no new dressing colliders in entrance corridor. Static visual review; Play Mode not tested.";
+System.IO.File.WriteAllText("Captures/Aftermath/verification.txt",result);
+return result;

@@ -1,0 +1,33 @@
+PASS: Early departure requests the current advisory
+PASS: Advertised early departure works without an evacuation order or completed chores
+PASS: Departure save resumes the transition rather than returning to preparation
+PASS: Early exit reaches the storm handoff state
+PASS: Early departure has flood head-start without replaying wake-up
+PASS: Normal session Update issues the timed advisory
+PASS: Advisory prioritizes departure and blocks outdoor preparation
+PASS: Rest is unavailable during an evacuation advisory
+PASS: Ordered departure does not force a return to the TV
+PASS: Reading the guide pauses the preparation clock
+PASS: Settings pauses the preparation clock
+PASS: First bed interaction explains the rest choice
+PASS: Second bed interaction confirms rest
+PASS: Rest advances to a playable morning advisory
+PASS: Morning departure receives the safe departure check
+PASS: Five guide groups cover each readiness check exactly once
+PASS: Guide labels priorities and optional work and explains departure choices
+PASS: Hints-off mode avoids step-by-step supply recommendations
+PASS: E opens storage and records the first tutorial action
+PASS: E picks up a supply
+PASS: E checks and seals a held document pouch
+PASS: Q action releases the held supply
+PASS: E collects the go-bag
+PASS: E opens a carried bag before packing
+PASS: E starts the normal packing animation
+PASS: Checked supply enters the bag and advances tutorial state
+PASS: Packed sealed documents satisfy readiness
+PASS: Clock, guidance use and tutorial progress survive JSON restore
+PASS: Carried bag and packed contents survive restore
+PASS: Version-2 saves without new progress fields remain compatible
+PASS: Restart clears advisory and tutorial progress
+TOTAL: 31 checks passed.
+Continuous and human playtests remain separate.

@@ -1,0 +1,47 @@
+var s=StormSim.Sibucao.SibucaoSession.Instance;if(!EditorApplication.isPlaying||!s)throw new Exception("Play Mode required");
+string folder="Captures/Batches4-7_20260930/Preparation-720/";System.IO.Directory.CreateDirectory(folder);var lines=new List<string>();
+var viewFlags=BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Instance|BindingFlags.Static;
+var editorAssembly=typeof(EditorWindow).Assembly;
+var gameType=editorAssembly.GetType("UnityEditor.GameView");
+var view=(EditorWindow)Resources.FindObjectsOfTypeAll(gameType).First();
+var sizesType=editorAssembly.GetType("UnityEditor.GameViewSizes");
+var singleton=typeof(ScriptableSingleton<>).MakeGenericType(sizesType).GetProperty("instance",viewFlags).GetValue(null);
+var groupType=editorAssembly.GetType("UnityEditor.GameViewSizeGroupType");
+var group=sizesType.GetMethod("GetGroup",viewFlags).Invoke(singleton,new[]{Enum.Parse(groupType,"Standalone")});
+var sizeType=editorAssembly.GetType("UnityEditor.GameViewSize");
+var resolutionType=editorAssembly.GetType("UnityEditor.GameViewSizeType");
+var ctor=sizeType.GetConstructor(viewFlags,null,new[]{resolutionType,typeof(int),typeof(int),typeof(string)},null);
+var groupMethods=group.GetType();
+var sizeIndex=gameType.GetProperty("selectedSizeIndex",viewFlags);
+int previousSize=(int)sizeIndex.GetValue(view);
+void Size(int w,int h){int index=-1,count=(int)groupMethods.GetMethod("GetTotalCount").Invoke(group,null);for(int i=0;i<count;i++){var size=groupMethods.GetMethod("GetGameViewSize").Invoke(group,new object[]{i});if((int)sizeType.GetProperty("width",viewFlags).GetValue(size)==w&&(int)sizeType.GetProperty("height",viewFlags).GetValue(size)==h){index=i;break;}}if(index<0){index=count;groupMethods.GetMethod("AddCustomSize").Invoke(group,new[]{ctor.Invoke(new[]{Enum.Parse(resolutionType,"FixedResolution"),(object)w,h,"StormSim "+w+"x"+h})});}sizeIndex.SetValue(view,index);view.Repaint();}
+Size(1280,720);
+bool oldDev=EditorPrefs.GetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,false);var settings=s.settings;string savedPrefs=PlayerPrefs.HasKey("SibucaoSettings")?PlayerPrefs.GetString("SibucaoSettings"):null;
+var keyboard=UnityEngine.InputSystem.Keyboard.current;var testKeyboard=UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Keyboard>("Preparation validation keyboard");
+void Check(bool okay,string label){lines.Add((okay?"PASS ":"FAIL ")+label);System.IO.File.WriteAllLines(folder+"checks.txt",lines);}
+void Keys(params UnityEngine.InputSystem.Key[] keys){UnityEngine.InputSystem.InputSystem.QueueStateEvent(testKeyboard,new UnityEngine.InputSystem.LowLevel.KeyboardState(keys));}
+System.Collections.IEnumerator Press(UnityEngine.InputSystem.Key key){Keys(key);yield return null;Keys();yield return null;yield return null;}
+System.Collections.IEnumerator Cases()
+{
+    Application.runInBackground=true;EditorPrefs.SetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,true);StormSim.Sibucao.SibucaoEditorInput.Reset();s.UseTestSaveDirectory(System.IO.Path.GetFullPath(folder+"saves"));
+    s.settings=JsonUtility.FromJson<StormSim.Sibucao.SibucaoSettings>(JsonUtility.ToJson(settings));s.StartWithRole("Parent");s.StartWithDifficulty(2);yield return null;yield return null;
+    Check(Screen.width==1280&&Screen.height==720,"Preparation viewport is 1280x720");var bridge=s.GetComponent<StormSim.Preparedness.SibucaoPreparationBridge>();Check(bridge&&bridge.Active&&s.Mode==StormSim.Sibucao.SibucaoMode.Preparation,"Fresh player flow enters preparation");s.StartWithRole("Parent");s.StartWithDifficulty(2);yield return null;Check(bridge.Active&&s.Mode==StormSim.Sibucao.SibucaoMode.Preparation&&s.state.difficultyLevel==2,"Restarting an active preparation resets the run and mode");var prep=bridge.preparation;var player=prep.player;
+    testKeyboard.MakeCurrent();s.settings.fieldOfView=94;s.settings.textScale=1.3f;Cursor.lockState=CursorLockMode.Locked;yield return null;yield return null;
+    Check(Mathf.Abs(player.view.fieldOfView-94)<.01f,"Preparation camera applies shared FOV");
+    yield return Press(UnityEngine.InputSystem.Key.Escape);Check(s.Mode==StormSim.Sibucao.SibucaoMode.Settings,"Escape opens shared settings during preparation");float clock=prep.elapsed;var at=player.transform.position;
+    Keys(UnityEngine.InputSystem.Key.W);yield return new WaitForSecondsRealtime(.5f);Keys();yield return null;Check(Mathf.Abs(prep.elapsed-clock)<.001f&&Vector3.Distance(at,player.transform.position)<.01f,"Settings pauses preparation clock and movement");
+    yield return Press(UnityEngine.InputSystem.Key.Escape);Check(s.Mode==StormSim.Sibucao.SibucaoMode.Preparation,"Escape returns to preparation without reopening settings");
+    StormSim.Sibucao.SibucaoControls.Rebind(s.settings,9,UnityEngine.InputSystem.Key.K);yield return Press(UnityEngine.InputSystem.Key.K);Check(player.GuideOpen,"Remapped guide key opens preparation guide");ScreenCapture.CaptureScreenshot(folder+"guide-max-text.png");yield return null;yield return null;
+    typeof(StormSim.Preparedness.PreparednessPlayer).GetField("journalScroll",BindingFlags.NonPublic|BindingFlags.Instance).SetValue(player,new Vector2(0,10000));yield return null;yield return null;ScreenCapture.CaptureScreenshot(folder+"guide-bottom-max-text.png");yield return null;
+    player.CloseDesktopPanels();prep.bagRetrieved=true;foreach(var item in prep.items.Where(i=>i.portable&&i.kind!=StormSim.Preparedness.PrepKind.Bag).Take(18))item.storedIn="bag";
+    player.ToggleBagPanel();yield return null;yield return null;Check(player.BagPanelOpen,"Preparation bag panel opens");ScreenCapture.CaptureScreenshot(folder+"bag-max-text.png");yield return null;
+    typeof(StormSim.Preparedness.PreparednessPlayer).GetField("journalScroll",BindingFlags.NonPublic|BindingFlags.Instance).SetValue(player,new Vector2(0,10000));yield return null;yield return null;ScreenCapture.CaptureScreenshot(folder+"bag-bottom-max-text.png");yield return null;
+    player.CloseDesktopPanels();bridge.SkipToDuring();if(s.home)s.home.SkipTV();yield return null;yield return null;Check(!bridge.Active&&s.Mode==StormSim.Sibucao.SibucaoMode.Playing,"Preparation handoff reaches the evacuation phase");
+    s.missionGuide.Open();yield return null;yield return null;ScreenCapture.CaptureScreenshot(folder+"evacuation-guide-max-text.png");yield return null;
+    var ui=UnityEngine.Object.FindFirstObjectByType<StormSim.Sibucao.SibucaoUI>();var flags=BindingFlags.Instance|BindingFlags.NonPublic;ui.GetType().GetField("guidePage",flags).SetValue(ui,2);ui.GetType().GetField("guideScroll",flags).SetValue(ui,new Vector2(0,10000));yield return null;yield return null;ScreenCapture.CaptureScreenshot(folder+"evacuation-guide-bottom-max-text.png");yield return null;s.missionGuide.Close();
+    s.inventory.Open();yield return null;yield return null;ScreenCapture.CaptureScreenshot(folder+"evacuation-bag-max-text.png");yield return null;s.inventory.ShowStatus=true;yield return null;yield return null;ScreenCapture.CaptureScreenshot(folder+"evacuation-item-status-max-text.png");yield return null;s.inventory.Close();
+    var weather=s.weather;var flash=typeof(StormSim.Sibucao.SibucaoWeather).GetField("flash",BindingFlags.NonPublic|BindingFlags.Instance);var lighting=typeof(StormSim.Sibucao.SibucaoWeather).GetMethod("ApplyLighting",BindingFlags.NonPublic|BindingFlags.Instance);s.settings.reducedFlashes=true;flash.SetValue(weather,0f);lighting.Invoke(weather,null);float calmLight=weather.sun.intensity;flash.SetValue(weather,1f);lighting.Invoke(weather,null);Check(Mathf.Abs(weather.sun.intensity-calmLight)<.001f,"Reduced flashes suppresses thunder light pulse");
+    s.settings.reducedFlashes=false;lighting.Invoke(weather,null);Check(weather.sun.intensity>calmLight+2,"Thunder light remains available when reduced flashes is off");flash.SetValue(weather,0f);lighting.Invoke(weather,null);
+}
+System.Collections.IEnumerator Guard(){var stack=new Stack<System.Collections.IEnumerator>();stack.Push(Cases());Exception error=null;try{while(stack.Count>0){bool more=false;object value=null;try{more=stack.Peek().MoveNext();if(more)value=stack.Peek().Current;}catch(Exception ex){error=ex;break;}if(!more){stack.Pop();continue;}if(value is System.Collections.IEnumerator nested){stack.Push(nested);continue;}yield return value;}}finally{sizeIndex.SetValue(view,previousSize);view.Repaint();UnityEngine.InputSystem.InputSystem.RemoveDevice(testKeyboard);if(keyboard!=null)keyboard.MakeCurrent();EditorPrefs.SetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,oldDev);s.settings=settings;s.ApplySettings();if(savedPrefs==null)PlayerPrefs.DeleteKey("SibucaoSettings");else PlayerPrefs.SetString("SibucaoSettings",savedPrefs);PlayerPrefs.Save();if(error!=null)Check(false,error.ToString());lines.Add("Input simulation and synthetic filled-bag fixtures; not participant acceptance.");System.IO.File.WriteAllLines(folder+"checks.txt",lines);System.IO.File.WriteAllText(folder+"finished.txt",error==null?"Finished; inspect screenshots":"FAIL");}}
+s.StartCoroutine(Guard());return "Preparation/accessibility presentation checks started";

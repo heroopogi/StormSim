@@ -1,0 +1,67 @@
+var s=StormSim.Sibucao.SibucaoSession.Instance;
+if(!EditorApplication.isPlaying||!s)throw new Exception("Play Mode required");
+var folder="Captures/Batches4-7_20260930/UI/";System.IO.Directory.CreateDirectory(folder);
+var ui=UnityEngine.Object.FindFirstObjectByType<StormSim.Sibucao.SibucaoUI>();
+var flags=BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Instance|BindingFlags.Static;
+var editorAssembly=typeof(EditorWindow).Assembly;
+var gameType=editorAssembly.GetType("UnityEditor.GameView");
+var view=(EditorWindow)Resources.FindObjectsOfTypeAll(gameType).First();
+var sizesType=editorAssembly.GetType("UnityEditor.GameViewSizes");
+var singleton=typeof(ScriptableSingleton<>).MakeGenericType(sizesType).GetProperty("instance",flags).GetValue(null);
+var groupType=editorAssembly.GetType("UnityEditor.GameViewSizeGroupType");
+var group=sizesType.GetMethod("GetGroup",flags).Invoke(singleton,new[]{Enum.Parse(groupType,"Standalone")});
+var sizeType=editorAssembly.GetType("UnityEditor.GameViewSize");
+var resolutionType=editorAssembly.GetType("UnityEditor.GameViewSizeType");
+var ctor=sizeType.GetConstructor(flags,null,new[]{resolutionType,typeof(int),typeof(int),typeof(string)},null);
+var groupMethods=group.GetType();
+var sizeIndex=gameType.GetProperty("selectedSizeIndex",flags);
+int oldIndex=(int)sizeIndex.GetValue(view),oldTab=(int)ui.GetType().GetField("tab",flags).GetValue(ui),oldReview=(int)ui.GetType().GetField("reviewTab",flags).GetValue(ui);
+var originalState=s.state;var originalSettings=s.settings;var originalMode=s.Mode;float originalToast=s.toastUntil;
+bool oldDev=EditorPrefs.GetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,false);
+var lines=new List<string>{"Synthetic UI fixtures; these images are not completed participant runs."};
+void Size(int w,int h){int index=-1,count=(int)groupMethods.GetMethod("GetTotalCount").Invoke(group,null);for(int i=0;i<count;i++){var size=groupMethods.GetMethod("GetGameViewSize").Invoke(group,new object[]{i});if((int)sizeType.GetProperty("width",flags).GetValue(size)==w&&(int)sizeType.GetProperty("height",flags).GetValue(size)==h){index=i;break;}}if(index<0){index=count;groupMethods.GetMethod("AddCustomSize").Invoke(group,new[]{ctor.Invoke(new[]{Enum.Parse(resolutionType,"FixedResolution"),(object)w,h,"StormSim "+w+"x"+h})});}sizeIndex.SetValue(view,index);view.Repaint();}
+System.Collections.IEnumerator Capture()
+{
+    try
+    {
+        Application.runInBackground=true;EditorPrefs.SetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,false);
+        s.settings=JsonUtility.FromJson<StormSim.Sibucao.SibucaoSettings>(JsonUtility.ToJson(originalSettings));
+        s.state=new StormSim.Sibucao.RunState();s.physicalDecisions.EnsureNodeCapacity();s.state.scores=new[]{1500,850,620,380,120};s.state.physical.role="Volunteer";s.state.difficultyLevel=4;s.state.homeSeconds=1280;s.toastUntil=0;
+        for(int n=0;n<9;n++)s.state.physical.results[n]=n==5?0:2;
+        s.state.physical.history.Add(new StormSim.Sibucao.PhysicalChoiceResult{node=3,choice=2,choiceId="B4_C2",category="Evacuation",appliedPoints=35,secondaryPoints=10,scoringRecorded=true,chance=.65f,roll=.82f,success=false,consequence="DelayedInjury",lostItems=new[]{"Bottled water"}});
+        s.state.physical.history.Add(new StormSim.Sibucao.PhysicalChoiceResult{node=5,choice=0,category="Teamwork",appliedPoints=90,secondaryPoints=27,scoringRecorded=true,chance=.8f,roll=.2f,success=true});
+        foreach(int width in new[]{1280,1920})
+        foreach(float scale in new[]{1f,1.3f})
+        {
+            Size(width,width*9/16);s.settings.textScale=scale;yield return null;yield return null;
+            foreach(string screen in new[]{"roles","difficulty","comfort","graphics","audio","controls","controls-bottom","reception","handover","results-actions","results-residents","results-residents-bottom"})
+            {
+                string targetScreen=screen.Replace("-bottom","");
+                ui.GetType().GetField("reviewScroll",flags).SetValue(ui,Vector2.zero);ui.GetType().GetField("settingsScroll",flags).SetValue(ui,Vector2.zero);
+                if(targetScreen=="roles")s.SetMode(StormSim.Sibucao.SibucaoMode.RoleSelection);
+                else if(targetScreen=="difficulty")s.SetMode(StormSim.Sibucao.SibucaoMode.DifficultySelection);
+                else if(new[]{"comfort","graphics","audio","controls"}.Contains(targetScreen)){ui.GetType().GetField("tab",flags).SetValue(ui,Array.IndexOf(new[]{"comfort","graphics","audio","controls"},targetScreen));s.SetMode(StormSim.Sibucao.SibucaoMode.Settings);}
+                else if(targetScreen=="reception"||targetScreen=="handover"){s.state.physical.arrivalReceived=targetScreen=="handover";s.SetMode(StormSim.Sibucao.SibucaoMode.ArrivalReview);}
+                else {ui.GetType().GetField("reviewTab",flags).SetValue(ui,targetScreen=="results-actions"?0:1);s.SetMode(StormSim.Sibucao.SibucaoMode.Complete);}
+                if(screen.EndsWith("-bottom")){ui.GetType().GetField("settingsScroll",flags).SetValue(ui,new Vector2(0,10000));ui.GetType().GetField("reviewScroll",flags).SetValue(ui,new Vector2(0,10000));}
+                view.Repaint();yield return null;yield return null;
+                string file=screen+"-"+width+"-text"+scale.ToString("0.0",System.Globalization.CultureInfo.InvariantCulture)+".png";
+                ScreenCapture.CaptureScreenshot(folder+file);yield return null;yield return null;
+                lines.Add(file+" actual="+Screen.width+"x"+Screen.height+" mode="+s.Mode);
+            }
+            var body=(GUIStyle)ui.GetType().GetField("body",flags).GetValue(ui);var small=(GUIStyle)ui.GetType().GetField("small",flags).GetValue(ui);
+            lines.Add((small.CalcHeight(new GUIContent("Category caps are not guaranteed points. Your recorded totals include secondary credit."),345)<=95?"PASS":"FAIL")+" score note height scale="+scale);
+            lines.Add((body.CalcHeight(new GUIContent("Higher levels bring deeper water, slower wading, stronger current cues and more demanding travel. The storm keeps advancing while you work."),720)<=88?"PASS":"FAIL")+" difficulty explanation height scale="+scale);
+            lines.Add((body.CalcHeight(new GUIContent("Toggle grip / assistance (press again to release)"),575)<=56?"PASS":"FAIL")+" toggle grip label height scale="+scale);
+            var layout=StormSim.Sibucao.SibucaoHudLayout.Current;
+            float grow=Mathf.InverseLerp(1,1.3f,scale),row=Mathf.Lerp(18,26,grow);
+            foreach(string label in new[]{"CONTINUE AHEAD","1000 m to target","Wading · no run","Flow right 1.2m/s"}){float measured=StormSim.Sibucao.SibucaoDesktopHud.Small.CalcHeight(new GUIContent(label),layout.Map.width-18);lines.Add((measured<=row?"PASS":"FAIL")+" navigation label "+label+" scale="+scale+" textHeight="+measured+" row="+row);}
+            lines.Add((layout.Map.yMin>=layout.Routes.yMax&&layout.Map.xMax<layout.Action.xMin?"PASS":"FAIL")+" navigation safe area "+width+" scale="+scale);
+        }
+    }
+    finally
+    {
+        s.state=originalState;s.settings=originalSettings;s.toastUntil=originalToast;s.SetMode(originalMode);sizeIndex.SetValue(view,oldIndex);ui.GetType().GetField("tab",flags).SetValue(ui,oldTab);ui.GetType().GetField("reviewTab",flags).SetValue(ui,oldReview);EditorPrefs.SetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,oldDev);System.IO.File.WriteAllLines(folder+"capture-log.txt",lines);System.IO.File.WriteAllText(folder+"finished.txt","Capture coroutine ended; inspect files and Console errors before accepting.");
+    }
+}
+s.StartCoroutine(Capture());return "UI capture started";

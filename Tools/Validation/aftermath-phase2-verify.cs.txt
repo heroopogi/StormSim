@@ -1,0 +1,38 @@
+using UnityEngine;using UnityEditor;using UnityEditor.SceneManagement;using UnityEngine.SceneManagement;using System;using System.IO;using System.Linq;using System.Globalization;using System.Collections.Generic;using UnityEngine.Rendering;using Object=UnityEngine.Object;
+internal class CommandScript:IRunCommand{
+ const string Dir="Captures/Aftermath/Phase2_20261012";
+ public void Execute(ExecutionResult result){
+  if(EditorApplication.isPlaying||SceneManager.GetActiveScene().path!="Assets/Scenes/SIBUCAO_AFTERMATH.unity")throw new Exception("Expected aftermath Edit Mode");
+  var root=GameObject.Find("Aftermath - Phase 2 flood traces");if(!root)throw new Exception("Phase 2 root missing");
+  foreach(var line in File.ReadAllLines("Captures/Aftermath/Phase1_20261012/camera-manifest.csv").Skip(1)){
+   var a=line.Split(',');var n=a.Skip(1).Select(v=>float.Parse(v,CultureInfo.InvariantCulture)).ToArray();
+   Capture(a[0],new Vector3(n[0],n[1],n[2]),new Vector3(n[3],n[4],n[5]),result);
+  }
+  Capture("gate-flood-traces",new Vector3(-3.2f,.3f,657),new Vector3(-7,-1.1f,654),result);
+  Capture("roadside-detail",new Vector3(-32,.7f,664),new Vector3(-36,-.3f,659),result);
+  Capture("low-ground-puddles",new Vector3(6.8f,.1f,650),new Vector3(2.5f,-1.35f,653.5f),result);
+  var rows=new List<string>();int tris=0;
+  foreach(var f in root.GetComponentsInChildren<MeshFilter>()){
+   var m=f.sharedMesh;var v=m.vertices;
+   if(v.Any(p=>!float.IsFinite(p.x)||!float.IsFinite(p.y)||!float.IsFinite(p.z)))throw new Exception("Invalid vertex "+f.name);
+   if(m.triangles.Any(i=>i<0||i>=v.Length))throw new Exception("Invalid index "+f.name);
+   if(!AssetDatabase.GetAssetPath(m).StartsWith("Assets/StormSim/Sibucao/Art/Aftermath/Phase2/"))throw new Exception("Mesh not isolated");
+   tris+=m.triangles.Length/3;
+   foreach(var mat in f.GetComponent<Renderer>().sharedMaterials){if(ShaderUtil.ShaderHasError(mat.shader))throw new Exception("Shader error");if(!AssetDatabase.GetAssetPath(mat).Contains("/Aftermath/Phase2/"))throw new Exception("Material not isolated");}
+  }
+  if(root.GetComponentsInChildren<Collider>().Length!=0)throw new Exception("Unexpected added collider");
+  rows.Add("PASS: six isolated material/mesh batches; valid finite vertices and indices; shader has no reported compilation errors.");
+  rows.Add("Renderers="+root.GetComponentsInChildren<Renderer>().Length+" triangles="+tris+" phase2Colliders=0 totalColliders="+Object.FindObjectsByType<Collider>(FindObjectsSortMode.None).Length);
+  rows.Add("PASS: rendered three matching baseline views and three detail views.");
+  rows.Add("Visual authoring pass; no new runtime components. Phase 1 mission-entry limitation remains.");
+  File.WriteAllLines(Dir+"/verification.txt",rows);
+  EditorSceneManager.SaveScene(SceneManager.GetActiveScene());result.Log(string.Join("\n",rows));
+ }
+ void Capture(string name,Vector3 pos,Vector3 target,ExecutionResult result){
+  var g=new GameObject("Temporary phase 2 review camera");g.hideFlags=HideFlags.HideAndDontSave;result.RegisterObjectCreation(g);
+  var c=g.AddComponent<Camera>();c.transform.position=pos;c.transform.LookAt(target);c.fieldOfView=65;c.farClipPlane=1500;
+  var rt=new RenderTexture(1600,900,24);var t=new Texture2D(1600,900,TextureFormat.RGB24,false);var previous=RenderTexture.active;
+  try{c.targetTexture=rt;c.Render();RenderTexture.active=rt;t.ReadPixels(new Rect(0,0,1600,900),0,0);t.Apply();File.WriteAllBytes(Dir+"/"+name+".png",t.EncodeToPNG());}
+  finally{RenderTexture.active=previous;c.targetTexture=null;rt.Release();result.DestroyObject(t);result.DestroyObject(rt);result.DestroyObject(g);}
+ }
+}

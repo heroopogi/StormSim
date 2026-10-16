@@ -1,0 +1,156 @@
+using UnityEngine;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine.SceneManagement;
+using UnityEngine.Rendering;
+using StormSim.Sibucao;
+using System;
+using System.IO;
+using System.Linq;
+using System.Collections.Generic;
+using Object=UnityEngine.Object;
+internal class CommandScript:IRunCommand {
+ const string Folder="Assets/StormSim/Sibucao/Art/Aftermath/Phase2";
+ const string Out="Captures/Aftermath/Phase2_20261012";
+ const string RootName="Aftermath - Phase 2 flood traces";
+ const float FloodLevel=-.05f;
+ ExecutionResult result;Transform root;System.Random rng=new System.Random(12026);
+ List<string> notes=new List<string>();Collider[] terrain;SibucaoSession session;
+ Dictionary<string,Vector3> surfaces=new Dictionary<string,Vector3>();
+ class Batch { public string name;public Material mat;public List<Vector3> v=new List<Vector3>();public List<Color> c=new List<Color>();public List<int> t=new List<int>(); }
+ Batch silt,wet,pools,leaves,paper,stains;
+ public void Execute(ExecutionResult r) {
+  result=r;var scene=SceneManager.GetActiveScene();
+  if(EditorApplication.isPlaying||scene.path!="Assets/Scenes/SIBUCAO_AFTERMATH.unity")throw new Exception("Expected aftermath Edit Mode");
+  bool rebuild=GameObject.Find(RootName);
+  Directory.CreateDirectory(Out);AssetDatabase.Refresh();
+  var shader=AssetDatabase.LoadAssetAtPath<Shader>(Folder+"/FloodResidue.shader");
+  if(!shader||ShaderUtil.ShaderHasError(shader))throw new Exception("Flood residue shader unavailable or invalid.");
+  int beforeColliders=Object.FindObjectsByType<Collider>(FindObjectsSortMode.None).Length;
+  session=Object.FindFirstObjectByType<SibucaoSession>();
+  terrain=Object.FindObjectsByType<Collider>(FindObjectsSortMode.None).Where(c=>c.enabled&&c.name.StartsWith("Measured terrain")&&c.bounds.max.x>-60&&c.bounds.min.x<20&&c.bounds.max.z>640&&c.bounds.min.z<700).ToArray();
+  var go=GameObject.Find(RootName);if(!go){go=new GameObject(RootName);result.RegisterObjectCreation(go);}root=go.transform;
+  silt=NewBatch("Roadside silt and deposited mud",new Color(.29f,.225f,.15f,.78f),.19f,0,3000);
+  wet=NewBatch("Patchy damp asphalt and wet margins",new Color(.02f,.025f,.023f,.42f),.32f,1,3001);
+  pools=NewBatch("Shallow residual water in low ground",new Color(.16f,.18f,.16f,.83f),.91f,2,3002);
+  leaves=NewBatch("Leaves caught along edges",new Color(.32f,.28f,.12f,1),.17f,4,3003);
+  paper=NewBatch("Small waterlogged litter",new Color(.55f,.48f,.34f,1),.1f,4,3003);
+  stains=NewBatch("Receded waterline on walls and fences",new Color(.27f,.23f,.16f,.62f),.21f,3,3004);
+  Physics.SyncTransforms();
+  // Two broken, uneven sediment ribbons beside the route. Small damp areas also reach into asphalt.
+  for(float d=session.route.length-78;d<session.route.length-8;d+=3.7f) {
+   var p=session.route.Sample(d);var forward=(session.route.Sample(d+1)-session.route.Sample(d-1));forward.y=0;forward.Normalize();var right=Vector3.Cross(Vector3.up,forward);
+   float yaw=Mathf.Atan2(forward.x,forward.z)*Mathf.Rad2Deg;
+   for(int side=-1;side<=1;side+=2){
+    var q=p+right*side*(2.0f+Rand(.1f,1.25f));
+    Patch(silt,q.x,q.z,Rand(1.4f,2.7f),Rand(3.2f,6),yaw,0);
+    Patch(wet,q.x+right.x*side*.3f,q.z+right.z*side*.3f,Rand(1.9f,3.2f),Rand(3,5.7f),yaw,0);
+    if(rng.NextDouble()<.7)Scatter(q.x,q.z,yaw,9);
+   }
+   if(rng.NextDouble()<.7){var q=p+right*Rand(-1.2f,1.2f);Patch(wet,q.x,q.z,Rand(1.1f,2.1f),Rand(2,4.5f),yaw+Rand(-25,25),0);}
+  }
+  // Low sites surveyed around the gate. Standing water has a flat plane and a maximum depth of 4 cm.
+  foreach(var q in new[]{new Vector2(-6,658.7f),new Vector2(-7.8f,653.8f),new Vector2(3.8f,652),new Vector2(-2.3f,653),new Vector2(5,656.2f)}) {
+   Patch(silt,q.x,q.y,4.6f,3.2f,Rand(0,180),0);Patch(wet,q.x,q.y,3.8f,2.8f,15,0);
+   var h=Surface(q.x,q.y);if(float.IsFinite(h.y)&&h.y<-1.3f){Patch(pools,q.x,q.y,2.4f,1.5f,15,h.y+.022f);notes.Add("Low-area pool seed "+q+" support="+h.y.ToString("F3")+" level="+(h.y+.022f).ToString("F3"));}
+  }
+  // Deposits against existing fences and building corners, outside the movement band.
+  foreach(var q in new[]{new Vector2(-38.1f,659.5f),new Vector2(-26.2f,660.2f),new Vector2(-43.2f,669.3f),new Vector2(-31.3f,669.5f),new Vector2(-5.7f,662.1f),new Vector2(-22,654)}) {
+   Patch(silt,q.x,q.y,2.7f,2.2f,35,0);Scatter(q.x,q.y,35,28);
+  }
+  // Keep original assets intact; replace the old pale puddle presentation in this scene only.
+  var oldRoot=GameObject.Find("Aftermath - school relief and storm debris");
+  int adjusted=0;
+  if(oldRoot)foreach(var mr in oldRoot.GetComponentsInChildren<MeshRenderer>()){
+   if(mr.name=="Receded flood puddle"){result.RegisterObjectModification(mr);mr.enabled=false;var b=mr.bounds;Patch(wet,b.center.x,b.center.z,b.size.x+1,b.size.z+1,0,0);adjusted++;}
+  }
+  foreach(var f in Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None)){
+   bool batched=f.name=="plaster"&&f.transform.parent&&(f.transform.parent.name=="Neighbourhood -1_6"||f.transform.parent.name=="Neighbourhood -1_7");
+   bool detail=f.name.Contains("Wide closed green double gate")||f.name.Contains("Older entrance red base");
+   if((batched||detail)&&f.sharedMesh&&f.sharedMesh.isReadable)WallTrace(f);
+  }
+  foreach(var b in new[]{silt,wet,pools,leaves,paper,stains})Save(b);
+  int afterColliders=Object.FindObjectsByType<Collider>(FindObjectsSortMode.None).Length;
+  if(beforeColliders!=afterColliders||root.GetComponentsInChildren<Collider>().Length!=0)throw new Exception("Unexpected collider change");
+  notes.Insert(0,"Phase 2 installed. Historic wall watermark world Y="+FloodLevel+" (art-directed flood trace, not solver output).");
+  notes.Add("Original pale puddle renderers disabled: "+adjusted+"; originals retained.");
+  notes.Add("Collider count unchanged: "+beforeColliders+" -> "+afterColliders+". No gameplay scripts modified.");
+  notes.Add("Terrain/road support queries cached: "+surfaces.Count);
+  notes.Add("No runtime components, rigidbodies, lights, or colliders added.");
+  File.WriteAllLines(Out+"/installation.txt",notes);
+  EditorSceneManager.MarkSceneDirty(scene);AssetDatabase.SaveAssets();
+  if(!EditorSceneManager.SaveScene(scene))throw new Exception("Could not save scene");
+  result.Log(string.Join("\n",notes));
+ }
+ float Rand(float a,float b){return Mathf.Lerp(a,b,(float)rng.NextDouble());}
+ Batch NewBatch(string name,Color color,float smooth,float mode,int queue){
+  var path=Folder+"/"+name+".mat";var m=AssetDatabase.LoadAssetAtPath<Material>(path);if(!m){m=new Material(Shader.Find("StormSim/Aftermath Flood Residue"));AssetDatabase.CreateAsset(m,path);}else result.RegisterObjectModification(m);m.name=name;m.SetColor("_BaseColor",color);m.SetFloat("_Smoothness",smooth);m.SetFloat("_Mode",mode);m.SetFloat("_WaterLevel",FloodLevel);m.renderQueue=queue;
+  EditorUtility.SetDirty(m);return new Batch{name=name,mat=m};
+ }
+ Vector3 Surface(float x,float z){
+  string key=x.ToString("F3",System.Globalization.CultureInfo.InvariantCulture)+","+z.ToString("F3",System.Globalization.CultureInfo.InvariantCulture);
+  if(surfaces.TryGetValue(key,out var cached))return cached;
+  float y=float.NegativeInfinity;var normal=Vector3.up;
+  var ray=new Ray(new Vector3(x,25,z),Vector3.down);
+  foreach(var c in terrain)if(c.Raycast(ray,out var h,60)&&h.point.y>y)y=h.point.y;
+  if(!float.IsFinite(y))return new Vector3(x,float.NaN,z);
+  var hits=Physics.RaycastAll(ray,60,~0,QueryTriggerInteraction.Ignore);
+  foreach(var h in hits)if(h.normal.y>.75f&&(h.collider.name=="Felix Amante Drive"||h.collider.name=="Main entrance to quadrangle"||h.collider.name.StartsWith("service "))&&h.point.y>y&&h.point.y-y<1.2f)y=h.point.y;
+  foreach(var h in hits){
+   if(h.collider is CharacterController||h.collider.GetComponentInParent<SibucaoResident>()||h.collider.GetComponentInParent<SibucaoPlayer>())continue;
+   if(h.point.y>y+.16f){y=float.NaN;break;}
+  }
+  var value=new Vector3(x,y,z);surfaces[key]=value;return value;
+ }
+ void Patch(Batch b,float x,float z,float width,float length,float yaw,float level){
+  float step=b==pools?.14f:.32f;int nx=Mathf.CeilToInt(width/step)+1,nz=Mathf.CeilToInt(length/step)+1;
+  int start=b.v.Count;var rot=Quaternion.Euler(0,yaw,0);var valid=new bool[nx*nz];
+  for(int iz=0;iz<nz;iz++)for(int ix=0;ix<nx;ix++){
+   float u=(float)ix/(nx-1)*2-1,v=(float)iz/(nz-1)*2-1;
+   var q=new Vector3(x,0,z)+rot*new Vector3(u*width*.5f,0,v*length*.5f);
+   float radius=Mathf.Sqrt(u*u+v*v);float wobble=(Mathf.PerlinNoise(q.x*1.9f+31,q.z*1.9f)-.5f)*.23f;
+   float alpha=Mathf.SmoothStep(0,1,Mathf.Clamp01((1-radius+wobble)/.48f));
+   var p=Surface(q.x,q.z);bool ok=float.IsFinite(p.y);
+   if(ok&&b==pools){float depth=level-p.y;ok=depth>=.001f&&depth<=.04f;alpha*=Mathf.SmoothStep(0,1,depth/.012f);p.y=level+.004f;}
+   else if(ok)p.y+=b==silt?.009f:.014f;
+   if(!ok){p=new Vector3(q.x,0,q.z);alpha=0;}
+   valid[iz*nx+ix]=ok;b.v.Add(p);b.c.Add(new Color(1,1,1,alpha));
+  }
+  for(int iz=0;iz<nz-1;iz++)for(int ix=0;ix<nx-1;ix++){
+   int a=iz*nx+ix,bb=a+1,c=a+nx,d=c+1;
+   Tri(b,start,a,c,bb,valid);Tri(b,start,bb,c,d,valid);
+  }
+ }
+ void Tri(Batch b,int start,int a,int c,int d,bool[] valid){if(valid[a]&&valid[c]&&valid[d]&&Mathf.Max(b.v[start+a].y,Mathf.Max(b.v[start+c].y,b.v[start+d].y))-Mathf.Min(b.v[start+a].y,Mathf.Min(b.v[start+c].y,b.v[start+d].y))<.09f){b.t.Add(start+a);b.t.Add(start+c);b.t.Add(start+d);}}
+ float RouteDistance(Vector3 p){var center=session.route.Sample(session.route.Progress(p));return new Vector2(p.x-center.x,p.z-center.z).magnitude;}
+ void Scatter(float x,float z,float yaw,int count){
+  for(int i=0;i<count;i++){
+   var q=Surface(x+Rand(-1.1f,1.1f),z+Rand(-1.0f,1));if(!float.IsFinite(q.y)||RouteDistance(q)<1.7f)continue;
+   bool scrap=i%11==0;var b=scrap?paper:leaves;float angle=Rand(0,360)*Mathf.Deg2Rad,len=Rand(.09f,.23f),wide=len*Rand(.3f,.55f);
+   var along=new Vector3(Mathf.Sin(angle),0,Mathf.Cos(angle));var across=Vector3.Cross(Vector3.up,along);
+   var shape=scrap?new[]{-along*len-across*wide,along*len-across*wide,along*len+across*wide,-along*len+across*wide}:new[]{-along*len,-along*len*.25f-across*wide,along*len,along*len*.25f+across*wide};
+   int at=b.v.Count;bool ok=true;
+   foreach(var o in shape){var p=Surface(q.x+o.x,q.z+o.z);if(!float.IsFinite(p.y)){ok=false;p=q;}p.y+=.017f;b.v.Add(p);float tint=Rand(.7f,1.15f);b.c.Add(new Color(tint,tint,scrap?tint:tint*.8f,1));}
+   if(ok){b.t.AddRange(new[]{at,at+1,at+2,at,at+2,at+3});}
+  }
+ }
+ void WallTrace(MeshFilter f){
+  var vs=f.sharedMesh.vertices;var ts=f.sharedMesh.triangles;
+  for(int i=0;i<ts.Length;i+=3){
+   var a=f.transform.TransformPoint(vs[ts[i]]);var b=f.transform.TransformPoint(vs[ts[i+1]]);var c=f.transform.TransformPoint(vs[ts[i+2]]);
+   var n=Vector3.Cross(b-a,c-a).normalized;if(Mathf.Abs(n.y)>.35f)continue;
+   var center=(a+b+c)/3;if(center.x<-58||center.x>18||center.z<642||center.z>696)continue;
+   if(Mathf.Min(a.y,Mathf.Min(b.y,c.y))>FloodLevel+.12f)continue;
+   var poly=new List<Vector3>{a,b,c};var clipped=new List<Vector3>();
+   for(int k=0;k<poly.Count;k++){var p=poly[k];var next=poly[(k+1)%poly.Count];bool inside=p.y<=FloodLevel+.12f,ni=next.y<=FloodLevel+.12f;if(inside)clipped.Add(p);if(inside!=ni)clipped.Add(Vector3.Lerp(p,next,(FloodLevel+.12f-p.y)/(next.y-p.y)));}
+   if(clipped.Count<3)continue;int at=stains.v.Count;foreach(var p in clipped){stains.v.Add(p+n*.006f);stains.c.Add(Color.white);}for(int k=1;k<clipped.Count-1;k++)stains.t.AddRange(new[]{at,at+k,at+k+1});
+  }
+ }
+ void Save(Batch b){
+  if(b.t.Count==0){notes.Add(b.name+": no accepted triangles");return;}
+  var mesh=new UnityEngine.Mesh{name=b.name,indexFormat=IndexFormat.UInt32};mesh.SetVertices(b.v);mesh.SetColors(b.c);mesh.SetTriangles(b.t,0);mesh.RecalculateNormals();mesh.RecalculateBounds();
+  var path=Folder+"/"+b.name+".asset";var saved=AssetDatabase.LoadAssetAtPath<UnityEngine.Mesh>(path);if(saved){result.RegisterObjectModification(saved);EditorUtility.CopySerialized(mesh,saved);result.DestroyObject(mesh);mesh=saved;EditorUtility.SetDirty(saved);}else AssetDatabase.CreateAsset(mesh,path);
+  var child=root.Find(b.name);var g=child?child.gameObject:new GameObject(b.name);if(!child){result.RegisterObjectCreation(g);g.transform.SetParent(root,false);g.AddComponent<MeshFilter>();g.AddComponent<MeshRenderer>();}else result.RegisterObjectModification(g);g.GetComponent<MeshFilter>().sharedMesh=mesh;var mr=g.GetComponent<MeshRenderer>();mr.sharedMaterial=b.mat;mr.shadowCastingMode=ShadowCastingMode.Off;mr.receiveShadows=true;
+  notes.Add(b.name+": "+b.t.Count/3+" triangles; "+b.v.Count+" vertices.");
+ }
+}

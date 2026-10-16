@@ -1,0 +1,13 @@
+Signal Station UI integration
+
+Original PNG pack: A:/9 26 26/DAIL/stormsim_gui_sprites (38 PNGs).
+Sprites are imported uncompressed, without mipmaps, with the pack's slicing borders.
+SibucaoUI and the preparation HUD share SignalStationUI. The existing world-space
+main-menu prefab uses the same pack with SpriteSwap buttons and persistent labels.
+Existing interaction, inventory, route-map data, and menu callbacks are retained.
+Roboto Mono regular and bold: Copyright 2015 Google Inc. All Rights Reserved.
+Licensed under Apache 2.0; see RobotoMono-LICENSE.txt.
+
+The circular minimap frame is available but the route map retains its rectangular
+viewport to preserve street coverage. Original icon glyphs and portrait drawing
+remain because the supplied pack contains frames rather than replacement artwork.

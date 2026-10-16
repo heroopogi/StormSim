@@ -1,0 +1,41 @@
+using UnityEngine;
+using UnityEditor;
+using UnityEngine.SceneManagement;
+using StormSim.Sibucao;
+using System;
+using System.IO;
+using System.Linq;
+using System.Collections.Generic;
+using Object=UnityEngine.Object;
+internal class CommandScript : IRunCommand {
+ const string Dir="Captures/Aftermath/Phase1_20261012";
+ public void Execute(ExecutionResult result) {
+  if(EditorApplication.isPlaying||SceneManager.GetActiveScene().path!="Assets/Scenes/SIBUCAO_AFTERMATH.unity")throw new Exception("Expected aftermath Edit Mode");
+  Directory.CreateDirectory(Dir);
+  var s=Object.FindFirstObjectByType<SibucaoSession>();
+  var ground=Object.FindObjectsByType<MeshCollider>(FindObjectsSortMode.None).Where(c=>c.enabled&&c.name.StartsWith("Measured terrain")).ToArray();
+  Func<float,float,float> height=(x,z)=>{float y=float.NegativeInfinity;foreach(var c in ground)if(c.Raycast(new Ray(new Vector3(x,40,z),Vector3.down),out var h,80))y=Mathf.Max(y,h.point.y);return y;};
+  var csv=new List<string>{"x,z,ground_y"};for(float x=-58;x<=18;x+=2)for(float z=642;z<=696;z+=2){float y=height(x,z);if(float.IsFinite(y))csv.Add(FormattableString.Invariant($"{x},{z},{y:F4}"));}File.WriteAllLines(Dir+"/ground-grid.csv",csv);
+  var route=new List<string>{"distance,x,y,z"};
+  for(float d=s.route.length-80;d<s.route.length;d+=2){var p=s.route.Sample(d);route.Add(FormattableString.Invariant($"{d:F4},{p.x:F4},{p.y:F4},{p.z:F4}"));}
+  var end=s.route.Sample(s.route.length);route.Add(FormattableString.Invariant($"{s.route.length:F4},{end.x:F4},{end.y:F4},{end.z:F4}"));File.WriteAllLines(Dir+"/route.csv",route);
+  var damage=new List<string>{"name,x,y,z,size_x,size_y,size_z"};
+  var roots=SceneManager.GetActiveScene().GetRootGameObjects().Where(g=>g.name.StartsWith("Aftermath -")).ToArray();
+  foreach(var root in roots)foreach(var r in root.GetComponentsInChildren<Renderer>()){var b=r.bounds;damage.Add(FormattableString.Invariant($"{r.name.Replace(","," ")},{b.center.x:F3},{b.center.y:F3},{b.center.z:F3},{b.size.x:F3},{b.size.y:F3},{b.size.z:F3}"));}
+  File.WriteAllLines(Dir+"/existing-dressing.csv",damage);
+  var manifest=new List<string>{"name,x,y,z,look_x,look_y,look_z,fov,width,height"};
+  Capture("school-gate",new Vector3(0,height(0,657)+1.63f,657),new Vector3(7,height(7,666)+1.3f,666),manifest,result);
+  Capture("approach-road",new Vector3(-40,height(-40,675)+1.63f,675),new Vector3(-27,height(-27,651)+1.4f,651),manifest,result);
+  Capture("damaged-houses",new Vector3(-29,height(-29,658)+1.63f,658),new Vector3(-40,height(-40,660)+2.5f,660),manifest,result);
+  File.WriteAllLines(Dir+"/camera-manifest.csv",manifest);
+  result.Log("Saved 3 baseline views, ground grid, route and dressing bounds to "+Dir);
+ }
+ void Capture(string name,Vector3 p,Vector3 target,List<string> manifest,ExecutionResult result) {
+  var g=new GameObject("Temporary phase 1 baseline camera");g.hideFlags=HideFlags.HideAndDontSave;result.RegisterObjectCreation(g);
+  var cam=g.AddComponent<Camera>();cam.transform.position=p;cam.transform.LookAt(target);cam.fieldOfView=65;cam.farClipPlane=1500;
+  var rt=new RenderTexture(1600,900,24);var tex=new Texture2D(1600,900,TextureFormat.RGB24,false);var previous=RenderTexture.active;
+  try{cam.targetTexture=rt;cam.Render();RenderTexture.active=rt;tex.ReadPixels(new Rect(0,0,1600,900),0,0);tex.Apply();File.WriteAllBytes(Dir+"/"+name+".png",tex.EncodeToPNG());}
+  finally{RenderTexture.active=previous;cam.targetTexture=null;rt.Release();result.DestroyObject(tex);result.DestroyObject(rt);result.DestroyObject(g);}
+  manifest.Add(FormattableString.Invariant($"{name},{p.x:F4},{p.y:F4},{p.z:F4},{target.x:F4},{target.y:F4},{target.z:F4},65,1600,900"));
+ }
+}

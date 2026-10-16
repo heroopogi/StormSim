@@ -1,0 +1,5 @@
+const fs=require('fs');const p='Assets/StormSim/Sibucao/Runtime/SibucaoUI.cs';let t=fs.readFileSync(p,'utf8');
+for(const [method,next,body] of [['PhysicalComplete','DifficultySelection','ReleaseResults();'],['RoleSelection','ArrivalReview','ReleaseRoles();'],['ArrivalReview','HomeHud','ReleaseArrival();'],['Settings','Confirmation','ReleaseSettings();']]) {const start=t.indexOf('        void '+method+'()'),end=t.indexOf('        void '+next+'()',start);if(start<0||end<0)throw Error(method);t=t.slice(0,start)+'        void '+method+'()\n        {\n            '+body+'\n        }\n'+t.slice(end);}
+t=t.replace('if(!S||S.Mode==SibucaoMode.Cinematic)return;Initialize();','if(!S||S.Mode==SibucaoMode.Cinematic)return;Initialize();\n            body.fontSize=Mathf.RoundToInt(16*S.settings.textScale);small.fontSize=Mathf.RoundToInt(13*S.settings.textScale);');
+t=t.replace('Water rises over time. Your chosen peak stays capped; tasks adapt to the local depth.','Higher levels bring deeper water, slower wading, stronger current cues and more demanding travel. The storm keeps advancing while you work.');
+fs.writeFileSync(p,t);

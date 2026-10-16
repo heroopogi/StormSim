@@ -1,0 +1,66 @@
+# Unity generated folders
+/[Ll]ibrary/
+/[Tt]emp/
+/tmp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+/UserSettings/
+
+# Unity Version Control metadata
+/.plastic/
+
+# IDE and generated solution files
+.vs/
+.idea/
+*.csproj
+*.sln
+*.slnx
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Unity crash and diagnostic output
+sysinfo.txt
+crashlytics-build.properties
+
+# Local test/build queues and temporary files
+*.tmp
+*.bak
+
+# Large duplicate snapshots and generated output
+/Backups/
+/RoadRepairBackup/
+/output/
+/Captures/
+/Reports/
+
+# Regenerable world data and imported third-party content. These folders make
+# the current project larger than the free space available for a local LFS copy.
+# Keep their original downloads/backups until an external Git LFS remote or a
+# larger drive is available.
+/Assets/StormSim/Generated/
+/Assets/Organized Assets/
+/Assets/Crest/
+/Assets/npc_casual_set_00/
+/Assets/_Recovery/
+/Assets/_Recovery_dst/
+/Assets/low poly medieval buildings/
+/Assets/Media/
+/Assets/Screenshots/
+

@@ -1,0 +1,151 @@
+using System;
+using UnityEngine;
+
+namespace StormSim.Sibucao
+{
+    public sealed class SibucaoRouteSection : MonoBehaviour
+    {
+        public PhysicalDecisionStation station;
+        public SibucaoRouteChoices director;
+        public SibucaoSideMission left, right;
+        public RouteSectionLayout[] layouts;
+        public RouteSectionLayout[] floodLayouts;
+        public Transform approachMarker, mergeMarker;
+        public Transform leftSign, rightSign;
+        public AudioSource centerVoice;
+        public string centerLine;
+        public SibucaoRouteDeck decks;
+        RouteSectionLayout activeLayout;
+        RouteSectionLayout levelLayout;
+        float baseHeight;
+        public float FloodLift { get; private set; }
+        public Vector3 Approach => approachMarker ? approachMarker.position : station.transform.position - station.transform.forward * 16;
+        public Vector3 Merge => mergeMarker ? mergeMarker.position : station.transform.position + station.transform.forward * 14;
+        public Vector3 EntryGround => levelLayout!=null&&levelLayout.fittedRamps?levelLayout.entryGround:Approach-station.transform.forward*Mathf.Max(2,FloodLift*3)-Vector3.up*FloodLift;
+        public bool TryExitTarget(Vector3 player,out Vector3 target)
+        {
+            target=levelLayout!=null&&levelLayout.fittedRamps?levelLayout.exitGround:Merge;
+            if(SibucaoRouteChoices.Flat(player,target)<.65f)return false;
+            if(FloodLift<=0||levelLayout==null||!levelLayout.fittedRamps||player.y<target.y+.22f)return false;
+            var along=target-Merge;along.y=0;var offset=player-Merge;offset.y=0;
+            float t=Vector3.Dot(offset,along)/Mathf.Max(.001f,along.sqrMagnitude);
+            float lateral=(offset-along*Mathf.Clamp01(t)).magnitude;
+            if(SibucaoRouteChoices.Flat(player,Merge)<4&&player.y>Merge.y-.5f&&(t<-.08f||lateral>1.1f)){target=Merge;return true;}
+            return t>=-.2f&&t<1.03f&&lateral<1.3f;
+        }
+        public Vector3 AccessTarget(Vector3 player)
+        {
+            if(FloodLift<=0||player.y>=Approach.y-.45f)return Approach;
+            var along=Approach-EntryGround;along.y=0;var offset=player-EntryGround;offset.y=0;
+            float t=Vector3.Dot(offset,along)/Mathf.Max(.001f,along.sqrMagnitude);
+            bool onRamp=t>=-.03f&&t<=1.03f&&(offset-along*Mathf.Clamp01(t)).magnitude<1.1f;
+            return onRamp?Approach:EntryGround;
+        }
+        public void ApplyLayout(int home)
+        {
+            var layout = Array.Find(layouts, l => l.home == home);
+            if (layout == null) return;
+            activeLayout = layout; levelLayout = null; FloodLift = 0;
+            approachMarker.position = layout.approach; mergeMarker.position = layout.merge;
+            left.transform.SetPositionAndRotation(layout.left, station.transform.rotation);
+            right.transform.SetPositionAndRotation(layout.right, station.transform.rotation);
+            left.route = layout.leftPath; right.route = layout.rightPath;
+            left.Restore(); right.Restore();
+            if(decks)decks.Rebuild(layout);
+            FitApproachSign(leftSign); FitApproachSign(rightSign);
+            ImproveDestinationContrast(left.transform); ImproveDestinationContrast(right.transform);
+            PositionSign(leftSign, layout.left, layout.approach, -1);
+            PositionSign(rightSign, layout.right, layout.approach, 1);
+            PrepareAccess();
+        }
+        // Supported access is installed before departure, never animated beneath the player.
+        public void PrepareAccess() { ApplyFloodLift(-1); }
+        public void RestoreFloodLift(float lift) { PrepareAccess(); }
+        void ApplyFloodLift(float savedLift)
+        {
+            var s = SibucaoSession.Instance;
+            if (!s || activeLayout == null) return;
+            var flood = s.GetComponent<FloodSimulationManager>();
+            if (!flood || !flood.groundRelativeInundation) return;
+            if (levelLayout == null)
+            {
+                var high = floodLayouts == null ? null : Array.Find(floodLayouts,l=>l.home==s.state.homeIndex && l.difficulty==s.state.difficultyLevel);
+                baseHeight = Mathf.Max(station.transform.position.y, activeLayout.left.y, activeLayout.right.y,
+                    activeLayout.approach.y, activeLayout.merge.y);
+                foreach(var path in new[]{activeLayout.leftApproach,activeLayout.rightApproach,activeLayout.leftPath,activeLayout.rightPath})
+                    foreach(var p in path)baseHeight=Mathf.Max(baseHeight,p.y);
+                var source=high??activeLayout;
+                if(high!=null)baseHeight=high.left.y-FloodDifficultySettings.Current.peakDepth-.5f;
+                levelLayout = new RouteSectionLayout { left=AtHeight(source.left,baseHeight), right=AtHeight(source.right,baseHeight),
+                    fittedRamps=source.fittedRamps, entryGround=source.entryGround, exitGround=source.exitGround,
+                    approach=high==null?AtHeight(source.approach,baseHeight):source.approach+Vector3.up*(baseHeight-source.left.y),
+                    merge=high==null?AtHeight(source.merge,baseHeight):source.merge+Vector3.up*(baseHeight-source.left.y),
+                    leftApproach=high==null?Raised(source.leftApproach,baseHeight):Shifted(source.leftApproach,baseHeight-source.left.y),
+                    rightApproach=high==null?Raised(source.rightApproach,baseHeight):Shifted(source.rightApproach,baseHeight-source.left.y),
+                    leftPath=high==null?Raised(source.leftPath,baseHeight):Shifted(source.leftPath,baseHeight-source.left.y),
+                    rightPath=high==null?Raised(source.rightPath,baseHeight):Shifted(source.rightPath,baseHeight-source.left.y) };
+            }
+            float target = baseHeight - station.transform.position.y + FloodDifficultySettings.Current.peakDepth + .5f;
+            if (target <= FloodLift + .0001f) return;
+            float next = target;
+            FloodLift = next;
+            float height=station.transform.position.y+next;
+            left.transform.position = AtHeight(levelLayout.left,height);
+            right.transform.position = AtHeight(levelLayout.right,height);
+            approachMarker.position = levelLayout.approach+Vector3.up*(height-baseHeight);
+            mergeMarker.position = levelLayout.merge+Vector3.up*(height-baseHeight);
+            left.route = Shifted(levelLayout.leftPath,height-baseHeight);
+            right.route = Shifted(levelLayout.rightPath,height-baseHeight);
+            if (decks) decks.SetFloodLift(levelLayout, height-baseHeight, activeLayout);
+            PositionSign(leftSign, left.transform.position, Approach, -1);
+            PositionSign(rightSign, right.transform.position, Approach, 1);
+            left.Restore(); right.Restore();
+        }
+        static Vector3[] Raised(Vector3[] points, float height)
+        {
+            var result = new Vector3[points.Length];
+            for (int i = 0; i < points.Length; i++) result[i] = AtHeight(points[i],height);
+            return result;
+        }
+        static Vector3 AtHeight(Vector3 p,float height){p.y=height;return p;}
+        static Vector3[] Shifted(Vector3[] points,float delta)
+        {var result=new Vector3[points.Length];for(int i=0;i<points.Length;i++)result[i]=points[i]+Vector3.up*delta;return result;}
+        void PositionSign(Transform sign, Vector3 destination, Vector3 approach, int side)
+        {
+            if (!sign) return;
+            sign.position = approach + station.transform.forward + station.transform.right * side * (FloodLift>0?3.6f:2.4f);
+            sign.rotation = station.transform.rotation;
+        }
+        static void ImproveDestinationContrast(Transform mission)
+        {
+            foreach(var text in mission.GetComponentsInChildren<TextMesh>(true))
+            {
+                if(text.name!="Printed destination")continue;
+                text.color=new Color(.96f,.95f,.81f);text.fontStyle=FontStyle.Bold;
+                var board=text.transform.parent.Find("Direction board");
+                var renderer=board?board.GetComponent<Renderer>():null;
+                if(renderer){var properties=new MaterialPropertyBlock();renderer.GetPropertyBlock(properties);properties.SetColor("_BaseColor",new Color(.055f,.22f,.18f));renderer.SetPropertyBlock(properties);}
+            }
+        }
+        public static void FitApproachSign(Transform sign)
+        {
+            if(!sign)return;
+            var post=sign.Find("Sign post");
+            var board=sign.Find("Direction board");
+            var printed=sign.Find("Printed destination");
+            if(post){post.localPosition=new Vector3(0,.75f,0);post.localScale=new Vector3(.055f,1.5f,.055f);}
+            if(board)
+            {
+                board.localPosition=new Vector3(0,1.55f,0);board.localScale=new Vector3(1.6f,.34f,.07f);
+                var renderer=board.GetComponent<Renderer>();
+                if(renderer){var properties=new MaterialPropertyBlock();renderer.GetPropertyBlock(properties);properties.SetColor("_BaseColor",new Color(.055f,.22f,.18f));renderer.SetPropertyBlock(properties);}
+            }
+            if(printed)
+            {
+                printed.localPosition=new Vector3(0,1.55f,-.041f);
+                var text=printed.GetComponent<TextMesh>();
+                if(text){text.characterSize=.028f;text.color=new Color(.96f,.95f,.81f);text.fontStyle=FontStyle.Bold;}
+            }
+        }
+    }
+}

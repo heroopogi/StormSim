@@ -1,0 +1,35 @@
+var s=StormSim.Sibucao.SibucaoSession.Instance;if(!EditorApplication.isPlaying||!s)throw new Exception("Play Mode required");
+var folder="Captures/Batches4-7_20260930/";var lines=new List<string>();
+var settings=s.settings;var mode=s.Mode;string savedPrefs=PlayerPrefs.HasKey("SibucaoSettings")?PlayerPrefs.GetString("SibucaoSettings"):null;float subtitle=s.subtitleUntil;
+var keyboard=UnityEngine.InputSystem.Keyboard.current;var virtualKeyboard=UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Keyboard>("StormSim validation keyboard");
+void Check(bool okay,string label){lines.Add((okay?"PASS ":"FAIL ")+label);System.IO.File.WriteAllLines(folder+"live-accessibility.txt",lines);}
+void Keys(params UnityEngine.InputSystem.Key[] keys){UnityEngine.InputSystem.InputSystem.QueueStateEvent(virtualKeyboard,new UnityEngine.InputSystem.LowLevel.KeyboardState(keys));}
+System.Collections.IEnumerator Run()
+{
+try
+{
+    Application.runInBackground=true;StormSim.Sibucao.SibucaoEditorInput.Reset();s.SetMode(StormSim.Sibucao.SibucaoMode.Paused);s.settings=JsonUtility.FromJson<StormSim.Sibucao.SibucaoSettings>(JsonUtility.ToJson(settings));virtualKeyboard.MakeCurrent();
+    StormSim.Sibucao.SibucaoControls.Rebind(s.settings,0,UnityEngine.InputSystem.Key.UpArrow);Keys(UnityEngine.InputSystem.Key.UpArrow);yield return null;yield return null;
+    Check(StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.W).isPressed&&!virtualKeyboard.wKey.isPressed,"Remapped forward reads the new Input System key while original W remains released");
+    Keys();yield return null;yield return null;
+    StormSim.Sibucao.SibucaoControls.Rebind(s.settings,4,UnityEngine.InputSystem.Key.F);Keys(UnityEngine.InputSystem.Key.F);yield return null;yield return null;
+    Check(StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.E).isPressed&&!StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.F).isPressed,"Use/carry key swap reaches the actual shared input controls");
+    s.settings.toggleGrip=true;StormSim.Sibucao.SibucaoControls.BeginGrip();Check(StormSim.Sibucao.SibucaoControls.WorkHeld,"Toggle grip begins on interaction");
+    Keys();yield return null;yield return null;Check(StormSim.Sibucao.SibucaoControls.WorkHeld,"Toggle grip stays held after releasing the key");
+    Keys(UnityEngine.InputSystem.Key.F);yield return null;Check(!StormSim.Sibucao.SibucaoControls.WorkHeld&&StormSim.Sibucao.SibucaoControls.GripReleasedThisFrame,"Second press releases a toggled grip");
+    Keys();yield return null;yield return null;Check(!StormSim.Sibucao.SibucaoControls.WorkHeld,"Released grip does not reacquire without another interaction");
+    s.settings.toggleGrip=false;Keys(UnityEngine.InputSystem.Key.F);yield return null;yield return null;Check(StormSim.Sibucao.SibucaoControls.WorkHeld,"Hold mode uses the remapped use key");Keys();yield return null;yield return null;Check(!StormSim.Sibucao.SibucaoControls.WorkHeld,"Hold mode releases with the key");
+    s.settings.fieldOfView=94;s.settings.volume=.4f;s.settings.speechVolume=0;s.settings.environmentVolume=.65f;s.settings.effectsVolume=.2f;s.ApplySettings();
+    Check(Mathf.Abs(s.player.view.fieldOfView-94)<.01f,"Evacuation camera applies FOV");Check(Mathf.Abs(AudioListener.volume-.4f)<.001f,"Master audio gain applies");
+    Check(StormSim.Sibucao.SibucaoAudioMix.Speech==0&&Mathf.Abs(StormSim.Sibucao.SibucaoAudioMix.Effects-.2f)<.001f,"Speech/effects controls are independent");
+    s.subtitleUntil=0;Check(Mathf.Abs(StormSim.Sibucao.SibucaoAudioMix.Environment-.65f)<.001f,"Environment gain applies outside speech");s.subtitleUntil=Time.unscaledTime+10;Check(Mathf.Abs(StormSim.Sibucao.SibucaoAudioMix.Environment-.325f)<.001f,"Speech notification ducks environment gain");
+    var restored=JsonUtility.FromJson<StormSim.Sibucao.SibucaoSettings>(PlayerPrefs.GetString("SibucaoSettings"));Check(restored.keyBindings[0]=="UpArrow"&&restored.fieldOfView==94&&restored.speechVolume==0,"Applied remapping, FOV and mix survive actual settings persistence");
+    var director=s.physicalDecisions.GetComponent<StormSim.Sibucao.SibucaoRouteChoices>();
+    foreach(var section in director.sections)foreach(var mission in new[]{section.left,section.right}){var record=new StormSim.Sibucao.PhysicalChoiceResult{node=section.station.index,choice=100+mission.side,choiceId=mission.id};Check(StormSim.Sibucao.SibucaoDebrief.Decision(s,record).Contains(mission.title),"Debrief names "+mission.id+" correctly");}
+}
+finally
+{
+    UnityEngine.InputSystem.InputSystem.RemoveDevice(virtualKeyboard);if(keyboard!=null)keyboard.MakeCurrent();s.settings=settings;s.subtitleUntil=subtitle;s.ApplySettings();if(savedPrefs==null)PlayerPrefs.DeleteKey("SibucaoSettings");else PlayerPrefs.SetString("SibucaoSettings",savedPrefs);PlayerPrefs.Save();StormSim.Sibucao.SibucaoControls.ResetGrip();s.SetMode(mode);lines.Add("Input System simulation; not manual keyboard or participant acceptance.");System.IO.File.WriteAllLines(folder+"live-accessibility.txt",lines);System.IO.File.WriteAllText(folder+"live-accessibility-finished.txt","Finished; inspect FAIL and Console exceptions.");
+}
+}
+s.StartCoroutine(Run());return "Live accessibility checks started";

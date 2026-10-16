@@ -1,0 +1,4978 @@
+{
+    "schemaVersion": 2,
+    "health": 100.0,
+    "stamina": 70.0,
+    "branches": [
+        {
+            "selected": 1,
+            "step": 4,
+            "toolStep": 0,
+            "enteredAt": 93.3707275390625,
+            "activeSeconds": 2.729492664337158,
+            "distance": 11.112707138061524,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": true,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": -121.3252182006836,
+                "y": -3.7943966388702394,
+                "z": 787.2682495117188
+            },
+            "previousToolPosition": {
+                "x": -129.60601806640626,
+                "y": -4.2080159187316898,
+                "z": 793.3915405273438
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": 1,
+            "step": 4,
+            "toolStep": 0,
+            "enteredAt": 100.93987274169922,
+            "activeSeconds": 20.4720458984375,
+            "distance": 5.700500965118408,
+            "toolSeconds": 0.0,
+            "engaged": true,
+            "finished": true,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": -108.0244140625,
+                "y": -1.7508262395858765,
+                "z": 772.2931518554688
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": 1,
+            "step": 4,
+            "toolStep": 0,
+            "enteredAt": 125.92271423339844,
+            "activeSeconds": 2.595317840576172,
+            "distance": 10.265151977539063,
+            "toolSeconds": 0.0,
+            "engaged": true,
+            "finished": true,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": -93.26578521728516,
+                "y": -1.1206061840057374,
+                "z": 754.1749267578125
+            },
+            "previousToolPosition": {
+                "x": -94.81156921386719,
+                "y": -1.691555380821228,
+                "z": 764.4342651367188
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": 0,
+            "step": 71,
+            "toolStep": 0,
+            "enteredAt": 132.511474609375,
+            "activeSeconds": 31.825450897216798,
+            "distance": 125.77201843261719,
+            "toolSeconds": 0.0,
+            "engaged": true,
+            "finished": true,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": -76.16033172607422,
+                "y": -0.7047192454338074,
+                "z": 732.3743286132813
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": 2,
+            "step": 6,
+            "toolStep": 0,
+            "enteredAt": 166.906494140625,
+            "activeSeconds": 3.5041940212249758,
+            "distance": 13.565134048461914,
+            "toolSeconds": 0.0,
+            "engaged": true,
+            "finished": true,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": -68.92450714111328,
+                "y": -0.32326722145080569,
+                "z": 717.836669921875
+            },
+            "previousToolPosition": {
+                "x": -70.92890930175781,
+                "y": -0.43236956000328066,
+                "z": 724.2847900390625
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": 2,
+            "step": 8,
+            "toolStep": 0,
+            "enteredAt": 174.87644958496095,
+            "activeSeconds": 3.0228641033172609,
+            "distance": 11.438515663146973,
+            "toolSeconds": 0.0,
+            "engaged": true,
+            "finished": true,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": -56.707515716552737,
+                "y": 0.48374223709106448,
+                "z": 699.7258911132813
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": 0,
+            "step": 46,
+            "toolStep": 0,
+            "enteredAt": 183.7777557373047,
+            "activeSeconds": 24.51636505126953,
+            "distance": 92.02838134765625,
+            "toolSeconds": 0.0,
+            "engaged": true,
+            "finished": true,
+            "actionStarted": true,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": -40.90847396850586,
+                "y": -0.10488677024841309,
+                "z": 677.0999145507813
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": 2,
+            "step": 7,
+            "toolStep": 0,
+            "enteredAt": 210.3226318359375,
+            "activeSeconds": 3.15691876411438,
+            "distance": 11.536646842956543,
+            "toolSeconds": 0.0,
+            "engaged": true,
+            "finished": true,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": -36.05482864379883,
+                "y": -0.6020370125770569,
+                "z": 660.7313842773438
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": 0,
+            "step": 1,
+            "toolStep": 0,
+            "enteredAt": 218.2225799560547,
+            "activeSeconds": 34.41758728027344,
+            "distance": 32.1558952331543,
+            "toolSeconds": 0.0,
+            "engaged": true,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": -19.779855728149415,
+                "y": -1.169655442237854,
+                "z": 645.8654174804688
+            },
+            "previousToolPosition": {
+                "x": -30.067378997802736,
+                "y": 0.08044791221618653,
+                "z": 649.5865478515625
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        },
+        {
+            "selected": -1,
+            "step": 0,
+            "toolStep": 0,
+            "enteredAt": 0.0,
+            "activeSeconds": 0.0,
+            "distance": 0.0,
+            "toolSeconds": 0.0,
+            "engaged": false,
+            "finished": false,
+            "actionStarted": false,
+            "secondInput": false,
+            "helperCalled": false,
+            "helperArrived": false,
+            "contactConsequence": false,
+            "previousPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "previousToolPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "boatLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperLocalPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "helperRotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+                "w": 0.0
+            },
+            "hasPlacement": false
+        }
+    ],
+    "history": [
+        {
+            "nodeId": "sibucao_b1",
+            "choiceId": "sibucao_b1_c1",
+            "category": "ResourceManagement",
+            "consequence": "None",
+            "lostItem": "",
+            "lostItems": [],
+            "clearedPassages": [],
+            "passageWorkSeconds": 0.0,
+            "passageWorkDistance": 0.0,
+            "node": 0,
+            "choice": 1,
+            "rawPoints": 15,
+            "appliedPoints": 15,
+            "success": true,
+            "roll": 0.5723631978034973,
+            "chance": 0.67383873462677,
+            "startedAt": 93.3707275390625,
+            "finishedAt": 96.49836730957031,
+            "activeSeconds": 2.729492664337158,
+            "distance": 11.112707138061524,
+            "healthBefore": 100.0,
+            "healthAfter": 100.0,
+            "staminaBefore": 100.0,
+            "staminaAfter": 98.0,
+            "tier": 0
+        },
+        {
+            "nodeId": "sibucao_b2",
+            "choiceId": "sibucao_b2_c1",
+            "category": "ResourceManagement",
+            "consequence": "None",
+            "lostItem": "",
+            "lostItems": [],
+            "clearedPassages": [],
+            "passageWorkSeconds": 0.0,
+            "passageWorkDistance": 0.0,
+            "node": 1,
+            "choice": 1,
+            "rawPoints": 15,
+            "appliedPoints": 15,
+            "success": true,
+            "roll": 0.3713986277580261,
+            "chance": 0.6367838382720947,
+            "startedAt": 100.93987274169922,
+            "finishedAt": 122.38215637207031,
+            "activeSeconds": 20.4720458984375,
+            "distance": 5.700500965118408,
+            "healthBefore": 100.0,
+            "healthAfter": 100.0,
+            "staminaBefore": 98.0,
+            "staminaAfter": 96.0,
+            "tier": 0
+        },
+        {
+            "nodeId": "sibucao_b3",
+            "choiceId": "sibucao_b3_c1",
+            "category": "ResourceManagement",
+            "consequence": "None",
+            "lostItem": "",
+            "lostItems": [],
+            "clearedPassages": [],
+            "passageWorkSeconds": 0.0,
+            "passageWorkDistance": 0.0,
+            "node": 2,
+            "choice": 1,
+            "rawPoints": 15,
+            "appliedPoints": 15,
+            "success": true,
+            "roll": 0.434733510017395,
+            "chance": 0.6027161478996277,
+            "startedAt": 125.92271423339844,
+            "finishedAt": 128.9171600341797,
+            "activeSeconds": 2.595317840576172,
+            "distance": 10.265151977539063,
+            "healthBefore": 100.0,
+            "healthAfter": 100.0,
+            "staminaBefore": 96.0,
+            "staminaAfter": 94.0,
+            "tier": 0
+        },
+        {
+            "nodeId": "sibucao_b4",
+            "choiceId": "sibucao_b4_c0",
+            "category": "Evacuation",
+            "consequence": "None",
+            "lostItem": "",
+            "lostItems": [],
+            "clearedPassages": [],
+            "passageWorkSeconds": 0.0,
+            "passageWorkDistance": 0.0,
+            "node": 3,
+            "choice": 0,
+            "rawPoints": 60,
+            "appliedPoints": 60,
+            "success": true,
+            "roll": 0.21721792221069337,
+            "chance": 0.9626156687736511,
+            "startedAt": 132.511474609375,
+            "finishedAt": 164.73025512695313,
+            "activeSeconds": 31.825450897216798,
+            "distance": 125.77201843261719,
+            "healthBefore": 100.0,
+            "healthAfter": 100.0,
+            "staminaBefore": 94.0,
+            "staminaAfter": 91.0,
+            "tier": 0
+        },
+        {
+            "nodeId": "sibucao_b5",
+            "choiceId": "sibucao_b5_c2",
+            "category": "ResourceManagement",
+            "consequence": "LoseItem",
+            "lostItem": "",
+            "lostItems": [
+                "B4_supply_0",
+                "B4_supply_1",
+                "B4_supply_2",
+                "branch_fallback_bag"
+            ],
+            "clearedPassages": [],
+            "passageWorkSeconds": 0.0,
+            "passageWorkDistance": 0.0,
+            "node": 4,
+            "choice": 2,
+            "rawPoints": -24,
+            "appliedPoints": -24,
+            "success": true,
+            "roll": 0.6548129916191101,
+            "chance": 1.0,
+            "startedAt": 166.906494140625,
+            "finishedAt": 170.8098602294922,
+            "activeSeconds": 3.5041940212249758,
+            "distance": 13.565134048461914,
+            "healthBefore": 100.0,
+            "healthAfter": 100.0,
+            "staminaBefore": 91.0,
+            "staminaAfter": 85.0,
+            "tier": 0
+        },
+        {
+            "nodeId": "sibucao_b6",
+            "choiceId": "sibucao_b6_c2",
+            "category": "Teamwork",
+            "consequence": "LeaveResident",
+            "lostItem": "",
+            "lostItems": [],
+            "clearedPassages": [],
+            "passageWorkSeconds": 0.0,
+            "passageWorkDistance": 0.0,
+            "node": 5,
+            "choice": 2,
+            "rawPoints": -24,
+            "appliedPoints": 0,
+            "success": true,
+            "roll": 0.1623772382736206,
+            "chance": 1.0,
+            "startedAt": 174.87644958496095,
+            "finishedAt": 178.28387451171876,
+            "activeSeconds": 3.0228641033172609,
+            "distance": 11.438515663146973,
+            "healthBefore": 100.0,
+            "healthAfter": 100.0,
+            "staminaBefore": 85.0,
+            "staminaAfter": 79.0,
+            "tier": 0
+        },
+        {
+            "nodeId": "sibucao_b7",
+            "choiceId": "sibucao_b7_c0",
+            "category": "Evacuation",
+            "consequence": "None",
+            "lostItem": "",
+            "lostItems": [],
+            "clearedPassages": [],
+            "passageWorkSeconds": 0.0,
+            "passageWorkDistance": 0.0,
+            "node": 6,
+            "choice": 0,
+            "rawPoints": 39,
+            "appliedPoints": 39,
+            "success": true,
+            "roll": 0.12154799699783325,
+            "chance": 0.8733147978782654,
+            "startedAt": 183.7777557373047,
+            "finishedAt": 208.32012939453126,
+            "activeSeconds": 24.51636505126953,
+            "distance": 92.02838134765625,
+            "healthBefore": 100.0,
+            "healthAfter": 100.0,
+            "staminaBefore": 79.0,
+            "staminaAfter": 76.0,
+            "tier": 0
+        },
+        {
+            "nodeId": "sibucao_b8",
+            "choiceId": "sibucao_b8_c2",
+            "category": "Teamwork",
+            "consequence": "LeaveResident",
+            "lostItem": "",
+            "lostItems": [],
+            "clearedPassages": [],
+            "passageWorkSeconds": 0.0,
+            "passageWorkDistance": 0.0,
+            "node": 7,
+            "choice": 2,
+            "rawPoints": -24,
+            "appliedPoints": 0,
+            "success": true,
+            "roll": 0.9701235890388489,
+            "chance": 1.0,
+            "startedAt": 210.3226318359375,
+            "finishedAt": 213.88092041015626,
+            "activeSeconds": 3.15691876411438,
+            "distance": 11.536646842956543,
+            "healthBefore": 100.0,
+            "healthAfter": 100.0,
+            "staminaBefore": 76.0,
+            "staminaAfter": 70.0,
+            "tier": 0
+        }
+    ],
+    "pending": [
+        {
+            "id": "resident_left_5",
+            "source": 5,
+            "dueAt": 8,
+            "applied": true
+        },
+        {
+            "id": "resident_left_7",
+            "source": 7,
+            "dueAt": 8,
+            "applied": true
+        }
+    ],
+    "consequenceNotices": [
+        {
+            "id": "resident_left_5",
+            "message": "The resident in the wheelchair has not reached this group. Give their location at the school desk.",
+            "destination": 8,
+            "shown": true
+        },
+        {
+            "id": "resident_left_7",
+            "message": "The collapsed evacuee has not reached this group. Give their location at the school desk.",
+            "destination": 8,
+            "shown": true
+        }
+    ],
+    "arrivalReported": false,
+    "attempts": [
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        },
+        {
+            "routeSteps": [
+                0,
+                0,
+                0
+            ],
+            "routeLast": [
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            ],
+            "probeSamples": 0,
+            "drops": 0,
+            "firstProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "secondProbe": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "assistStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "firstProbeDepth": 0.0,
+            "secondProbeDepth": 0.0,
+            "talked": false,
+            "assistGripped": false,
+            "rampPassed": false,
+            "treated": false,
+            "enteredWater": false,
+            "walked": 0.0,
+            "slowDistance": 0.0,
+            "sprintDistance": 0.0,
+            "assistDistance": 0.0
+        }
+    ],
+    "seed": 23421,
+    "role": "Parent",
+    "routeStart": 501.2265319824219,
+    "results": [
+        1,
+        1,
+        1,
+        0,
+        2,
+        2,
+        0,
+        2,
+        -1,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        99,
+        98,
+        99,
+        98,
+        99,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        99,
+        98,
+        98,
+        98,
+        98,
+        98,
+        -1,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98,
+        98
+    ],
+    "started": [
+        91.48020935058594,
+        97.55011749267578,
+        123.84346771240235,
+        130.20962524414063,
+        157.78834533691407,
+        172.5653839111328,
+        180.50216674804688,
+        205.00860595703126,
+        215.93092346191407,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        0.0,
+        -1.0,
+        133.56600952148438,
+        -1.0,
+        184.06736755371095,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        146.33718872070313,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        211.47584533691407,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0
+    ],
+    "flags": [
+        "buildup_16",
+        "arrived_16",
+        "arrived_0",
+        "buildup_1",
+        "resolution_beat_0",
+        "long_detour_16",
+        "missed_16",
+        "long_detour_17",
+        "buildup_26",
+        "arrived_1",
+        "buildup_2",
+        "resolution_beat_1",
+        "arrived_2",
+        "buildup_3",
+        "long_detour_26",
+        "resolution_beat_2",
+        "long_detour_27",
+        "buildup_19",
+        "arrived_3",
+        "buildup_18",
+        "arrived_18",
+        "buildup_28",
+        "long_detour_18",
+        "missed_18",
+        "long_detour_19",
+        "buildup_4",
+        "arrived_28",
+        "found_damaged_bag",
+        "buildup_5",
+        "arrived_4",
+        "resolution_beat_3",
+        "buildup_29",
+        "lost:B4_supply_0",
+        "lost:B4_supply_1",
+        "lost:B4_supply_2",
+        "lost:branch_fallback_bag",
+        "resolution_beat_4",
+        "audio_near_SFX_Wheelchair_Scream_PLACEHOLDER",
+        "long_detour_28",
+        "missed_28",
+        "long_detour_29",
+        "arrived_5",
+        "buildup_6",
+        "buildup_21",
+        "resident_left_5",
+        "resolution_beat_5",
+        "buildup_20",
+        "arrived_6",
+        "arrived_20",
+        "buildup_7",
+        "audio_near_SFX_Collapse_Scream_PLACEHOLDER",
+        "resolution_beat_6",
+        "arrived_7",
+        "buildup_33",
+        "long_detour_20",
+        "missed_20",
+        "long_detour_21",
+        "buildup_8",
+        "resident_left_7",
+        "resolution_beat_7",
+        "resurfaced:resident_left_5",
+        "resident_unaccounted_at_8",
+        "resurfaced:resident_left_7",
+        "arrived_8",
+        "long_detour_33"
+    ],
+    "bodies": [],
+    "boundaryReached": false,
+    "backpackId": "",
+    "equippedInventoryId": "",
+    "inventorySlots": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+    ],
+    "inventorySelection": 0,
+    "observedSeconds": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+    ],
+    "passages": [],
+    "detourDistance": [
+        70.50714111328125,
+        21.95319366455078,
+        23.488771438598634,
+        23.84769058227539,
+        82.81147766113281,
+        89.25598907470703,
+        27.44731330871582,
+        60.533443450927737,
+        52.494117736816409,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        70.81171417236328,
+        92.83283233642578,
+        67.42190551757813,
+        111.99388122558594,
+        108.79071044921875,
+        145.18907165527345,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        58.08524703979492,
+        59.05410385131836,
+        128.1553497314453,
+        176.80076599121095,
+        0.0,
+        0.0,
+        0.0,
+        102.78714752197266,
+        92.75343322753906,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+    ],
+    "detourSeconds": [
+        17.772489547729493,
+        5.683157444000244,
+        25.70964813232422,
+        5.833742141723633,
+        21.32293128967285,
+        22.769418716430665,
+        7.483668804168701,
+        15.923421859741211,
+        14.248880386352539,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        18.022430419921876,
+        23.577159881591798,
+        37.03867721557617,
+        48.30354309082031,
+        29.097990036010743,
+        38.803104400634769,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        34.35374069213867,
+        34.7203483581543,
+        32.40654373168945,
+        44.99784469604492,
+        0.0,
+        0.0,
+        0.0,
+        27.620752334594728,
+        50.79713821411133,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+    ],
+    "waterExposureMetres": 0.0,
+    "waterLossChecks": 0
+}

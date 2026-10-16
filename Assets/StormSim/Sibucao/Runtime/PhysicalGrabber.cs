@@ -1,0 +1,192 @@
+using UnityEngine;
+using UnityEngine.InputSystem;
+namespace StormSim.Sibucao
+{
+    [DefaultExecutionOrder(100)]
+    public sealed class PhysicalGrabber : MonoBehaviour
+    {
+        public SibucaoPlayer player;
+        public float reach=2.5f;
+        public PhysicalGrabbable held;
+        public bool CanReach {get;private set;}
+        public bool Manipulating {get;private set;}
+        public bool ToggleHeld=>toggleHeld;
+        public PhysicalGrabbable FocusedItem {get;private set;}
+        bool toggleHeld;
+        public float MovementScale=>held?(held.kind==PhysicalItemKind.Assist?.42f:.8f):1;
+        Rigidbody anchor;ConfigurableJoint joint;
+        Vector3 localTarget=new Vector3(.25f,-.22f,1.05f);
+        Vector3 lastAnchor,gripStart;
+        Vector3 displayedHandPosition;bool handPoseActive;
+        Quaternion gripRotation;
+        public Quaternion TargetToolRotation=>gripRotation;
+        void Awake()
+        {
+            var go=new GameObject("Physical hand spring anchor");anchor=go.AddComponent<Rigidbody>();anchor.isKinematic=true;anchor.useGravity=false;
+            anchor.position=player.view.transform.TransformPoint(localTarget);lastAnchor=anchor.position;
+        }
+        bool Ready=>(!SibucaoSession.Instance||!SibucaoSession.Instance.inventory||!SibucaoSession.Instance.inventory.IsOpen)&&SibucaoSession.Instance&&SibucaoSession.Instance.Mode==SibucaoMode.Playing&&(!SibucaoSession.Instance.home||!SibucaoSession.Instance.home.MovementLocked)&&!player.vehicle&&(!SibucaoSession.Instance.missionGuide||!SibucaoSession.Instance.missionGuide.BlocksInput);
+        void Update()
+        {
+            Manipulating=false;
+            if(!Ready){CanReach=false;if(SibucaoSession.Instance&&SibucaoSession.Instance.Mode==SibucaoMode.Menu)Release();return;}
+            if(UnityEngine.XR.XRSettings.isDeviceActive)
+            {
+                RefreshFocus(out _);
+                var hand=UnityEngine.XR.InputDevices.GetDeviceAtXRNode(UnityEngine.XR.XRNode.RightHand);
+                if(held&&hand.TryGetFeatureValue(UnityEngine.XR.CommonUsages.deviceRotation,out Quaternion rotation))
+                {gripRotation=player.view.transform.parent.rotation*rotation;Manipulating=true;}
+                return;
+            }
+            bool driven=false;
+#if UNITY_EDITOR
+            driven=SibucaoEditorInput.Active;
+#endif
+            if(!Application.isFocused&&!driven)return;
+            var mouse=Mouse.current;if(mouse==null)return;
+            bool down=mouse.leftButton.wasPressedThisFrame,pressed=mouse.leftButton.isPressed;float scroll=mouse.scroll.ReadValue().y;
+#if UNITY_EDITOR
+            if(driven){down=SibucaoEditorInput.Take(ref SibucaoEditorInput.GripDown);pressed=SibucaoEditorInput.GripHeld;scroll=SibucaoEditorInput.Scroll;SibucaoEditorInput.Scroll=0;}
+#endif
+            RefreshFocus(out var hit);
+            if(!driven&&SibucaoControls.Settings.toggleGrip&&held&&down)Release(true);
+            else if(!held && CanReach && FocusedItem.PhysicalTool && down){if(TryGrab(FocusedItem,hit.point)&&!driven&&SibucaoControls.Settings.toggleGrip)toggleHeld=true;}
+            if(held&&!toggleHeld&&!pressed)Release(true);
+            if(held)localTarget.z=Mathf.Clamp(localTarget.z+scroll*.002f,.65f,1.8f);
+            Manipulating=held&&(Mathf.Abs(scroll)>.01f||player.MoveInput.sqrMagnitude>.01f||mouse.delta.ReadValue().sqrMagnitude>.1f);
+            if(held&&held.kind!=PhysicalItemKind.Assist)
+            {
+                Vector2 turn=Keyboard.current!=null&&StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.R).isPressed?mouse.delta.ReadValue()*.35f:Vector2.zero;
+#if UNITY_EDITOR
+                if(driven){turn=SibucaoEditorInput.ToolTurn;SibucaoEditorInput.ToolTurn=Vector2.zero;}
+#endif
+                gripRotation=Quaternion.AngleAxis(turn.x,player.view.transform.up)*Quaternion.AngleAxis(turn.y,player.view.transform.right)*gripRotation;
+                Manipulating|=turn.sqrMagnitude>.001f;
+            }
+        }
+        public bool RefreshFocus(out RaycastHit targetHit)
+        {
+            targetHit=default;FocusedItem=null;CanReach=false;
+            var hits=Physics.RaycastAll(player.view.transform.position,player.view.transform.forward,reach,~0,QueryTriggerInteraction.Ignore);
+            System.Array.Sort(hits,(a,b)=>a.distance.CompareTo(b.distance));
+            foreach(var hit in hits)
+            {
+                if(hit.transform.IsChildOf(player.transform))continue;
+                targetHit=hit;FocusedItem=hit.collider.GetComponentInParent<PhysicalGrabbable>();
+                CanReach=FocusedItem&&FocusedItem.CanGrab;return CanReach;
+            }
+            return false;
+        }
+        // E is dispatched once by the player, after paper/door interaction priority.
+        public bool ToggleGrab()
+        {
+            if(!Ready)return false;
+            var inventory=SibucaoSession.Instance.inventory;
+            if(held){if(inventory&&inventory.HasBag&&SibucaoInventory.Storable(held))return inventory.Collect(held);Release();return true;}
+            if(!RefreshFocus(out var hit))return false;
+            if(inventory&&(FocusedItem.kind==PhysicalItemKind.Bag||SibucaoInventory.Storable(FocusedItem)))return inventory.Collect(FocusedItem);
+            return false; // E cannot latch a decision tool or assistance grip.
+        }
+
+        public bool CarryOrRelease()
+        {
+            if(!Ready)return false;
+            if(held){Release(true);return true;}
+            if(!RefreshFocus(out var hit))return false;
+            if(FocusedItem.kind==PhysicalItemKind.Bag)return SibucaoSession.Instance.inventory&&SibucaoSession.Instance.inventory.Collect(FocusedItem);
+            if(!TryGrab(FocusedItem,hit.point))return false;
+            toggleHeld=true;return true;
+        }
+        public bool PackCarried()
+        {
+            var inventory=SibucaoSession.Instance?SibucaoSession.Instance.inventory:null;
+            return Ready&&held&&inventory&&SibucaoInventory.Storable(held)&&inventory.Collect(held);
+        }
+        public bool HoldItem(PhysicalGrabbable item,bool latch=false)
+        {
+            var collider=item.GetComponentInChildren<Collider>();
+            if(!collider||!TryGrab(item,collider.bounds.center))return false;
+            toggleHeld=latch;return true;
+        }
+        public bool TryGrab(PhysicalGrabbable item,Vector3 hit)
+        {
+            if(!Ready||held||!item||(!item.PhysicalTool&&!SibucaoInventory.Storable(item))||!item.CanGrab||Vector3.Distance(player.view.transform.position,hit)>reach)return false;
+            if(item.secured){item.transform.SetParent(null,true);item.secured=false;}
+            gripStart=item.transform.position;item.gripTravel=0;
+            toggleHeld=false;held=item;item.holder=this;item.everHeld=true;item.Body.isKinematic=false;
+            // A face-attached spring overwhelms the tiny strap/kit inertia and spins it.
+            // Keep these light tools on their centre of mass; assistance retains its real handle.
+            item.EnsureAssistanceGrip();
+            Vector3 attachment=item.kind==PhysicalItemKind.Assist&&item.grip?item.grip.position:item.kind==PhysicalItemKind.Strap||item.kind==PhysicalItemKind.FirstAid?item.Body.worldCenterOfMass:hit;
+            anchor.position=attachment;lastAnchor=attachment;
+            if(item.station)item.station.BeginGrip(item);
+            gripRotation=item.transform.rotation;
+            joint=item.gameObject.AddComponent<ConfigurableJoint>();joint.connectedBody=anchor;joint.autoConfigureConnectedAnchor=false;
+            joint.anchor=item.transform.InverseTransformPoint(attachment);joint.connectedAnchor=Vector3.zero;
+            joint.xMotion=joint.yMotion=joint.zMotion=ConfigurableJointMotion.Free;
+            joint.angularXMotion=joint.angularYMotion=joint.angularZMotion=ConfigurableJointMotion.Free;
+            var drive=new JointDrive{positionSpring=700,positionDamper=65,maximumForce=item.kind==PhysicalItemKind.Assist?1400:500};
+            joint.xDrive=joint.yDrive=joint.zDrive=drive;
+            joint.breakForce=2200;joint.enableCollision=false;
+            foreach(var c in item.GetComponentsInChildren<Collider>())Physics.IgnoreCollision(c,player.GetComponent<CharacterController>(),true);
+            return true;
+        }
+        void FixedUpdate()
+        {
+            if(!Ready||!held)return;
+            if(!joint||Vector3.Distance(held.transform.position,player.transform.position)>reach+2){Release();return;}
+            held.gripTravel=Mathf.Max(held.gripTravel,Vector3.Distance(gripStart,held.transform.position));
+            Vector3 goal=player.view.transform.TransformPoint(localTarget);
+            if(UnityEngine.XR.XRSettings.isDeviceActive)
+            {
+                var hand=UnityEngine.XR.InputDevices.GetDeviceAtXRNode(UnityEngine.XR.XRNode.RightHand);
+                if(hand.TryGetFeatureValue(UnityEngine.XR.CommonUsages.devicePosition,out Vector3 position))goal=player.view.transform.parent.TransformPoint(position);
+            }
+            if(held.kind==PhysicalItemKind.Assist)
+            {
+                goal=player.transform.position+player.transform.forward*1.25f;
+                // Support comes from the ground. The grip pulls horizontally, avoiding a lift or downward shove from camera height.
+                goal.y=held.transform.TransformPoint(joint.anchor).y;
+            }
+            anchor.MovePosition(Vector3.MoveTowards(lastAnchor,goal,Time.fixedDeltaTime*3));lastAnchor=anchor.position;
+            if(held.kind!=PhysicalItemKind.Assist)
+            {
+                var error=gripRotation*Quaternion.Inverse(held.Body.rotation);
+                error.ToAngleAxis(out float angle,out Vector3 axis);if(angle>180)angle-=360;
+                if(float.IsFinite(axis.x))
+                {
+                    // Drive angular velocity, rather than a tiny shape-dependent torque.
+                    // The Rigidbody still collides and rotates in the physics solver.
+                    Vector3 desired=Vector3.ClampMagnitude(axis*angle*Mathf.Deg2Rad*8,4);
+                    held.Body.angularVelocity=Vector3.MoveTowards(held.Body.angularVelocity,desired,40*Time.fixedDeltaTime);
+                }
+            }
+        }
+        void LateUpdate()
+        {
+            if(!Ready||!held||!player.hands){handPoseActive=false;return;}
+            // Reach the visible hand toward the joint; the object itself remains simulated.
+            Vector3 local=player.hands.parent.InverseTransformPoint(anchor.position);
+            local=Vector3.ClampMagnitude(local,1.1f);local.z=Mathf.Max(.24f,local.z);
+            if(!handPoseActive){displayedHandPosition=player.hands.localPosition;handPoseActive=true;}
+            displayedHandPosition=Vector3.Lerp(displayedHandPosition,local,1-Mathf.Exp(-Time.deltaTime*12));
+            player.hands.localPosition=displayedHandPosition;
+            if(held.kind==PhysicalItemKind.Assist)player.hands.rotation=Quaternion.Slerp(player.hands.rotation,Quaternion.LookRotation(held.transform.forward,Vector3.up),1-Mathf.Exp(-Time.deltaTime*8));
+            player.Gesture(1);
+        }
+        public void Release(bool deliberate=false)
+        {
+            toggleHeld=false;
+            if(joint)Destroy(joint);joint=null;
+            if(held){var old=held;old.holder=null;held=null;
+                if(deliberate){var s=SibucaoSession.Instance;if(s&&s.physicalDecisions)foreach(var station in s.physicalDecisions.stations)if(station.Active&&(old.station==station||old.kind==PhysicalItemKind.FirstAid)){if(station.ReleaseAtTarget(old))break;}}
+                StartCoroutine(RestoreCollision(old));}
+        }
+        System.Collections.IEnumerator RestoreCollision(PhysicalGrabbable item)
+        {
+            yield return new WaitForSeconds(.25f);
+            if(item&&!item.IsHeld)foreach(var c in item.GetComponentsInChildren<Collider>())if(c)Physics.IgnoreCollision(c,player.GetComponent<CharacterController>(),false);
+        }
+        void OnDestroy(){if(anchor)Destroy(anchor.gameObject);}
+    }
+}

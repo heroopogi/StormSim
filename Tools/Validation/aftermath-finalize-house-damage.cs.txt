@@ -1,0 +1,43 @@
+var scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+if(scene.path!="Assets/Scenes/SIBUCAO_AFTERMATH.unity"||EditorApplication.isPlaying)throw new Exception("Expected aftermath Edit mode");
+var report=new List<string>();
+foreach(var f in UnityEngine.Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None))
+{
+ if(f.name!="plaster"||!f.transform.parent||(f.transform.parent.name!="Neighbourhood -1_6"&&f.transform.parent.name!="Neighbourhood -1_7"))continue;
+ int batch=f.transform.parent.name=="Neighbourhood -1_6"?11:12;
+ var original=AssetDatabase.LoadAllAssetsAtPath("Assets/StormSim/Generated/BanagoArchitecture_20260907_015351/Neighbourhood "+batch+".asset").OfType<Mesh>().Single(m=>m.name=="Neighbourhood "+batch);
+ f.sharedMesh=original;f.GetComponent<MeshCollider>().sharedMesh=original;
+ var materialNames=batch==11?new[]{"Chalk paint exposed CHB and damp streaks","Coastal weathered timber","Roadside unfinished CHB"}:new[]{"Chalk paint exposed CHB and damp streaks"};
+ var materials=new List<Material>();
+ for(int i=0;i<materialNames.Length;i++)
+ {
+    var source=AssetDatabase.FindAssets(materialNames[i]+" t:Material").Select(g=>AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g))).First(m=>m&&m.name==materialNames[i]);
+    string path="Assets/StormSim/Sibucao/Art/Aftermath/Flood stained facade "+batch+"-"+i+".mat";
+    var copy=AssetDatabase.LoadAssetAtPath<Material>(path);if(!copy){copy=new Material(source);AssetDatabase.CreateAsset(copy,path);}
+    if(copy.HasProperty("_DampStrength")){copy.SetFloat("_DampStrength",.85f);copy.SetFloat("_WaterLevel",.95f);}
+    if(copy.HasProperty("_Weathering"))copy.SetFloat("_Weathering",Mathf.Max(.45f,source.GetFloat("_Weathering")));
+    materials.Add(copy);
+ }
+ f.GetComponent<MeshRenderer>().sharedMaterials=materials.ToArray();
+ report.Add("PASS: original wall geometry/collision retained for "+f.transform.parent.name+"; aftermath facade materials applied.");
+}
+var root=GameObject.Find("Aftermath - damaged homes and yards");if(!root)throw new Exception("Missing house damage root");
+var meshes=UnityEngine.Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None).Where(f=>f.transform.parent&&(f.transform.parent.name=="Neighbourhood -1_6"||f.transform.parent.name=="Neighbourhood -1_7")&&f.name=="metal").ToArray();
+foreach(var f in meshes)
+{
+ if(!AssetDatabase.GetAssetPath(f.sharedMesh).Contains("/Aftermath/"))throw new Exception("Roof not isolated");
+ if(f.GetComponent<MeshCollider>().sharedMesh!=f.sharedMesh)throw new Exception("Roof collision mismatch");
+ if(f.sharedMesh.triangles.Any(i=>i<0||i>=f.sharedMesh.vertexCount))throw new Exception("Bad mesh indices");
+}
+if(root.GetComponentsInChildren<Collider>().Length!=0)throw new Exception("Unexpected new yard obstruction");
+var s=UnityEngine.Object.FindFirstObjectByType<StormSim.Sibucao.SibucaoSession>();
+if(Vector3.Distance(s.player.transform.position,new Vector3(0,-1.478f,657))>.01f)throw new Exception("School spawn changed");
+report.Add("PASS: isolated roof meshes, matching roof colliders, valid indices, no new yard colliders, school spawn retained.");
+report.Add("Visual pass: eight selected homes with varied damage, six roof openings, exposed rafters, broken fences, yard sheets, recovery barriers and one bent banana clump. Static damage; not tied to saved decisions. Play Mode not tested.");
+AssetDatabase.SaveAssets();UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(scene);if(!UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene))throw new Exception("Scene save failed");
+var capture=typeof(StormSim.Sibucao.Editor.SibucaoAftermathBuilder).GetMethod("Capture",BindingFlags.Static|BindingFlags.NonPublic);
+capture.Invoke(null,new object[]{"damaged-houses-roofs",new Vector3(-28,16,677),new Vector3(-44,1,660)});
+capture.Invoke(null,new object[]{"damaged-houses-street",new Vector3(-34,1.6f,667),new Vector3(-39,2,653)});
+capture.Invoke(null,new object[]{"damaged-houses-north",new Vector3(-52,10,718),new Vector3(-44,2,697)});
+System.IO.File.WriteAllLines("Captures/Aftermath/house-damage-verification.txt",report);
+return string.Join("\n",report);

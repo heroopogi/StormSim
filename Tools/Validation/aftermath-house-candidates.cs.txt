@@ -1,0 +1,9 @@
+var list=new System.Collections.Generic.List<string>();
+foreach(var h in UnityEngine.Object.FindObjectsByType<BanagoHousePreview>(UnityEngine.FindObjectsInactive.Include,UnityEngine.FindObjectsSortMode.None))
+{
+ var p=h.transform.position;
+ if(p.x< -90||p.x> -28||p.z<640||p.z>720)continue;
+ var r=h.GetComponent<UnityEngine.Renderer>();
+ list.Add(h.name+" pos "+p+" bounds "+(r?r.bounds.ToString():"none")+" height "+h.wallHeightMeters);
+}
+System.IO.File.WriteAllLines("Captures/Aftermath/house-candidates.txt",list);return string.Join("\n",list);

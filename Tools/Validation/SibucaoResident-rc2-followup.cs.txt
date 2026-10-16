@@ -1,0 +1,171 @@
+using UnityEngine;
+namespace StormSim.Sibucao
+{
+    public enum ResidentBehavior { Walking, Running, Panicking, Evacuating }
+    public sealed class SibucaoResident : MonoBehaviour
+    {
+        public SibucaoActor casting;
+        public ResidentBehavior behavior;
+        public SibucaoRoute route;
+        public float routeDistance,initialDistance,lane,height=1.65f,build=1,speed=1.2f;
+        public int variation;
+        public bool distributeFromCurrentHome;
+        public Transform pelvis,chest,head;
+        public Transform[] thighs,shins,feet,upperArms,forearms,hands;
+        float phase,life,blockedTime;
+        float lastRun=-1;
+        SibucaoStormPassage passage;
+        string passedPassage;
+        readonly RaycastHit[] collisionHits=new RaycastHit[24];
+        readonly Collider[] bodyHits=new Collider[24];
+        bool placeOnReset;
+        static readonly float[] steeringAngles={0,30,-30,60,-60};
+        static readonly System.Collections.Generic.List<SibucaoResident> all=new System.Collections.Generic.List<SibucaoResident>();
+        public bool Sheltered{get;private set;}
+        public bool Swimming{get;private set;}
+        void OnEnable(){all.Add(this);}
+        void OnDisable(){all.Remove(this);}
+        public void ResetResident()
+        {
+            routeDistance=initialDistance;
+            var s=SibucaoSession.Instance;
+            if(distributeFromCurrentHome&&s&&s.home){float start=route.Progress(s.home.standingPoint.position);routeDistance=Mathf.Lerp(start+8,route.length-8,Mathf.Clamp01(initialDistance/route.length));}
+            placeOnReset=distributeFromCurrentHome;life=0;phase=variation*.71f;blockedTime=0;Sheltered=false;passage=null;passedPassage=null;
+            var forward=route.Sample(Mathf.Min(route.length,routeDistance+2))-route.Sample(Mathf.Max(0,routeDistance-2));forward.y=0;
+            transform.position=route.Sample(routeDistance)+Vector3.Cross(Vector3.up,forward.normalized)*lane;
+            if(forward.sqrMagnitude>.01f)transform.rotation=Quaternion.LookRotation(forward);
+            if(thighs!=null&&thighs.Length==2)Animate(false,false);
+        }
+        void Update()
+        {
+            var s=SibucaoSession.Instance;if(!s||s.Mode!=SibucaoMode.Playing)return;
+            if(lastRun>s.state.elapsed)ResetResident();lastRun=s.state.elapsed;
+            if(placeOnReset){placeOnReset=false;PlaceClearOfStructures();}
+            float dt=Time.deltaTime;life+=dt;
+            bool panic=behavior==ResidentBehavior.Panicking&&life<9+variation%8;
+            float targetSpeed=casting?casting.strideSpeed:panic?0:behavior==ResidentBehavior.Running?2.8f:behavior==ResidentBehavior.Walking?1.05f:1.5f;
+            if(casting&&casting.UsingPanicLocomotion)targetSpeed=casting.panicStrideSpeed;
+            if(casting)targetSpeed*=Mathf.Lerp(.88f,1.08f,(variation%7)/6f);
+            var flood=s.GetComponent<FloodSimulationManager>();if(flood)targetSpeed*=Mathf.Lerp(1,.55f,Mathf.Clamp01(flood.GetWaterDepth(transform.position)));
+            if(Sheltered)targetSpeed=0;
+            if(Swimming)targetSpeed=Mathf.Min(targetSpeed,1.05f);
+            Vector3 ahead=route.Sample(Mathf.Min(route.length,routeDistance+2));Vector3 forward=ahead-route.Sample(routeDistance);forward.y=0;if(forward.sqrMagnitude<.001f)forward=transform.forward;forward.Normalize();
+            if(!passage&&s.passages)passage=s.passages.ResidentPassage(transform.position,forward,passedPassage);
+            Vector3 passageTarget=Vector3.zero;
+            if(passage)
+            {
+                passageTarget=passage.transform.position+passage.transform.forward*(passage.State.secured?1.6f:-1.35f);
+                var remaining=passageTarget-transform.position;remaining.y=0;
+                if(!passage.State.secured&&remaining.magnitude<.55f)targetSpeed=0;
+                if(passage.State.secured&&remaining.magnitude<.45f){passedPassage=passage.persistentId;passage=null;}
+            }
+            speed=Mathf.MoveTowards(speed,targetSpeed,dt*2);
+            Vector3 right=Vector3.Cross(Vector3.up,forward);
+            Vector3 desired=passage?passageTarget:route.Sample(routeDistance+speed*dt)+right*lane;
+            foreach(var npc in all)if(npc!=this && (npc.transform.position-transform.position).sqrMagnitude<1.3f)desired+=Vector3.ClampMagnitude(transform.position-npc.transform.position,.4f)*.4f;
+            var fromPlayer=transform.position-s.player.transform.position;fromPlayer.y=0;
+            if(fromPlayer.sqrMagnitude<1.2f)desired+=Vector3.ClampMagnitude(fromPlayer,.65f);
+            Vector3 step=desired-transform.position;step.y=0;
+            if(speed>.05f && step.sqrMagnitude>.00000001f)
+            {
+                bool moved=false;
+                foreach(float angle in steeringAngles)
+                {
+                    Vector3 direction=Quaternion.Euler(0,angle,0)*step.normalized;
+                    float distance=Mathf.Min(step.magnitude,speed*dt);
+                    var candidate=transform.position+direction*distance;
+                    if(!GroundAt(candidate,.45f,4,out var footing))continue;
+                    if(!Swimming&&footing.y<transform.position.y-.5f)continue;
+                    float rise=Mathf.Max(0,footing.y+.025f-transform.position.y);
+                    if(!ClearStep(direction,Mathf.Max(.3f,distance+.05f),rise))continue;
+                    if(!Swimming)candidate.y=footing.y+.025f;
+                    if(!BodyClear(candidate))continue;
+                    transform.position=candidate;
+                    routeDistance=Mathf.Clamp(route.Progress(transform.position),0,route.length);moved=true;break;
+                }
+                if(!moved){blockedTime+=dt;if(!passage)lane=Mathf.MoveTowards(lane,(variation%2==0?1:-1)*2.2f,dt*.6f);}
+                else blockedTime=0;
+                transform.rotation=Quaternion.Slerp(transform.rotation,Quaternion.LookRotation(passage?step.normalized:forward),1-Mathf.Exp(-dt*5));
+            }
+            Vector3 bed=route.Sample(routeDistance);bed.x=transform.position.x;bed.z=transform.position.z;
+            if(GroundAt(transform.position,.45f,4,out var actualGround))bed=actualGround;
+            Swimming=flood&&flood.TrySurface(transform.position,out float surface,out _)&&surface-bed.y>height*.75f;
+            float targetY=Swimming?flood.GetWaterDepth(new Vector3(transform.position.x,bed.y,transform.position.z))+bed.y-height*.78f:bed.y+.025f;
+            var settled=new Vector3(transform.position.x,Mathf.MoveTowards(transform.position.y,targetY,dt*2),transform.position.z);
+            if(BodyClear(settled))transform.position=settled;
+            if(routeDistance>=route.length-2){Sheltered=true;speed=0;}
+            phase+=dt*(speed>.05f?speed/(behavior==ResidentBehavior.Running?1.35f:.85f):.35f);
+            Animate(panic,speed>.05f && blockedTime<.3f);
+        }
+        bool GroundAt(Vector3 position,float rise,float drop,out Vector3 ground)
+        {
+            ground=position;int count=Physics.RaycastNonAlloc(position+Vector3.up*rise,Vector3.down,collisionHits,rise+drop,1,QueryTriggerInteraction.Ignore);
+            float nearest=float.PositiveInfinity;
+            for(int i=0;i<count;i++){var hit=collisionHits[i];if(hit.normal.y<.65f||hit.transform.IsChildOf(transform)||hit.collider.GetComponentInParent<SibucaoResident>()||hit.collider.GetComponentInParent<SibucaoPlayer>()||hit.collider.GetComponentInParent<PhysicalGrabbable>())continue;if(hit.distance<nearest){nearest=hit.distance;ground=hit.point;}}
+            return !float.IsPositiveInfinity(nearest);
+        }
+        bool BodyClear(Vector3 position)
+        {
+            int count=Physics.OverlapCapsuleNonAlloc(position+Vector3.up*.26f,position+Vector3.up*Mathf.Max(.27f,height-.24f),.24f,bodyHits,1,QueryTriggerInteraction.Ignore);
+            if(count==bodyHits.Length)return false;
+            for(int i=0;i<count;i++)if(!bodyHits[i].transform.IsChildOf(transform))return false;
+            return true;
+        }
+        void PlaceClearOfStructures()
+        {
+            // Initial crowd distribution must not put a resident inside a deck or obstruction.
+            // This runs only on reset; a blocked walking resident never teleports ahead.
+            Physics.SyncTransforms();var origin=transform.position;var right=transform.right;
+            foreach(float forward in new[]{0f,2f,-2f,4f,-4f,8f,-8f,12f,-12f,20f,-20f,32f,-32f})
+            foreach(float offset in new[]{0f,.8f,-.8f,1.6f,-1.6f,2.4f,-2.4f,3.2f,-3.2f,4.8f,-4.8f,6.4f,-6.4f})
+            {
+                var requested=origin+right*offset+transform.forward*forward;
+                if(!GroundAt(requested,.5f,3,out var ground))continue;ground+=Vector3.up*.025f;
+                if(!BodyClear(ground))continue;transform.position=ground;routeDistance=Mathf.Clamp(route.Progress(ground),0,route.length);return;
+            }
+        }
+        bool ClearStep(Vector3 direction,float distance,float rise)
+        {
+            int count=Physics.CapsuleCastNonAlloc(transform.position+Vector3.up*(.26f+rise),transform.position+Vector3.up*(Mathf.Max(.27f,height-.24f)+rise),.24f,direction,collisionHits,distance,1,QueryTriggerInteraction.Ignore);
+            if(count==collisionHits.Length)return false;
+            for(int i=0;i<count;i++)if(!collisionHits[i].transform.IsChildOf(transform))return false;
+            return true;
+        }
+        void Animate(bool panic,bool moving)
+        {
+            if(casting){casting.SetMove(moving?speed:0);return;}
+            float scale=height/1.7f;float hip=.9f*scale;
+            float bounce=moving?Mathf.Sin(phase*Mathf.PI*4)*.017f*scale:Mathf.Sin(life*2)*.003f;
+            pelvis.localPosition=new Vector3(0,hip+bounce,0);chest.localRotation=Quaternion.Euler(panic?12:speed>2?12:3,Mathf.Sin(phase*Mathf.PI*2)*3,Mathf.Sin(phase*Mathf.PI*2)*1.5f);
+            head.localRotation=Quaternion.Euler(panic?-8:0,Mathf.Sin(life*(panic?3:.55f))*(panic?22:9),0);
+            for(int i=0;i<2;i++)
+            {
+                float side=i==0?-1:1;float u=Mathf.Repeat(phase+i*.5f,1);float stride=(speed>2?.72f:.45f)*scale;
+                float z=moving?(u<.6f?stride*(.5f-u/.6f):stride*(-.5f+Mathf.SmoothStep(0,1,(u-.6f)/.4f))):0;
+                float lift=moving&&u>.6f?Mathf.Sin((u-.6f)/.4f*Mathf.PI)*(speed>2?.2f:.11f)*scale:0;
+                Vector3 ankle=new Vector3(side*.105f*build,.07f*scale+lift,z);
+                Vector3 start=new Vector3(side*.105f*build,hip+bounce,0);
+                Solve(thighs[i],shins[i],start,ankle,.43f*scale,.43f*scale,Vector3.forward);
+                feet[i].localPosition=ankle;feet[i].localRotation=Quaternion.Euler(moving&&u>.85f?-10:0,0,0);
+                Vector3 shoulder=new Vector3(side*.225f*build,1.42f*scale+bounce,.01f);
+                float armSwing=moving?-Mathf.Sin((phase+i*.5f)*Mathf.PI*2)*.24f*scale:0;
+                Vector3 hand=panic?new Vector3(side*.2f,1.58f*scale,.16f):new Vector3(side*.29f*build,(speed>2?1.12f:.9f)*scale,armSwing+(speed>2?.21f:.02f));
+                Solve(upperArms[i],forearms[i],shoulder,hand,.29f*scale,.26f*scale,Vector3.back);
+                hands[i].localPosition=hand;hands[i].localRotation=Quaternion.Euler(panic?-30:0,0,side*8);
+            }
+        }
+        public void AnimateDirected(float clock,bool running)
+        {
+            life=clock;speed=running?2.8f:0;phase=clock*(running?2.8f/1.35f:.35f)+variation*.71f;
+            Animate(false,running);
+        }
+        static void Solve(Transform upper,Transform lower,Vector3 start,Vector3 end,float a,float b,Vector3 bend)
+        {
+            Vector3 d=end-start;float distance=Mathf.Clamp(d.magnitude,.02f,a+b-.001f);Vector3 axis=d.normalized;
+            float x=(a*a-b*b+distance*distance)/(2*distance);float y=Mathf.Sqrt(Mathf.Max(0,a*a-x*x));
+            var perpendicular=Vector3.ProjectOnPlane(bend,axis).normalized;Vector3 knee=start+axis*x+perpendicular*y;
+            upper.localPosition=start;upper.localRotation=Quaternion.FromToRotation(Vector3.down,knee-start);
+            lower.localPosition=knee;lower.localRotation=Quaternion.FromToRotation(Vector3.down,end-knee);
+        }
+    }
+}

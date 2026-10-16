@@ -1,0 +1,4 @@
+const fs=require('fs'),crypto=require('crypto');
+const p='Documentation/SIBUCAO_RAIN_IMPROVEMENT_CHECKLIST.md';let t=fs.readFileSync(p,'utf8').replace(/\r?\n\r?\n(\| 2026-09-30 \| Batches 4–7 continuation)/,'\n$1');fs.writeFileSync(p,t);
+const resource='Assets/StormSim/Sibucao/Resources/SibucaoNarrationText.json';if(!fs.existsSync(resource+'.meta'))fs.writeFileSync(resource+'.meta','fileFormatVersion: 2\nguid: '+crypto.randomUUID().replaceAll('-','')+'\n');
+for(const doc of ['SIBUCAO_RAIN_IMPROVEMENT_CHECKLIST.md','SIBUCAO_BATCHES4_7_IMPLEMENTATION_20260930.md','SIBUCAO_DESKTOP_CANDIDATE_GUIDE.md']){const content=fs.readFileSync('Documentation/'+doc,'utf8');const missing=[...content.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)].filter(m=>!fs.existsSync(require('path').resolve('Documentation',m[1])));console.log(doc+': '+missing.length+' broken links');}

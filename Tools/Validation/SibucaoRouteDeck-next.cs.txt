@@ -1,0 +1,179 @@
+using UnityEngine;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace StormSim.Sibucao
+{
+    // Permanent raised pedestrian access where the coastal terrain has no usable shoulder.
+    public sealed class SibucaoRouteDeck : MonoBehaviour
+    {
+        public Material timber,metal;
+        [SerializeField] Transform generated;
+        bool floodAccess;
+        Vector3 basePosition;
+        Transform entryRamp, exitRamp;
+        Material edgeMaterial;
+        Mesh surfaceMesh;
+        readonly System.Collections.Generic.List<Transform> supports = new System.Collections.Generic.List<Transform>();
+        readonly System.Collections.Generic.List<Vector3> supportPositions = new System.Collections.Generic.List<Vector3>();
+        readonly System.Collections.Generic.List<Vector3> supportScales = new System.Collections.Generic.List<Vector3>();
+        public void Rebuild(RouteSectionLayout layout)
+        {
+            floodAccess = false;
+            if(surfaceMesh){if(Application.isPlaying)Destroy(surfaceMesh);else DestroyImmediate(surfaceMesh);surfaceMesh=null;}
+            if(generated){generated.gameObject.SetActive(false);if(Application.isPlaying)Destroy(generated.gameObject);else DestroyImmediate(generated.gameObject);}
+            generated=new GameObject("Raised side access").transform;generated.SetParent(transform,false);
+            if(layout.leftDeck)Build(layout.left,layout.leftApproach,layout.leftPath);
+            if(layout.rightDeck)Build(layout.right,layout.rightApproach,layout.rightPath);
+            ContinuousSurfaces(layout,false);
+        }
+        public void SetFloodLift(RouteSectionLayout layout, float lift, RouteSectionLayout groundLayout)
+        {
+            if (!floodAccess)
+            {
+                Rebuild(layout);
+                if (!layout.leftDeck) Build(layout.left, layout.leftApproach, layout.leftPath);
+                if (!layout.rightDeck) Build(layout.right, layout.rightApproach, layout.rightPath);
+                Piece("Shared approach landing", layout.approach - Vector3.up * .1f, new Vector3(2,.2f,2), transform.rotation, timber);
+                Piece("Passage meeting landing", layout.merge - Vector3.up * .1f, new Vector3(2,.2f,2), transform.rotation, timber);
+                entryRamp = Piece("Ground access ramp", layout.approach, Vector3.one, transform.rotation, timber);
+                exitRamp = Piece("Return ramp", layout.merge, Vector3.one, transform.rotation, timber);
+                ContinuousSurfaces(layout,true);
+                basePosition = generated.position;
+                supports.Clear(); supportPositions.Clear(); supportScales.Clear();
+                foreach (Transform t in generated) if (t.name == "Deck foundation post")
+                { supports.Add(t); supportPositions.Add(t.localPosition); supportScales.Add(t.localScale); }
+                floodAccess = true;
+            }
+            generated.position = basePosition + Vector3.up * lift;
+            for (int i=0;i<supports.Count;i++)
+            {
+                supports[i].localPosition = supportPositions[i] - Vector3.up * lift * .5f;
+                supports[i].localScale = supportScales[i] + Vector3.up * lift;
+            }
+            var entry=layout.approach;entry.y=groundLayout.approach.y;
+            var exit=layout.merge;exit.y=groundLayout.merge.y;
+            if(layout.fittedRamps)
+            {
+                FitRamp(entryRamp,layout.entryGround,layout.approach+Vector3.up*lift);
+                FitRamp(exitRamp,layout.exitGround,layout.merge+Vector3.up*lift);
+            }
+            else
+            {
+                Ramp(entryRamp, entry, -1, layout.approach.y+lift-entry.y);
+                Ramp(exitRamp, exit, 1, layout.merge.y+lift-exit.y);
+            }
+        }
+        public static void FitRamp(Transform ramp,Vector3 ground,Vector3 top)
+        {
+            var outward=ground-top;outward.y=0;
+            top+=outward.normalized*.9f; // Meet the landing edge, not its underside.
+            var delta=top-ground;
+            ramp.position=(ground+top)*.5f-Vector3.up*.08f;
+            ramp.rotation=Quaternion.LookRotation(delta);
+            ramp.localScale=new Vector3(1.5f,.16f,delta.magnitude+.2f);
+        }
+        void Ramp(Transform ramp, Vector3 ground, int direction, float lift)
+        {
+            float run = Mathf.Max(2, lift * 3);
+            ramp.position = ground + Vector3.up * (lift * .5f - .08f) + transform.forward * direction * run * .5f;
+            ramp.rotation = transform.rotation * Quaternion.Euler(direction * Mathf.Atan2(lift, run) * Mathf.Rad2Deg, 0, 0);
+            ramp.localScale = new Vector3(1.5f,.16f,Mathf.Sqrt(run*run+lift*lift)+.2f);
+        }
+        void Build(Vector3 center,Vector3[] incoming,Vector3[] outgoing)
+        {
+            Piece("Supported work deck",center-Vector3.up*.1f,new Vector3(3.6f,.2f,4.6f),transform.rotation,timber);
+            for(int x=-1;x<=1;x+=2)for(int z=-1;z<=1;z+=2)
+            {
+                Foundation(center+transform.rotation*new Vector3(x*1.65f,0,z*2.15f));
+            }
+            Walkway(incoming,center);Walkway(outgoing,center);
+        }
+        void Walkway(Vector3[] points,Vector3 plot)
+        {
+            if(points==null)return;
+            var unique = new System.Collections.Generic.List<Vector3>();
+            foreach(var point in points)
+                if(unique.Count==0||Vector3.Distance(unique[unique.Count-1],point)>.01f)unique.Add(point);
+            points=unique.ToArray();
+            var compact = new System.Collections.Generic.List<Vector3>();
+            for(int i=0;i<points.Length;i++)
+            {
+                if(i>0&&i<points.Length-1&&Vector3.Angle(points[i]-points[i-1],points[i+1]-points[i])<4)continue;
+                compact.Add(points[i]);
+            }
+            points=compact.ToArray();
+            for(int i=1;i<points.Length;i++)
+            {
+                var a=points[i-1];var b=points[i];var delta=b-a;if(delta.magnitude<.05f)continue;
+                var q=Quaternion.LookRotation(delta);var mid=(a+b)*.5f;
+                Piece("Raised pedestrian walkway",mid-Vector3.up*.09f,new Vector3(1.5f,.18f,delta.magnitude+.04f),q,timber);
+                // Paint marks the narrow edge without adding a collision barrier at branch intersections.
+                for(int side=-1;side<=1;side+=2)
+                {
+                    var stripe=Piece("Walkway edge marking",mid+q*new Vector3(side*.69f,.009f,0),new Vector3(.065f,.012f,Mathf.Max(.05f,delta.magnitude-.15f)),q,EdgeMaterial());
+                    stripe.GetComponent<Collider>().enabled=false;
+                }
+                int spans=Mathf.Max(1,Mathf.CeilToInt(delta.magnitude/3));
+                for(int span=0;span<=spans;span++)for(int side=-1;side<=1;side+=2)
+                    Foundation(Vector3.Lerp(a,b,span/(float)spans)+q*new Vector3(side*.61f,-.18f,0));
+                // Shared branch intersections remain open; segment rails previously fenced across other routes.
+            }
+        }
+        void ContinuousSurfaces(RouteSectionLayout layout,bool both)
+        {
+            var old=generated.Find("Continuous walkway surface");
+            if(old){old.gameObject.SetActive(false);if(Application.isPlaying)Destroy(old.gameObject);else DestroyImmediate(old.gameObject);}
+            if(surfaceMesh){if(Application.isPlaying)Destroy(surfaceMesh);else DestroyImmediate(surfaceMesh);surfaceMesh=null;}
+            foreach(Transform child in generated)if(child.name=="Raised pedestrian walkway"||child.name=="Walkway edge marking")child.GetComponent<Renderer>().enabled=false;
+            var paths=new List<Vector3[]>();
+            if(both||layout.leftDeck){paths.Add(layout.leftApproach);paths.Add(layout.leftPath);}
+            if(both||layout.rightDeck){paths.Add(layout.rightApproach);paths.Add(layout.rightPath);}
+            var allPaths=paths.Where(p=>p!=null&&p.Length>1).ToArray();
+    var vertices=new List<Vector3>();var normals=new List<Vector3>();var uv=new List<Vector2>();var indices=new List<int>();var paint=new List<int>();
+    void Quad(Vector3 a,Vector3 b,Vector3 c,Vector3 d,Vector3 normal,bool edge=false){int index=vertices.Count;foreach(var p in new[]{a,b,c,d}){vertices.Add(generated.InverseTransformPoint(p));normals.Add(generated.InverseTransformDirection(normal));uv.Add(new Vector2(p.x,p.z));}var faces=edge?paint:indices;bool reverse=Vector3.Dot(Vector3.Cross(b-a,c-a),normal)<0;faces.AddRange(reverse?new[]{index,index+2,index+1,index,index+3,index+2}:new[]{index,index+1,index+2,index,index+2,index+3});}
+    bool Covered(Vector3 at,int source){foreach(var center in new[]{layout.left,layout.right}){var local=Quaternion.Inverse(transform.rotation)*(at-center);if(Mathf.Abs(local.x)<1.8f&&Mathf.Abs(local.z)<2.3f)return true;}for(int path=0;path<allPaths.Length;path++)if(path!=source)for(int i=1;i<allPaths[path].Length;i++){var a=allPaths[path][i-1];var delta=allPaths[path][i]-a;delta.y=0;var offset=at-a;offset.y=0;float t=Mathf.Clamp01(Vector3.Dot(offset,delta)/Mathf.Max(.001f,delta.sqrMagnitude));if((offset-delta*t).sqrMagnitude<.68f*.68f)return true;}return false;}
+    for(int pathIndex=0;pathIndex<allPaths.Length;pathIndex++)
+    {
+        var source=allPaths[pathIndex];if(source.Length<2)continue;var keep=new SortedSet<int>{0,source.Length-1};
+        void Simplify(int begin,int end){var delta=source[end]-source[begin];delta.y=0;float worst=.18f;int at=-1;for(int i=begin+1;i<end;i++){var offset=source[i]-source[begin];offset.y=0;float t=Mathf.Clamp01(Vector3.Dot(offset,delta)/Mathf.Max(.001f,delta.sqrMagnitude));float error=(offset-delta*t).magnitude;if(error>worst){worst=error;at=i;}}if(at>=0){keep.Add(at);Simplify(begin,at);Simplify(at,end);}}
+        Simplify(0,source.Length-1);var points=keep.Select(i=>source[i]).ToArray();var left=new Vector3[points.Length];var right=new Vector3[points.Length];
+        for(int i=0;i<points.Length;i++){var incoming=points[i]-points[Mathf.Max(0,i-1)];var outgoing=points[Mathf.Min(points.Length-1,i+1)]-points[i];incoming.y=outgoing.y=0;if(incoming.sqrMagnitude<.001f)incoming=outgoing;if(outgoing.sqrMagnitude<.001f)outgoing=incoming;var before=Vector3.Cross(Vector3.up,incoming.normalized);var after=Vector3.Cross(Vector3.up,outgoing.normalized);var miter=(before+after).normalized;float width=.75f/Mathf.Max(.5f,Vector3.Dot(miter,after));left[i]=points[i]-miter*width;right[i]=points[i]+miter*width;}
+        for(int i=1;i<points.Length;i++)
+        {
+            Quad(left[i-1],right[i-1],right[i],left[i],Vector3.up);
+            var down=Vector3.up*.18f;
+            Quad(left[i-1]-down,right[i-1]-down,right[i]-down,left[i]-down,Vector3.down);
+            var along=points[i]-points[i-1];along.y=0;along.Normalize();
+            if(i==1&&!Covered(points[0],pathIndex))Quad(left[0]-down,right[0]-down,right[0],left[0],-along);
+            if(i==points.Length-1&&!Covered(points[i],pathIndex))Quad(right[i]-down,left[i]-down,left[i],right[i],along);
+            foreach(int side in new[]{-1,1}){var a=side<0?left[i-1]:right[i-1];var b=side<0?left[i]:right[i];var center=(a+b)*.5f;if(Covered(center,pathIndex))continue;var outward=(center-(points[i-1]+points[i])*.5f).normalized;Quad(a-Vector3.up*.18f,b-Vector3.up*.18f,b,a,outward);var insetA=Vector3.MoveTowards(a,points[i-1],.065f);var insetB=Vector3.MoveTowards(b,points[i],.065f);Quad(a+Vector3.up*.008f,b+Vector3.up*.008f,insetB+Vector3.up*.008f,insetA+Vector3.up*.008f,Vector3.up,true);}
+        }
+    }
+
+            surfaceMesh=new Mesh{name="Continuous supported walkway"};surfaceMesh.SetVertices(vertices);surfaceMesh.SetNormals(normals);surfaceMesh.SetUVs(0,uv);surfaceMesh.subMeshCount=2;surfaceMesh.SetTriangles(indices,0);surfaceMesh.SetTriangles(paint,1);surfaceMesh.RecalculateBounds();
+            var go=new GameObject("Continuous walkway surface");go.transform.SetParent(generated,false);go.AddComponent<MeshFilter>().sharedMesh=surfaceMesh;
+            go.AddComponent<MeshRenderer>().sharedMaterials=new[]{timber,EdgeMaterial()};
+        }
+        void Foundation(Vector3 top)
+        {
+            var bottom=top-Vector3.up*5;
+            var hits=Physics.RaycastAll(top-Vector3.up*.2f,Vector3.down,15,~0,QueryTriggerInteraction.Ignore);
+            System.Array.Sort(hits,(a,b)=>a.distance.CompareTo(b.distance));
+            foreach(var hit in hits)if(!hit.transform.IsChildOf(transform)&&hit.normal.y>.5f&&!hit.collider.GetComponentInParent<SibucaoResident>()){bottom=hit.point;break;}
+            Piece("Deck foundation post",(top+bottom)*.5f,new Vector3(.14f,Mathf.Max(.2f,top.y-bottom.y),.14f),Quaternion.identity,metal);
+        }
+        Material EdgeMaterial()
+        {
+            if(!edgeMaterial){edgeMaterial=new Material(metal){name="Evacuation access ochre markings"};edgeMaterial.color=new Color(.88f,.64f,.2f);edgeMaterial.SetFloat("_Smoothness",.12f);}
+            return edgeMaterial;
+        }
+        void OnDestroy(){if(edgeMaterial)Destroy(edgeMaterial);if(surfaceMesh)Destroy(surfaceMesh);}
+        Transform Piece(string label,Vector3 at,Vector3 size,Quaternion angle,Material material)
+        {
+            var go=GameObject.CreatePrimitive(PrimitiveType.Cube);go.name=label;go.transform.SetParent(generated,true);
+            go.transform.SetPositionAndRotation(at,angle);go.transform.localScale=size;go.GetComponent<Renderer>().sharedMaterial=material;
+            return go.transform;
+        }
+    }
+}

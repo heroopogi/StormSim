@@ -1,0 +1,353 @@
+using UnityEngine;
+using StormSim.Sibucao;
+using UnityEngine.InputSystem;
+using UnityEngine.XR;
+using System.Collections.Generic;
+using CommonUsages=UnityEngine.XR.CommonUsages;
+
+namespace StormSim.Preparedness
+{
+    [RequireComponent(typeof(CharacterController))]
+    public sealed class PreparednessPlayer : MonoBehaviour
+    {
+        public PreparednessSession session;
+        public Camera view;
+        public Transform rightHand,leftHand;
+        public TextMesh worldPrompt;
+        public Renderer vrFade;
+        public PreparednessItem held,focused,carriedBag;
+        public float reach=2.3f,speed=2.2f;
+        public float runSpeed=6.5f;
+        public float jumpHeight=1.0f;
+        bool jumpRequested,lastJump;
+        public bool Running {get;private set;}
+        bool exhausted;
+        public bool LadderClimbing {get;set;}
+        CharacterController motor;float pitch,fall;bool journal,lastGrip,lastTrigger,lastSecondary,turnLatch,lastLeftGrip,lastLeftTrigger;
+        bool packing;float packingTime;
+        bool bagPanel;
+        public bool DesktopPanelOpen=>!XRActive&&(journal||bagPanel);
+        public bool BagPanelOpen=>bagPanel;
+        public bool GuideOpen=>journal;
+        public bool Packing=>packing;
+        Vector3 heldOffset;Quaternion heldRotation;
+        Vector2 journalScroll;
+        public bool XRActive=>XRSettings.isDeviceActive;
+        SibucaoPreparationBridge preparationBridge;
+        void Awake(){motor=GetComponent<CharacterController>();preparationBridge=FindFirstObjectByType<SibucaoPreparationBridge>();}
+        void Start()
+        {
+            var systems=new List<XRInputSubsystem>();SubsystemManager.GetSubsystems(systems);
+            foreach(var system in systems)system.TrySetTrackingOriginMode(TrackingOriginModeFlags.Floor);
+            if(!XRActive){Cursor.lockState=CursorLockMode.Locked;Cursor.visible=false;}
+        }
+        public void Warp(Vector3 position,Quaternion rotation){motor.enabled=false;transform.SetPositionAndRotation(position,rotation);motor.enabled=true;fall=0;}
+        public bool Grab(PreparednessItem item,bool restoring=false)
+        {
+            if(item&&item.kind==PrepKind.Bag)return GrabBag(item,restoring);
+            if((!session.CanPrepare&&!restoring)||!item||!item.portable||held)return false;
+            if(item.storedIn=="installed"){session.Say("This material is secured in place.");return false;}
+            if(!restoring&&item.storageDoor&&item.storageDoor.closed&&string.IsNullOrEmpty(item.storedIn)){session.Say("Open the storage door or lid first.");return false;}
+            if(item.kind==PrepKind.Litter){session.Say("Use the litter tongs instead of picking it up by hand.");return false;}
+            if(item.kind==PrepKind.Electronics&&item.plugged){session.Say("Use the device to disconnect it first.");return false;}
+            if((item.kind==PrepKind.Litter||item.kind==PrepKind.Outdoor)&&!session.OutdoorSafe){session.Say("Outdoor preparation is closed after the evacuation advisory.");return false;}
+            held=item;item.held=true;item.storedIn="";item.transform.SetParent(session.transform,true);item.SetPhysics(false);
+            item.SetCarried(true);
+            foreach(var collider in item.GetComponentsInChildren<Collider>())Physics.IgnoreCollision(collider,motor,true);
+            item.storageDoor=null;
+            if(!restoring&&item.kind==PrepKind.Bag&&session.phase==PrepPhase.MorningPacking)session.bagRetrieved=true;
+            // Preserve authored object orientation; wrist follows tracked rotation while holding.
+            var anchor=XRActive?(carriedBag?leftHand:rightHand):view.transform;
+            heldRotation=Quaternion.Inverse(anchor.rotation)*item.transform.rotation;
+            var b=item.WorldBounds();heldOffset=item.transform.position-b.center;
+            return true;
+        }
+        public bool GrabBag(PreparednessItem item,bool restoring=false)
+        {
+            if(!item||carriedBag||(!session.CanPrepare&&!restoring))return false;
+            if(!restoring&&item.storageDoor&&item.storageDoor.closed){session.Say("Open the closet first.");return false;}
+            carriedBag=item;item.held=true;item.storedIn="";item.storageDoor=null;item.SetPhysics(false);item.SetCarried(true);
+            item.transform.SetParent(session.transform,true);foreach(var c in item.GetComponentsInChildren<Collider>())Physics.IgnoreCollision(c,motor,true);
+            session.bagRetrieved=true;session.Say("Go-bag collected. I / Tab opens the bag panel. F carries supplies; P packs them.");return true;
+        }
+        public void ToggleBag(){if(session.CanPrepare&&carriedBag)session.Use(carriedBag);else if(session.CanPrepare)session.Say("Pick up the bag first, or look at it and press E.");}
+        public void ReleaseBag()
+        {
+            if(!carriedBag)return;packing=false;var bag=carriedBag;carriedBag=null;bag.held=false;bag.SetCarried(false);bag.SynchronizePose();bag.SetPhysics(true);
+        }
+        public void ReleaseAll(){Release();ReleaseBag();}
+        public bool BeginPacking()
+        {
+            if(!held||!session.CanPrepare)return false;
+            if(!carriedBag)return session.PackHeld();
+            if(carriedBag.closed){session.Say("Open the bag first: I / Tab, then Open bag. In VR, use the right trigger.");return false;}
+            if(!packing){packing=true;packingTime=0;}return true;
+        }
+        public bool TryInsertAtOpening()
+        {
+            if(!held||!carriedBag||carriedBag.closed)return false;
+            var visual=carriedBag.GetComponent<PreparednessBagVisual>();if(!visual||!visual.Contains(held.WorldBounds().center))return false;
+            return session.PackHeld();
+        }
+        public void Release()
+        {
+            packing=false;if(!held)return;var item=held;held=null;item.held=false;item.SetCarried(false);item.SynchronizePose();item.SetPhysics(true);
+        }
+        void OnDisable(){bagPanel=journal=false;ReleaseAll();Cursor.lockState=CursorLockMode.None;Cursor.visible=true;}
+        void Update()
+        {
+            if(SibucaoSession.Instance&&(SibucaoSession.Instance.Mode==SibucaoMode.Settings||SibucaoSession.Instance.SettingsTransitionThisFrame)){Running=false;return;}
+            if(XRActive)UpdateXR();else UpdateDesktop();
+            RefreshFocus();
+            if(worldPrompt){worldPrompt.gameObject.SetActive(XRActive);worldPrompt.text=journal?session.Journal():Prompt();}
+            foreach(var item in session.items)if(item.gameObject.activeSelf&&item.portable&&!item.held&&item.transform.position.y<(session.homeStart?session.homeStart.position.y-3:-3))
+            {session.RecoverDroppedItem(item);}
+        }
+        void UpdateDesktop()
+        {
+            if(Keyboard.current==null||Mouse.current==null)return;
+            var k=Keyboard.current;var m=Mouse.current;
+            if(k.escapeKey.wasPressedThisFrame)
+            {
+                if(DesktopPanelOpen){CloseDesktopPanels();return;}
+                if(SibucaoSession.Instance)SibucaoSession.Instance.OpenSettings();
+                else {Cursor.lockState=CursorLockMode.None;Cursor.visible=true;}return;
+            }
+            if(StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.I).wasPressedThisFrame||k.tabKey.wasPressedThisFrame){ToggleBagPanel();return;}
+            if(StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.J).wasPressedThisFrame){journal=!journal;bagPanel=false;SetPanelCursor();return;}
+            if(DesktopPanelOpen){Running=false;return;}
+            if(Cursor.lockState!=CursorLockMode.Locked&&preparationBridge&&preparationBridge.PointerOverSkip(m.position.ReadValue()))return;
+            if(m.leftButton.wasPressedThisFrame){Cursor.lockState=CursorLockMode.Locked;Cursor.visible=false;}
+            if(k.f5Key.wasPressedThisFrame)session.Save();if(k.f9Key.wasPressedThisFrame)session.Load();
+            if(StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.R).wasPressedThisFrame&&StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.LeftCtrl).isPressed)session.Restart();
+            if(Cursor.lockState!=CursorLockMode.Locked)return;
+            if(session.phase==PrepPhase.Fade||session.phase==PrepPhase.ReadyForStorm)return;
+            var game=SibucaoSession.Instance;if(game)view.fieldOfView=game.settings.fieldOfView;
+            var delta=m.delta.ReadValue()*(game?game.settings.sensitivity:.085f);if(game&&game.settings.invertLook)delta.y=-delta.y;transform.Rotate(0,delta.x,0);pitch=Mathf.Clamp(pitch-delta.y,-75,75);view.transform.localRotation=Quaternion.Euler(pitch,0,0);
+            Running=StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.LeftShift).isPressed||k.rightShiftKey.isPressed;
+            if(StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.Space).wasPressedThisFrame)jumpRequested=true;
+            Move(new Vector2((StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.D).isPressed?1:0)-(StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.A).isPressed?1:0),(StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.W).isPressed?1:0)-(StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.S).isPressed?1:0)));
+            RefreshFocus();
+            if(StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.F).wasPressedThisFrame)CarryOrRelease();
+            if(StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.Q).wasPressedThisFrame)PutDown();
+            if(StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.E).wasPressedThisFrame)UseFocused();
+            if(StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.P).wasPressedThisFrame)BeginPacking();
+            // Retain existing shortcuts as aliases for saved instructions and XR parity.
+            if(k.bKey.wasPressedThisFrame)ToggleBag();if(k.gKey.wasPressedThisFrame)session.Unpack();
+        }
+        public void CarryOrRelease()
+        {
+            if(held){if(!TryInsertAtOpening())Release();}
+            else if(focused&&focused.portable)Grab(focused);
+            else if(carriedBag)ReleaseBag();
+        }
+        public void PutDown(){if(held)Release();else ReleaseBag();}
+        public void ToggleBagPanel()
+        {
+            if(bagPanel){CloseDesktopPanels();return;}
+            if(!session.bagRetrieved){session.Say("Collect your go-bag first. Open storage with E; carry the bag with F.");return;}
+            bagPanel=true;journal=false;SetPanelCursor();
+        }
+        public void CloseDesktopPanels(){bagPanel=journal=false;SetPanelCursor();}
+        void SetPanelCursor(){Cursor.lockState=DesktopPanelOpen?CursorLockMode.None:CursorLockMode.Locked;Cursor.visible=DesktopPanelOpen;}
+
+        void UpdateXR()
+        {
+            var head=InputDevices.GetDeviceAtXRNode(XRNode.Head);var right=InputDevices.GetDeviceAtXRNode(XRNode.RightHand);var left=InputDevices.GetDeviceAtXRNode(XRNode.LeftHand);
+            Track(head,view.transform);Track(right,rightHand);Track(left,leftHand);
+            motor.height=Mathf.Clamp(view.transform.localPosition.y,1.05f,2.15f);
+            motor.center=new Vector3(view.transform.localPosition.x,motor.height*.5f,view.transform.localPosition.z);
+            bool grip=false,trigger=false,secondary=false;right.TryGetFeatureValue(CommonUsages.gripButton,out grip);right.TryGetFeatureValue(CommonUsages.triggerButton,out trigger);right.TryGetFeatureValue(CommonUsages.secondaryButton,out secondary);
+            if(session.phase!=PrepPhase.Fade&&session.phase!=PrepPhase.ReadyForStorm)
+            {
+                left.TryGetFeatureValue(CommonUsages.primary2DAxisClick,out bool running);Running=running;
+                right.TryGetFeatureValue(CommonUsages.primaryButton,out bool jump);if(jump&&!lastJump)jumpRequested=true;lastJump=jump;
+                Vector2 axis;left.TryGetFeatureValue(CommonUsages.primary2DAxis,out axis);Move(axis);
+                right.TryGetFeatureValue(CommonUsages.primary2DAxis,out axis);
+                if(Mathf.Abs(axis.x)>.75f&&!turnLatch){transform.RotateAround(view.transform.position,Vector3.up,Mathf.Sign(axis.x)*30);turnLatch=true;}if(Mathf.Abs(axis.x)<.3f)turnLatch=false;
+                bool lg=false,lt=false;left.TryGetFeatureValue(CommonUsages.gripButton,out lg);left.TryGetFeatureValue(CommonUsages.triggerButton,out lt);
+                if(carriedBag)
+                {
+                    RefreshFocus();if(lg&&!lastLeftGrip&&!held)Grab(focused);
+                    if(!lg&&lastLeftGrip&&held){if(!TryInsertAtOpening())Release();}
+                    if(trigger&&!lastTrigger)ToggleBag();if(lt&&!lastLeftTrigger)UseFocused();
+                    if(!grip&&lastGrip)ReleaseBag();
+                }
+                else{RefreshFocus();if(grip&&!lastGrip&&!held)Grab(focused);if(!grip&&lastGrip)Release();if(trigger&&!lastTrigger)UseFocused();}
+                lastLeftGrip=lg;lastLeftTrigger=lt;if(secondary&&!lastSecondary)session.Unpack();
+            }
+            lastGrip=grip;lastTrigger=trigger;lastSecondary=secondary;
+            bool primary;left.TryGetFeatureValue(CommonUsages.primaryButton,out primary);journal=primary;
+            if(vrFade){vrFade.enabled=session.phase==PrepPhase.Fade;var color=Color.black;color.a=Mathf.Clamp01(session.phaseTime);vrFade.material.color=color;}
+        }
+        void Track(UnityEngine.XR.InputDevice device,Transform target)
+        {
+            if(!target)return;Vector3 p;Quaternion q;
+            if(device.TryGetFeatureValue(CommonUsages.devicePosition,out p))target.localPosition=p;
+            if(device.TryGetFeatureValue(CommonUsages.deviceRotation,out q))target.localRotation=q;
+        }
+        void Move(Vector2 input)
+        {
+            if(LadderClimbing)return;
+            var forward=Vector3.ProjectOnPlane(view.transform.forward,Vector3.up).normalized;var right=Vector3.Cross(Vector3.up,forward);
+            float load=(held?held.mass:0)+(carriedBag?carriedBag.mass:0);float factor=Mathf.Clamp(1-load*.04f,.5f,1);
+            if(motor.isGrounded&&fall<=0)fall=-2;
+            if(jumpRequested&&motor.isGrounded)fall=Mathf.Sqrt(2*Mathf.Abs(Physics.gravity.y)*jumpHeight);
+            jumpRequested=false;fall+=Physics.gravity.y*Time.deltaTime;
+            var direction=Vector3.ClampMagnitude(forward*input.y+right*input.x,1);
+            var game=StormSim.Sibucao.SibucaoSession.Instance;
+            if(game){if(game.state.physical.stamina<=.01f)exhausted=true;if(game.state.physical.stamina>=15)exhausted=false;if(exhausted)Running=false;}
+            if(game&&Running)factor*=Mathf.Lerp(.85f,1,Mathf.Clamp01(game.state.physical.stamina/30));
+            motor.Move((direction*(Running?runSpeed:speed)*factor+Vector3.up*fall)*Time.deltaTime);
+        }
+        public void RefreshFocus()
+        {
+            focused=null;var source=XRActive?(carriedBag?leftHand:rightHand):view.transform;if(!source)return;
+            var hits=Physics.RaycastAll(source.position,source.forward,reach,~0,QueryTriggerInteraction.Collide);
+            System.Array.Sort(hits,(a,b)=>a.distance.CompareTo(b.distance));
+            foreach(var hit in hits)
+            {
+                if(hit.transform.IsChildOf(transform))continue;
+                var item=hit.collider.GetComponentInParent<PreparednessItem>();if(item&&(item==held||item==carriedBag))continue;
+                if(item&&item.kind==PrepKind.BagZone&&carriedBag)continue;
+                if(item&&item.kind==PrepKind.BagZone){focused=session.Bag;return;}
+                if(item&&item.kind==PrepKind.TableZone&&held)
+                {
+                    var bagHit=System.Array.Find(hits,h=>h.collider.GetComponentInParent<PreparednessItem>()==session.Bag);
+                    if(bagHit.collider&&bagHit.distance-hit.distance<.8f)continue;
+                }
+                if(item&&item.IsZone&&!held)continue;
+                if(item){focused=item;return;}if(!hit.collider.isTrigger)return;
+            }
+        }
+        public void UseFocused()
+        {
+            if(focused==session.Bag&&!held&&!carriedBag){GrabBag(focused);return;}
+            if(held&&focused==session.Bag&&carriedBag){BeginPacking();return;}
+            if(focused&&focused.IsZone&&!held&&carriedBag){session.Use(focused,carriedBag);return;}
+            if(focused)session.Use(focused,held);else if(held)session.Use(held);
+        }
+        void FixedUpdate()
+        {
+            if(carriedBag)
+            {
+                var bagAnchor=XRActive?rightHand:view.transform;
+                var rotation=XRActive?bagAnchor.rotation:Quaternion.LookRotation(Vector3.ProjectOnPlane(view.transform.forward,Vector3.up));
+                var grip=XRActive?bagAnchor.position:bagAnchor.TransformPoint(new Vector3(.4f,-.14f,.78f));
+                var root=grip-rotation*new Vector3(0,.29f,0);
+                carriedBag.Body.MovePosition(root);carriedBag.Body.MoveRotation(rotation);
+            }
+            if(!held)return;
+            if(packing&&carriedBag)
+            {
+                packingTime+=Time.fixedDeltaTime;var visual=carriedBag.GetComponent<PreparednessBagVisual>();
+                var mouth=visual?visual.Opening:carriedBag.transform.TransformPoint(new Vector3(0,.48f,0));
+                held.Body.MovePosition(Vector3.Lerp(held.Body.position,mouth+heldOffset,Mathf.Clamp01(packingTime/.28f)));
+                if(packingTime>=.28f){packing=false;session.PackHeld();}return;
+            }
+            var anchor=XRActive?(carriedBag?leftHand:rightHand):view.transform;
+            var target=XRActive?anchor.position+anchor.forward*.12f:anchor.TransformPoint(new Vector3(carriedBag?-.28f:.22f,-.22f,.95f));
+            target+=heldOffset;
+            var delta=target-held.transform.position;
+            // Stop held objects at obstructions instead of teleporting through walls.
+            if(delta.sqrMagnitude>.0001f&&held.Body)
+            {
+                var hits=held.Body.SweepTestAll(delta.normalized,delta.magnitude,QueryTriggerInteraction.Ignore);System.Array.Sort(hits,(a,b)=>a.distance.CompareTo(b.distance));
+                foreach(var hit in hits)if(!hit.transform.IsChildOf(transform)&&!hit.transform.IsChildOf(held.transform)&&(!carriedBag||!hit.transform.IsChildOf(carriedBag.transform))){target=held.transform.position+delta.normalized*Mathf.Max(0,hit.distance-.025f);break;}
+            }
+            held.Body.MovePosition(Vector3.Lerp(held.transform.position,target,.4f));held.Body.MoveRotation(Quaternion.Slerp(held.transform.rotation,anchor.rotation*heldRotation,.35f));
+        }
+        string Prompt()
+        {
+            string action=focused?session.Describe(focused):held?session.Describe(held):"";
+            if(session.phase==PrepPhase.ReadyForStorm)return "PREPARATION SAVED\nThe typhoon is arriving…\n"+session.WarningProgress;
+            return action+"\n"+session.message+"\n"+session.WarningProgress+(carriedBag?" | Right-hand bag: "+(carriedBag.closed?"closed":"open"):"");
+        }
+        public string CurrentObjective
+        {
+            get
+            {
+                if(session.phase==PrepPhase.Peaceful)return "Listen for the television bulletin.";
+                if(session.phase==PrepPhase.Bulletin)return "Listen to the weather update.";
+                if(session.phase==PrepPhase.Fade||session.phase==PrepPhase.ReadyForStorm)return "Your preparations carry forward.";
+                if(session.evacuationOrdered)return "Take your bag and leave through the exit.";
+                if(!session.bagRetrieved)return "Find and collect your go-bag.";
+                if(session.Bag&&session.Bag.closed&&!System.Array.Exists(session.items,item=>item.IsPacked))return "Open your bag and pack your chosen supplies.";
+                if(!session.advisoryRead)return "Prepare your supplies, then recheck the television.";
+                return "Continue preparing, or use the bed when ready.";
+            }
+        }
+        public string ContextAction()
+        {
+            if(session.phase==PrepPhase.Fade||session.phase==PrepPhase.ReadyForStorm)return null;
+            if(!session.CanPrepare)return focused&&focused.kind==PrepKind.Advisory?"E  Listen to the television":"WASD move · Mouse look\nThe bulletin will explain when preparation begins.";
+            if(packing)return "Placing the supply in your bag…";
+            if(held)
+            {
+                if(focused&&focused.IsZone)return "E  Place "+held.displayName+" at "+focused.displayName+"\nF / Q  Put down";
+                if(focused&&focused!=held&&focused!=carriedBag&&!focused.portable)return "E  Use "+focused.displayName+"\nP pack supply · F / Q put down";
+                return held.displayName+"\nP pack · F / Q put down";
+            }
+            if(focused)
+            {
+                if(focused.kind==PrepKind.Bag)return carriedBag?"E  "+(carriedBag.closed?"Open":"Close")+" bag · I / Tab inspect":"F / E  Collect your go-bag";
+                if(focused.kind==PrepKind.StorageDoor||focused.kind==PrepKind.Door||focused.kind==PrepKind.Window)return "E  "+(focused.closed?"Open ":"Close ")+focused.displayName;
+                if(focused.kind==PrepKind.Neighbor)return "E  Speak to "+focused.displayName+"\nOptional household warning";
+                if(focused.portable)return "F  Carry "+focused.displayName+"\nE  Inspect / use";
+                return "E  Use "+focused.displayName;
+            }
+            if(carriedBag)return "F carries a supply · P packs it\nI / Tab inspects the bag · Q puts it down";
+            return session.bagRetrieved?"E opens storage and uses objects · F carries supplies":"Check household storage for your bag.\nE opens doors and lids · F carries items";
+        }
+        void OnGUI()
+        {
+            if(XRActive||(SibucaoSession.Instance&&SibucaoSession.Instance.Mode==SibucaoMode.Settings))return;
+            var layout=SibucaoHudLayout.Current;var previous=SibucaoDesktopHud.Begin(layout);
+            if(DesktopPanelOpen)DrawDesktopPanel(layout);
+            else
+            {
+                SibucaoDesktopHud.Objective(layout,"PREPARE AT HOME",CurrentObjective);
+                SibucaoDesktopHud.Action(layout,ContextAction());
+                if(session.RecentMessage)SibucaoDesktopHud.Subtitle(layout,session.message);
+                SibucaoDesktopHud.Label(layout.Help,"I / Tab  Bag\nJ  Guide · Esc  Settings",SibucaoDesktopHud.Small,SibucaoDesktopHud.Muted);
+                SignalStationUI.Draw(new Rect(layout.Width/2-10,layout.Height/2-10,20,20),"crosshair");
+            }
+            if(session.phase==PrepPhase.Fade){var old=GUI.color;GUI.color=new Color(0,0,0,Mathf.Clamp01(session.phaseTime));GUI.DrawTexture(new Rect(0,0,layout.Width,layout.Height),Texture2D.whiteTexture);GUI.color=old;}
+            GUI.matrix=previous;
+        }
+        void DrawDesktopPanel(SibucaoHudLayout layout)
+        {
+            var tint=GUI.color;GUI.color=new Color(.02f,.04f,.05f,.92f);GUI.DrawTexture(new Rect(0,0,layout.Width,layout.Height),Texture2D.whiteTexture);GUI.color=tint;
+            var r=layout.Modal;SibucaoDesktopHud.Panel(r);
+            SibucaoDesktopHud.Label(new Rect(r.x+22,r.y+18,r.width-44,40),bagPanel?"Go-bag":"Guide and preparation checklist",SibucaoDesktopHud.Heading);
+            if(bagPanel)
+            {
+                var bag=session.Bag;int count=0;var contents="";
+                foreach(var item in session.items)if(item.IsPacked){count++;contents+=item.displayName+"\n";}
+                string summary=count+" packed items · Bag "+(bag&&bag.closed?"closed":"open")+"\n"+(held?"Carrying: "+held.displayName:"F carries supplies; P packs them.");
+                float summaryHeight=Mathf.Max(48,SibucaoDesktopHud.Text.CalcHeight(new GUIContent(SibucaoControls.Prompt(summary)),r.width-44)+4);
+                SibucaoDesktopHud.Label(new Rect(r.x+22,r.y+60,r.width-44,summaryHeight),summary);
+                var viewport=new Rect(r.x+22,r.y+74+summaryHeight,r.width-44,r.height-206-summaryHeight);
+                string listing=count==0?"Your bag is empty. Choose what to bring.":contents;
+                float contentHeight=Mathf.Max(viewport.height,SibucaoDesktopHud.Text.CalcHeight(new GUIContent(SibucaoControls.Prompt(listing)),viewport.width-24)+8);
+                journalScroll=GUI.BeginScrollView(viewport,journalScroll,new Rect(0,0,viewport.width-24,contentHeight));
+                SibucaoDesktopHud.Label(new Rect(0,0,viewport.width-24,contentHeight),listing);GUI.EndScrollView();
+                bool old=GUI.enabled;GUI.enabled=bag&&session.CanPrepare&&Vector3.Distance(view.transform.position,bag.WorldBounds().ClosestPoint(view.transform.position))<=reach;
+                float w=(r.width-56)/2;
+                if(GUI.Button(new Rect(r.x+22,r.yMax-116,w,38),bag&&bag.closed?"Open bag":"Close bag",SibucaoDesktopHud.ButtonStyle))session.Use(bag);
+                if(GUI.Button(new Rect(r.x+34+w,r.yMax-116,w,38),"Take out last item",SibucaoDesktopHud.ButtonStyle)){session.Unpack();CloseDesktopPanels();}
+                GUI.enabled=old;
+                SibucaoDesktopHud.Label(new Rect(r.x+22,r.yMax-70,r.width-254,44),"The weather continues while you inspect your bag.",SibucaoDesktopHud.Small,SibucaoDesktopHud.Muted);
+            }
+            else
+            {
+                var text=SibucaoDesktopHud.Controls+"\n\nOptional household warnings\n"+session.WarningProgress+"\nYou do not need to visit every household before continuing.\n\n"+session.Journal();
+                var viewport=new Rect(r.x+22,r.y+62,r.width-44,r.height-140);float height=SibucaoDesktopHud.Text.CalcHeight(new GUIContent(SibucaoControls.Prompt(text)),viewport.width-24)+12;
+                journalScroll=GUI.BeginScrollView(viewport,journalScroll,new Rect(0,0,viewport.width-24,height));SibucaoDesktopHud.Label(new Rect(0,0,viewport.width-24,height),text);GUI.EndScrollView();
+            }
+            if(GUI.Button(new Rect(r.xMax-212,r.yMax-60,190,38),"Close / Esc",SibucaoDesktopHud.ButtonStyle))CloseDesktopPanels();
+        }
+
+        
+    }
+}

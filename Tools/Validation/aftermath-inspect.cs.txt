@@ -1,0 +1,4 @@
+var s=UnityEngine.Object.FindFirstObjectByType<StormSim.Sibucao.SibucaoSession>();
+var lines=new System.Collections.Generic.List<string>();
+for(int i=0;i<=10;i++)lines.Add((s.route.length-i*8)+": "+s.route.Sample(s.route.length-i*8));
+return string.Join("\n",lines);

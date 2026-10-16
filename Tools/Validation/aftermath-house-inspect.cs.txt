@@ -1,0 +1,14 @@
+var scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+if(scene.path!="Assets/Scenes/SIBUCAO_AFTERMATH.unity"||UnityEditor.EditorApplication.isPlaying)throw new System.Exception("Open aftermath in Edit mode");
+var list=new System.Collections.Generic.List<string>();
+foreach(var f in UnityEngine.Object.FindObjectsByType<UnityEngine.MeshFilter>(UnityEngine.FindObjectsSortMode.None))
+{
+ var r=f.GetComponent<UnityEngine.Renderer>();if(!r)continue;
+ var p=r.bounds.center;
+ if(p.x < -90 || p.x > 10 || p.z < 630 || p.z > 735 || r.bounds.size.y < 2 || r.bounds.size.y>18)continue;
+ if(r.bounds.size.x>30||r.bounds.size.z>30)continue;
+ string path=f.name;var t=f.transform.parent;while(t){path=t.name+"/"+path;t=t.parent;}
+ list.Add(path+" | center "+p+" size "+r.bounds.size+" | mesh "+f.sharedMesh.name+" readable "+f.sharedMesh.isReadable+" submeshes "+f.sharedMesh.subMeshCount+" | "+string.Join(",",System.Array.ConvertAll(r.sharedMaterials,m=>m?m.name:"null")));
+}
+System.IO.File.WriteAllLines("Captures/Aftermath/house-inspection.txt",list);
+return string.Join("\n",list);

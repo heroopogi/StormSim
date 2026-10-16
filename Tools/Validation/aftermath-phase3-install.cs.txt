@@ -1,0 +1,120 @@
+using UnityEngine;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine.SceneManagement;
+using StormSim.Sibucao;
+using System;
+using System.IO;
+using System.Linq;
+using System.Collections.Generic;
+using Object=UnityEngine.Object;
+internal class CommandScript:IRunCommand {
+ const string Folder="Assets/StormSim/Sibucao/Art/Aftermath/Phase3";
+ const string Out="Captures/Aftermath/Phase3_20261013";
+ const string RootName="Aftermath - Phase 3 damaged homes";
+ ExecutionResult result;Transform root,current;System.Random rng=new System.Random(13026);SibucaoSession session;Collider[] ground;
+ Material wood,fence,tarp,fabric,plastic,floor,rust;
+ List<string> report=new List<string>();List<string> placements=new List<string>{"house,item,x,y,z,routeClearance"};
+ List<Vector3> occupied=new List<Vector3>();Dictionary<string,Batch> batches=new Dictionary<string,Batch>();int shapes,rejected;
+ class Batch {public string name;public Material mat;public List<Vector3> v=new List<Vector3>();public List<int> t=new List<int>();}
+ public void Execute(ExecutionResult r){
+ result=r;var scene=SceneManager.GetActiveScene();
+ if(EditorApplication.isPlaying||scene.path!="Assets/Scenes/SIBUCAO_AFTERMATH.unity")throw new Exception("Expected aftermath Edit Mode");
+ if(GameObject.Find(RootName))throw new Exception("Phase 3 already installed; preserve edits.");
+ if(!File.Exists("Backups/Aftermath/Phase3_20261013/SIBUCAO_AFTERMATH.before-phase3.unity"))throw new Exception("Backup missing");
+ Directory.CreateDirectory(Folder);Directory.CreateDirectory(Out);AssetDatabase.Refresh();
+ string colliderBefore=Fingerprint();File.WriteAllText(Out+"/colliders-before.txt",colliderBefore);
+ root=new GameObject(RootName).transform;r.RegisterObjectCreation(root.gameObject);
+ session=Object.FindFirstObjectByType<SibucaoSession>();
+ ground=Object.FindObjectsByType<Collider>(FindObjectsSortMode.None).Where(c=>c.enabled&&c.name.StartsWith("Measured terrain")).ToArray();
+ wood=Mat("Split dark timber",new Color(.27f,.17f,.09f),.13f);fence=Mat("Weathered pale fence",new Color(.38f,.41f,.31f),.12f);
+ tarp=Mat("Torn blue tarpaulin",new Color(.07f,.20f,.30f),.27f);fabric=Mat("Waterlogged bedding",new Color(.30f,.25f,.19f),.08f);
+ plastic=Mat("Scuffed blue household plastic",new Color(.06f,.19f,.25f),.25f);floor=Mat("Exposed damp interior floor",new Color(.26f,.25f,.22f),.2f);rust=Mat("Oxidized sheet edges",new Color(.29f,.13f,.07f),.18f);
+ var names=new[]{"House 1446","House 1511","House 1420","House 1559","House 1572","House 1589","House 1579","House 1608"};
+ var severity=new[]{2,1,0,1,2,0,1,2};var all=Object.FindObjectsByType<Transform>(FindObjectsInactive.Include,FindObjectsSortMode.None);
+ var old=GameObject.Find("Aftermath - damaged homes and yards");if(!old)throw new Exception("Existing damage root missing");
+ var oldRenderers=old.GetComponentsInChildren<MeshRenderer>();int disabled=0;
+ for(int i=0;i<names.Length;i++){
+  var house=all.Single(t=>t.name==names[i]);int sev=severity[i];int start=shapes;occupied.Clear();batches.Clear();
+  current=new GameObject(names[i]+" - "+new[]{"minor","moderate","severe"}[sev]).transform;r.RegisterObjectCreation(current.gameObject);current.SetParent(root,false);
+  var pickets=oldRenderers.Where(m=>m.name==names[i]+" snapped fence picket").ToArray();if(pickets.Length!=6)throw new Exception("Expected old fence "+names[i]);
+  var yard=pickets.Select(m=>m.transform.position).Aggregate(Vector3.zero,(a,b)=>a+b)/6;yard.y=Ground(yard);
+  var toRoad=session.route.Sample(session.route.Progress(house.position))-house.position;toRoad.y=0;toRoad.Normalize();var side=Vector3.Cross(Vector3.up,toRoad);float yaw=Mathf.Atan2(side.x,side.z)*Mathf.Rad2Deg;
+  var preview=house.GetComponents<MonoBehaviour>().First(x=>x.GetType().Name=="BanagoHousePreview");
+  var roofColor=(Color)preview.GetType().GetField("sampledRoofColor").GetValue(preview);roofColor=Color.Lerp(roofColor,new Color(.26f,.25f,.24f),.32f);
+  var metal=Mat(names[i]+" displaced roof metal",roofColor,.35f);
+  // Unequal surviving fence lengths, snapped tops, and fallen matching pickets.
+  for(int j=0;j<(sev==0?5:sev==1?3:2);j++){
+   var foot=yard+side*(j*.34f-.68f);foot.y=Ground(foot);
+   float height=sev==0?(j==2?.30f:.80f):Rand(.23f,.62f);
+   if(Clear(foot,.1f)){var q=Quaternion.LookRotation(toRoad)*Quaternion.Euler(0,0,Rand(-12,12));Board(foot+Vector3.up*(height*.5f),q*Quaternion.Euler(90,0,0),height,.15f,.04f,fence);}
+  }
+  for(int j=0;j<2+sev*3;j++)if(Place(yard,side,toRoad,.8f,.15f,out var p,out var rot)){Board(p,rot,Rand(.5f,1.15f),.13f,.045f,j%3==0?wood:fence);Log(names[i],"fallen picket",p,.8f);}
+  // Corrugated sheets use a continuous bent surface and torn edge instead of stacked cubes.
+  for(int j=0;j<sev+1;j++){
+   if(sev==0&&j==0)break;
+   if(Place(yard+side*(i%2==0?1.1f:-1.1f),side,toRoad,1.65f,1.0f,out var p,out var rot)){Sheet(p,rot,1.0f,1.65f,.20f+sev*.10f,metal,false);Log(names[i],"bent roof sheet",p,1.65f);}
+  }
+  for(int j=0;j<1+sev*2;j++)if(Place(yard,side,toRoad,1.35f,.14f,out var p,out var rot)){Board(p,rot,Rand(.65f,1.5f),.09f,.075f,wood);Log(names[i],"splintered rafter",p,1.35f);}
+  if(sev>0&&Place(yard-side*1.2f,side,toRoad,1.4f,.9f,out var cloth,out var clothRot)){Sheet(cloth,clothRot,.9f,1.4f,.07f,tarp,true);Log(names[i],"torn tarp",cloth,1.4f);}
+  if(sev==2&&Place(yard,side,toRoad,1.25f,.65f,out var bed,out var bedRot)){Cushion(bed,bedRot,.65f,1.25f);Log(names[i],"waterlogged mattress",bed,1.25f);}
+  if(Place(yard,side,toRoad,.45f,.45f,out var tub,out var tubRot)){Basin(tub,tubRot);Log(names[i],"tipped washing basin",tub,.45f);}
+  // The six roof openings reveal a fitted interior floor, not bare landscape.
+  if(sev>0){Interior(house,sev);
+   var rafters=oldRenderers.Where(m=>m.name==names[i]+" exposed roof rafter").ToArray();
+   if(rafters.Length>0){var beam=rafters.OrderByDescending(m=>m.transform.position.y).First().transform;
+    var pos=beam.position+beam.forward*(beam.localScale.z*.22f)+Vector3.up*.065f;
+    // Both ends rest along an existing rafter; raised torn lip indicates the uplift direction.
+    RoofFlap(pos,beam.rotation,.58f,Mathf.Min(1.35f,beam.localScale.z*.7f),metal);
+   }
+  }
+  foreach(var b in batches.Values)Save(b,names[i]);
+  foreach(var mr in pickets){r.RegisterObjectModification(mr);mr.enabled=false;disabled++;}
+  foreach(var mr in oldRenderers.Where(m=>m.name==names[i]+" torn roof sheet in yard")){r.RegisterObjectModification(mr);mr.enabled=false;disabled++;}
+  report.Add(names[i]+" "+new[]{"minor","moderate","severe"}[sev]+": "+(shapes-start)+" shaped pieces; original "+(sev==0?"intact roof":"roof opening and rafters")+" retained.");
+ }
+ foreach(var mr in oldRenderers.Where(m=>m.name=="Raised corrugation")){r.RegisterObjectModification(mr);mr.enabled=false;disabled++;}
+ if(Fingerprint()!=colliderBefore)throw new Exception("Existing collision changed");
+ File.WriteAllText(Out+"/colliders-after.txt",Fingerprint());
+ report.Add("Original repetitive dressing renderers hidden, retained for reversal: "+disabled);
+ report.Add("New renderers="+root.GetComponentsInChildren<Renderer>().Length+" triangles="+root.GetComponentsInChildren<MeshFilter>().Sum(f=>f.sharedMesh.triangles.Length/3)+" shaped pieces="+shapes);
+ report.Add("No colliders or runtime components added. Existing collider fingerprint unchanged. Rejected candidate placements="+rejected);
+ File.WriteAllLines(Out+"/installation.txt",report);File.WriteAllLines(Out+"/placements.csv",placements);
+ AssetDatabase.SaveAssets();EditorSceneManager.MarkSceneDirty(scene);if(!EditorSceneManager.SaveScene(scene))throw new Exception("Save failed");r.Log(string.Join("\n",report));
+ }
+ string Fingerprint(){return string.Join("\n",Object.FindObjectsByType<Collider>(FindObjectsInactive.Include,FindObjectsSortMode.None).OrderBy(x=>x.GetEntityId().ToString()).Select(c=>c.GetEntityId().ToString()+"|"+c.GetType().Name+"|"+EditorJsonUtility.ToJson(c)));}
+ float Rand(float a,float b)=>Mathf.Lerp(a,b,(float)rng.NextDouble());
+ float Ground(Vector3 p){float y=float.NegativeInfinity;var ray=new Ray(new Vector3(p.x,30,p.z),Vector3.down);foreach(var c in ground)if(c.Raycast(ray,out var h,70))y=Mathf.Max(y,h.point.y);if(!float.IsFinite(y))throw new Exception("No ground "+p);foreach(var h in Physics.RaycastAll(ray,70,~0,QueryTriggerInteraction.Ignore))if(h.normal.y>.7f&&(h.collider.name=="Felix Amante Drive"||h.collider.name=="Main entrance to quadrangle"||h.collider.name.StartsWith("service "))&&h.point.y-y<1.2f)y=Mathf.Max(y,h.point.y);return y;}
+ float RouteGap(Vector3 p){var q=session.route.Sample(session.route.Progress(p));return new Vector2(p.x-q.x,p.z-q.z).magnitude;}
+ bool Clear(Vector3 p,float radius){if(RouteGap(p)<2.15f+radius)return false;float y=Ground(p);foreach(var h in Physics.RaycastAll(new Vector3(p.x,25,p.z),Vector3.down,60,~0,QueryTriggerInteraction.Ignore)){if(h.collider is CharacterController||h.collider.GetComponentInParent<SibucaoResident>()||h.collider.GetComponentInParent<SibucaoPlayer>())continue;if(h.point.y>y+.20f)return false;}return true;}
+ bool Place(Vector3 center,Vector3 side,Vector3 outward,float length,float width,out Vector3 p,out Quaternion q){for(int k=0;k<90;k++){p=center+side*Rand(-2.3f,2.3f)+outward*Rand(-.25f,1.5f);q=Quaternion.Euler(0,35+Rand(-25,35),0);float radius=Mathf.Sqrt(length*length+width*width)*.5f;
+ var candidate=p;if(!Clear(p,radius)||occupied.Any(v=>new Vector2(v.x-candidate.x,v.z-candidate.z).magnitude<.55f)){rejected++;continue;}
+ bool ok=true;foreach(float x in new[]{-.5f,.5f})foreach(float z in new[]{-.5f,.5f})if(!Clear(p+q*new Vector3(x*width,0,z*length),0))ok=false;
+ if(!ok){rejected++;continue;}p.y=Ground(p)+.024f;occupied.Add(p);return true;}p=Vector3.zero;q=Quaternion.identity;return false;}
+ void Log(string h,string kind,Vector3 p,float size){placements.Add(h+","+kind+","+p.x.ToString("F3")+","+p.y.ToString("F3")+","+p.z.ToString("F3")+","+RouteGap(p).ToString("F3"));}
+ Material Mat(string name,Color color,float smooth){var m=new Material(Shader.Find("Universal Render Pipeline/Lit")){name=name};m.SetColor("_BaseColor",color);m.SetFloat("_Smoothness",smooth);m.SetFloat("_Cull",0);AssetDatabase.CreateAsset(m,Folder+"/"+name+".mat");return m;}
+ Batch B(Material m){if(!batches.TryGetValue(m.name,out var b)){b=new Batch{name=m.name,mat=m};batches.Add(m.name,b);}return b;}
+ void Tri(Batch b,Vector3 a,Vector3 c,Vector3 d){int n=b.v.Count;b.v.Add(a);b.v.Add(c);b.v.Add(d);b.t.AddRange(new[]{n,n+1,n+2});}
+ void Quad(Batch b,Vector3 a,Vector3 c,Vector3 d,Vector3 e){Tri(b,a,c,d);Tri(b,a,d,e);}
+ Vector3 OnGround(Vector3 center,Quaternion rot,Vector3 v){var p=center+rot*v;p.y=Ground(p)+.022f+v.y;return p;}
+ void Board(Vector3 p,Quaternion q,float length,float width,float thick,Material mat,bool conform=true){var poly=new[]{new Vector3(-width*.5f,0,-length*.5f),new Vector3(width*.5f,0,-length*.5f),new Vector3(width*.5f,0,length*.35f),new Vector3(width*.17f,0,length*.5f),new Vector3(-width*.02f,0,length*.26f),new Vector3(-width*.24f,0,length*.44f),new Vector3(-width*.5f,0,length*.31f)};
+ var b=B(mat);bool flat=conform&&Mathf.Abs((q*Vector3.up).y)>.8f;var bottom=poly.Select(v=>flat?OnGround(p,q,v):p+q*v).ToArray();var top=poly.Select(v=>flat?OnGround(p,q,v+Vector3.up*thick):p+q*(v+Vector3.up*thick)).ToArray();
+ for(int i=1;i<poly.Length-1;i++){Tri(b,top[0],top[i+1],top[i]);Tri(b,bottom[0],bottom[i],bottom[i+1]);}for(int i=0;i<poly.Length;i++){int j=(i+1)%poly.Length;Quad(b,bottom[i],top[i],top[j],bottom[j]);}shapes++;}
+ void Sheet(Vector3 p,Quaternion q,float width,float length,float bend,Material mat,bool cloth){var b=B(mat);int nx=24,nz=18;Vector3[,] v=new Vector3[nx+1,nz+1];
+ for(int z=0;z<=nz;z++)for(int x=0;x<=nx;x++){float u=(float)x/nx,f=(float)z/nz;float edge=(z==nz||x==nx)?Rand(-.05f,.035f):0;float y=cloth?.018f+.035f*Mathf.Sin(u*15+f*11):.018f+.017f*Mathf.Sin(u*width*48)+bend*Mathf.Pow(Mathf.Clamp01((u-.55f)/.45f),2);v[x,z]=OnGround(p,q,new Vector3((u-.5f)*width,y,(f-.5f)*length+edge));}
+ for(int z=0;z<nz;z++)for(int x=0;x<nx;x++){if(cloth&&((x>17&&z>12)||(x==8&&z>14)))continue;var target=!cloth&&((x>20&&z%4==0)||(x==3&&z<6))?B(rust):b;Quad(target,v[x,z],v[x,z+1],v[x+1,z+1],v[x+1,z]);}shapes++;}
+ void RoofFlap(Vector3 p,Quaternion q,float w,float l,Material m){var b=B(m);for(int z=0;z<12;z++)for(int x=0;x<12;x++){Func<int,int,Vector3> point=(ix,iz)=>{float u=ix/12f,f=iz/12f;return p+q*new Vector3((u-.5f)*w,.025f*Mathf.Sin(u*35)+.32f*u*u+(iz==12?.035f*Mathf.Sin(ix*3):0),(f-.5f)*l);};Quad(b,point(x,z),point(x,z+1),point(x+1,z+1),point(x+1,z));}shapes++;}
+ void Cushion(Vector3 p,Quaternion q,float w,float l){var b=B(fabric);for(int z=0;z<12;z++)for(int x=0;x<8;x++){Func<int,int,Vector3> f=(ix,iz)=>{float u=ix/8f,v=iz/12f;return OnGround(p,q,new Vector3((u-.5f)*w,.025f+.14f*Mathf.Sin(u*Mathf.PI)*Mathf.Sin(v*Mathf.PI)+.05f*Mathf.Sin(v*6), (v-.5f)*l));};Quad(b,f(x,z),f(x,z+1),f(x+1,z+1),f(x+1,z));}shapes++;}
+ void Basin(Vector3 p,Quaternion q){var b=B(plastic);for(int i=0;i<20;i++){float a=i*Mathf.PI/10,aa=(i+1)*Mathf.PI/10;Func<float,float,float,Vector3> pt=(ang,rad,y)=>OnGround(p,q,new Vector3(Mathf.Cos(ang)*rad,y,Mathf.Sin(ang)*rad));Quad(b,pt(a,.17f,0),pt(a,.25f,.18f),pt(aa,.25f,.18f),pt(aa,.17f,0));Tri(b,p+Vector3.up*.024f,pt(aa,.17f,0),pt(a,.17f,0));}shapes++;}
+ void Interior(Transform house,int severity){
+ var vs=house.GetComponent<MeshFilter>().sharedMesh.vertices.Select(v=>new Vector2(v.x,v.z)).Distinct().OrderBy(v=>v.x).ThenBy(v=>v.y).ToList();
+ Func<Vector2,Vector2,Vector2,float> cross=(a,b,c)=>(b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);var hull=new List<Vector2>();
+ foreach(var p in vs){while(hull.Count>=2&&cross(hull[hull.Count-2],hull[hull.Count-1],p)<=0)hull.RemoveAt(hull.Count-1);hull.Add(p);}int lower=hull.Count;
+ for(int i=vs.Count-2;i>=0;i--){var p=vs[i];while(hull.Count>lower&&cross(hull[hull.Count-2],hull[hull.Count-1],p)<=0)hull.RemoveAt(hull.Count-1);hull.Add(p);}hull.RemoveAt(hull.Count-1);
+ var points=hull.Select(v=>house.position+new Vector3(v.x*.90f,0,v.y*.90f)).ToArray();float y=points.Select(p=>Ground(p)).Max()+.035f;for(int i=0;i<points.Length;i++)points[i].y=y;
+ var b=B(floor);for(int i=1;i<points.Length-1;i++)Tri(b,points[0],points[i+1],points[i]);shapes++;
+ // A pair of fallen interior boards gives visible scale beneath the open rafters.
+ for(int i=0;i<severity+1;i++){var p=house.position+new Vector3(i*.35f-.3f,0,i*.3f-.4f);p.y=y+.02f;Board(p,Quaternion.Euler(0,35+i*19,0),1.4f,.11f,.07f,wood,false);}
+ }
+ void Save(Batch b,string house){if(b.t.Count==0)return;var mesh=new UnityEngine.Mesh{name=house+" "+b.name};mesh.SetVertices(b.v);mesh.SetTriangles(b.t,0);mesh.RecalculateNormals();mesh.RecalculateBounds();AssetDatabase.CreateAsset(mesh,Folder+"/"+house+" "+b.name+".asset");var g=new GameObject(b.name);result.RegisterObjectCreation(g);g.transform.SetParent(current,false);g.AddComponent<MeshFilter>().sharedMesh=mesh;g.AddComponent<MeshRenderer>().sharedMaterial=b.mat;}
+}

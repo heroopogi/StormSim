@@ -1,0 +1,9 @@
+if (UnityEditor.EditorApplication.isPlaying) throw new System.InvalidOperationException("Stop Play mode first.");
+var scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+if(scene.path!="Assets/Scenes/SIBUCAO_AFTERMATH.unity")throw new System.InvalidOperationException("Expected aftermath scene.");
+System.IO.Directory.CreateDirectory("Backups/Aftermath");
+if(!UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene,"Backups/Aftermath/BeforeVisualCorrections.unity",true))throw new System.IO.IOException("Backup failed");
+var root=UnityEngine.GameObject.Find("Aftermath - school relief and storm debris");
+if(root)UnityEngine.Object.DestroyImmediate(root);
+StormSim.Sibucao.Editor.SibucaoAftermathBuilder.Install();
+return "Corrected road placement, sign, gray sky; saved and rendered.";

@@ -1,0 +1,8 @@
+var lines=new List<string>();
+foreach(var f in UnityEngine.Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None))
+{
+ if(!f.transform.parent||(f.transform.parent.name!="Neighbourhood -1_6"&&f.transform.parent.name!="Neighbourhood -1_7"))continue;
+ var r=f.GetComponent<Renderer>();lines.Add(f.transform.parent.name+"/"+f.name+" mesh "+f.sharedMesh.name+" verts "+f.sharedMesh.vertexCount+" triangles "+f.sharedMesh.triangles.Length+" bounds "+f.sharedMesh.bounds+" materials "+string.Join(",",r.sharedMaterials.Select(m=>m.name))+" position "+f.transform.position);
+}
+foreach(var p in new[]{"Assets/StormSim/Generated/BanagoArchitecture_20260907_015351/Neighbourhood 11.asset","Assets/StormSim/Generated/BanagoArchitecture_20260907_015351/Neighbourhood 12.asset"})foreach(var m in AssetDatabase.LoadAllAssetsAtPath(p).OfType<Mesh>())lines.Add("ORIGINAL "+m.name+" verts "+m.vertexCount+" triangles "+m.triangles.Length+" bounds "+m.bounds);
+return string.Join("\n",lines);

@@ -1,0 +1,373 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using UnityEngine;
+using UnityEditor;
+namespace StormSim.Sibucao.Editor
+{
+public static class SibucaoDesktopReviewSuite
+{
+const string Folder="Captures/Batches4-7_20260930/";
+public static object RunPreparation()
+{
+var s=StormSim.Sibucao.SibucaoSession.Instance;if(!EditorApplication.isPlaying||!s)throw new Exception("Play Mode required");
+string folder="Captures/Batches4-7_20260930/Preparation/";System.IO.Directory.CreateDirectory(folder);var lines=new List<string>();
+var viewFlags=BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Instance|BindingFlags.Static;
+var editorAssembly=typeof(EditorWindow).Assembly;
+var gameType=editorAssembly.GetType("UnityEditor.GameView");
+var view=(EditorWindow)Resources.FindObjectsOfTypeAll(gameType).First();
+var sizesType=editorAssembly.GetType("UnityEditor.GameViewSizes");
+var singleton=typeof(ScriptableSingleton<>).MakeGenericType(sizesType).GetProperty("instance",viewFlags).GetValue(null);
+var groupType=editorAssembly.GetType("UnityEditor.GameViewSizeGroupType");
+var group=sizesType.GetMethod("GetGroup",viewFlags).Invoke(singleton,new[]{Enum.Parse(groupType,"Standalone")});
+var sizeType=editorAssembly.GetType("UnityEditor.GameViewSize");
+var resolutionType=editorAssembly.GetType("UnityEditor.GameViewSizeType");
+var ctor=sizeType.GetConstructor(viewFlags,null,new[]{resolutionType,typeof(int),typeof(int),typeof(string)},null);
+var groupMethods=group.GetType();
+var sizeIndex=gameType.GetProperty("selectedSizeIndex",viewFlags);
+int previousSize=(int)sizeIndex.GetValue(view);
+void Size(int w,int h){int index=-1,count=(int)groupMethods.GetMethod("GetTotalCount").Invoke(group,null);for(int i=0;i<count;i++){var size=groupMethods.GetMethod("GetGameViewSize").Invoke(group,new object[]{i});if((int)sizeType.GetProperty("width",viewFlags).GetValue(size)==w&&(int)sizeType.GetProperty("height",viewFlags).GetValue(size)==h){index=i;break;}}if(index<0){index=count;groupMethods.GetMethod("AddCustomSize").Invoke(group,new[]{ctor.Invoke(new[]{Enum.Parse(resolutionType,"FixedResolution"),(object)w,h,"StormSim "+w+"x"+h})});}sizeIndex.SetValue(view,index);view.Repaint();}
+Size(1920,1080);
+bool oldDev=EditorPrefs.GetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,false);var settings=s.settings;string savedPrefs=PlayerPrefs.HasKey("SibucaoSettings")?PlayerPrefs.GetString("SibucaoSettings"):null;
+var keyboard=UnityEngine.InputSystem.Keyboard.current;var testKeyboard=UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Keyboard>("Preparation validation keyboard");
+void Check(bool okay,string label){lines.Add((okay?"PASS ":"FAIL ")+label);System.IO.File.WriteAllLines(folder+"checks.txt",lines);}
+void Keys(params UnityEngine.InputSystem.Key[] keys){UnityEngine.InputSystem.InputSystem.QueueStateEvent(testKeyboard,new UnityEngine.InputSystem.LowLevel.KeyboardState(keys));}
+System.Collections.IEnumerator Press(UnityEngine.InputSystem.Key key){Keys(key);yield return null;Keys();yield return null;yield return null;}
+System.Collections.IEnumerator Cases()
+{
+    Application.runInBackground=true;EditorPrefs.SetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,true);StormSim.Sibucao.SibucaoEditorInput.Reset();s.UseTestSaveDirectory(System.IO.Path.GetFullPath(folder+"saves"));
+    s.settings=JsonUtility.FromJson<StormSim.Sibucao.SibucaoSettings>(JsonUtility.ToJson(settings));s.StartWithRole("Parent");s.StartWithDifficulty(2);yield return null;yield return null;
+    Check(Screen.width==1920&&Screen.height==1080,"Preparation viewport is 1920x1080");var bridge=s.GetComponent<StormSim.Preparedness.SibucaoPreparationBridge>();Check(bridge&&bridge.Active&&s.Mode==StormSim.Sibucao.SibucaoMode.Preparation,"Fresh player flow enters preparation");s.StartWithRole("Parent");s.StartWithDifficulty(2);yield return null;Check(bridge.Active&&s.Mode==StormSim.Sibucao.SibucaoMode.Preparation&&s.state.difficultyLevel==2,"Restarting an active preparation resets the run and mode");var prep=bridge.preparation;var player=prep.player;
+    testKeyboard.MakeCurrent();s.settings.fieldOfView=94;s.settings.textScale=1.3f;Cursor.lockState=CursorLockMode.Locked;yield return null;yield return null;
+    Check(Mathf.Abs(player.view.fieldOfView-94)<.01f,"Preparation camera applies shared FOV");
+    yield return Press(UnityEngine.InputSystem.Key.Escape);Check(s.Mode==StormSim.Sibucao.SibucaoMode.Settings,"Escape opens shared settings during preparation");float clock=prep.elapsed;var at=player.transform.position;
+    Keys(UnityEngine.InputSystem.Key.W);yield return new WaitForSecondsRealtime(.5f);Keys();yield return null;Check(Mathf.Abs(prep.elapsed-clock)<.001f&&Vector3.Distance(at,player.transform.position)<.01f,"Settings pauses preparation clock and movement");
+    yield return Press(UnityEngine.InputSystem.Key.Escape);Check(s.Mode==StormSim.Sibucao.SibucaoMode.Preparation,"Escape returns to preparation without reopening settings");
+    StormSim.Sibucao.SibucaoControls.Rebind(s.settings,9,UnityEngine.InputSystem.Key.K);yield return Press(UnityEngine.InputSystem.Key.K);Check(player.GuideOpen,"Remapped guide key opens preparation guide");ScreenCapture.CaptureScreenshot(folder+"guide-max-text.png");yield return null;yield return null;
+    typeof(StormSim.Preparedness.PreparednessPlayer).GetField("journalScroll",BindingFlags.NonPublic|BindingFlags.Instance).SetValue(player,new Vector2(0,10000));yield return null;yield return null;ScreenCapture.CaptureScreenshot(folder+"guide-bottom-max-text.png");yield return null;
+    player.CloseDesktopPanels();prep.bagRetrieved=true;foreach(var item in prep.items.Where(i=>i.portable&&i.kind!=StormSim.Preparedness.PrepKind.Bag).Take(18))item.storedIn="bag";
+    player.ToggleBagPanel();yield return null;yield return null;Check(player.BagPanelOpen,"Preparation bag panel opens");ScreenCapture.CaptureScreenshot(folder+"bag-max-text.png");yield return null;
+    typeof(StormSim.Preparedness.PreparednessPlayer).GetField("journalScroll",BindingFlags.NonPublic|BindingFlags.Instance).SetValue(player,new Vector2(0,10000));yield return null;yield return null;ScreenCapture.CaptureScreenshot(folder+"bag-bottom-max-text.png");yield return null;
+    player.CloseDesktopPanels();bridge.SkipToDuring();if(s.home)s.home.SkipTV();yield return null;yield return null;Check(!bridge.Active&&s.Mode==StormSim.Sibucao.SibucaoMode.Playing,"Preparation handoff reaches the evacuation phase");
+    s.missionGuide.Open();yield return null;yield return null;ScreenCapture.CaptureScreenshot(folder+"evacuation-guide-max-text.png");yield return null;
+    var ui=UnityEngine.Object.FindFirstObjectByType<StormSim.Sibucao.SibucaoUI>();var flags=BindingFlags.Instance|BindingFlags.NonPublic;ui.GetType().GetField("guidePage",flags).SetValue(ui,2);ui.GetType().GetField("guideScroll",flags).SetValue(ui,new Vector2(0,10000));yield return null;yield return null;ScreenCapture.CaptureScreenshot(folder+"evacuation-guide-bottom-max-text.png");yield return null;s.missionGuide.Close();
+    s.inventory.Open();yield return null;yield return null;ScreenCapture.CaptureScreenshot(folder+"evacuation-bag-max-text.png");yield return null;s.inventory.ShowStatus=true;yield return null;yield return null;ScreenCapture.CaptureScreenshot(folder+"evacuation-item-status-max-text.png");yield return null;s.inventory.Close();
+    var weather=s.weather;var flash=typeof(StormSim.Sibucao.SibucaoWeather).GetField("flash",BindingFlags.NonPublic|BindingFlags.Instance);var lighting=typeof(StormSim.Sibucao.SibucaoWeather).GetMethod("ApplyLighting",BindingFlags.NonPublic|BindingFlags.Instance);s.settings.reducedFlashes=true;flash.SetValue(weather,0f);lighting.Invoke(weather,null);float calmLight=weather.sun.intensity;flash.SetValue(weather,1f);lighting.Invoke(weather,null);Check(Mathf.Abs(weather.sun.intensity-calmLight)<.001f,"Reduced flashes suppresses thunder light pulse");
+    s.settings.reducedFlashes=false;lighting.Invoke(weather,null);Check(weather.sun.intensity>calmLight+2,"Thunder light remains available when reduced flashes is off");flash.SetValue(weather,0f);lighting.Invoke(weather,null);
+}
+System.Collections.IEnumerator Guard(){var stack=new Stack<System.Collections.IEnumerator>();stack.Push(Cases());Exception error=null;try{while(stack.Count>0){bool more=false;object value=null;try{more=stack.Peek().MoveNext();if(more)value=stack.Peek().Current;}catch(Exception ex){error=ex;break;}if(!more){stack.Pop();continue;}if(value is System.Collections.IEnumerator nested){stack.Push(nested);continue;}yield return value;}}finally{sizeIndex.SetValue(view,previousSize);view.Repaint();UnityEngine.InputSystem.InputSystem.RemoveDevice(testKeyboard);if(keyboard!=null)keyboard.MakeCurrent();EditorPrefs.SetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,oldDev);s.settings=settings;s.ApplySettings();if(savedPrefs==null)PlayerPrefs.DeleteKey("SibucaoSettings");else PlayerPrefs.SetString("SibucaoSettings",savedPrefs);PlayerPrefs.Save();if(error!=null)Check(false,error.ToString());lines.Add("Input simulation and synthetic filled-bag fixtures; not participant acceptance.");System.IO.File.WriteAllLines(folder+"checks.txt",lines);System.IO.File.WriteAllText(folder+"finished.txt",error==null?"Finished; inspect screenshots":"FAIL");}}
+s.StartCoroutine(Guard());return "Preparation/accessibility presentation checks started";
+
+}
+public static object RunPreparation720()
+{
+var s=StormSim.Sibucao.SibucaoSession.Instance;if(!EditorApplication.isPlaying||!s)throw new Exception("Play Mode required");
+string folder="Captures/Batches4-7_20260930/Preparation-720/";System.IO.Directory.CreateDirectory(folder);var lines=new List<string>();
+var viewFlags=BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Instance|BindingFlags.Static;
+var editorAssembly=typeof(EditorWindow).Assembly;
+var gameType=editorAssembly.GetType("UnityEditor.GameView");
+var view=(EditorWindow)Resources.FindObjectsOfTypeAll(gameType).First();
+var sizesType=editorAssembly.GetType("UnityEditor.GameViewSizes");
+var singleton=typeof(ScriptableSingleton<>).MakeGenericType(sizesType).GetProperty("instance",viewFlags).GetValue(null);
+var groupType=editorAssembly.GetType("UnityEditor.GameViewSizeGroupType");
+var group=sizesType.GetMethod("GetGroup",viewFlags).Invoke(singleton,new[]{Enum.Parse(groupType,"Standalone")});
+var sizeType=editorAssembly.GetType("UnityEditor.GameViewSize");
+var resolutionType=editorAssembly.GetType("UnityEditor.GameViewSizeType");
+var ctor=sizeType.GetConstructor(viewFlags,null,new[]{resolutionType,typeof(int),typeof(int),typeof(string)},null);
+var groupMethods=group.GetType();
+var sizeIndex=gameType.GetProperty("selectedSizeIndex",viewFlags);
+int previousSize=(int)sizeIndex.GetValue(view);
+void Size(int w,int h){int index=-1,count=(int)groupMethods.GetMethod("GetTotalCount").Invoke(group,null);for(int i=0;i<count;i++){var size=groupMethods.GetMethod("GetGameViewSize").Invoke(group,new object[]{i});if((int)sizeType.GetProperty("width",viewFlags).GetValue(size)==w&&(int)sizeType.GetProperty("height",viewFlags).GetValue(size)==h){index=i;break;}}if(index<0){index=count;groupMethods.GetMethod("AddCustomSize").Invoke(group,new[]{ctor.Invoke(new[]{Enum.Parse(resolutionType,"FixedResolution"),(object)w,h,"StormSim "+w+"x"+h})});}sizeIndex.SetValue(view,index);view.Repaint();}
+Size(1280,720);
+bool oldDev=EditorPrefs.GetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,false);var settings=s.settings;string savedPrefs=PlayerPrefs.HasKey("SibucaoSettings")?PlayerPrefs.GetString("SibucaoSettings"):null;
+var keyboard=UnityEngine.InputSystem.Keyboard.current;var testKeyboard=UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Keyboard>("Preparation validation keyboard");
+void Check(bool okay,string label){lines.Add((okay?"PASS ":"FAIL ")+label);System.IO.File.WriteAllLines(folder+"checks.txt",lines);}
+void Keys(params UnityEngine.InputSystem.Key[] keys){UnityEngine.InputSystem.InputSystem.QueueStateEvent(testKeyboard,new UnityEngine.InputSystem.LowLevel.KeyboardState(keys));}
+System.Collections.IEnumerator Press(UnityEngine.InputSystem.Key key){Keys(key);yield return null;Keys();yield return null;yield return null;}
+System.Collections.IEnumerator Cases()
+{
+    Application.runInBackground=true;EditorPrefs.SetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,true);StormSim.Sibucao.SibucaoEditorInput.Reset();s.UseTestSaveDirectory(System.IO.Path.GetFullPath(folder+"saves"));
+    s.settings=JsonUtility.FromJson<StormSim.Sibucao.SibucaoSettings>(JsonUtility.ToJson(settings));s.StartWithRole("Parent");s.StartWithDifficulty(2);yield return null;yield return null;
+    Check(Screen.width==1280&&Screen.height==720,"Preparation viewport is 1280x720");var bridge=s.GetComponent<StormSim.Preparedness.SibucaoPreparationBridge>();Check(bridge&&bridge.Active&&s.Mode==StormSim.Sibucao.SibucaoMode.Preparation,"Fresh player flow enters preparation");s.StartWithRole("Parent");s.StartWithDifficulty(2);yield return null;Check(bridge.Active&&s.Mode==StormSim.Sibucao.SibucaoMode.Preparation&&s.state.difficultyLevel==2,"Restarting an active preparation resets the run and mode");var prep=bridge.preparation;var player=prep.player;
+    testKeyboard.MakeCurrent();s.settings.fieldOfView=94;s.settings.textScale=1.3f;Cursor.lockState=CursorLockMode.Locked;yield return null;yield return null;
+    Check(Mathf.Abs(player.view.fieldOfView-94)<.01f,"Preparation camera applies shared FOV");
+    yield return Press(UnityEngine.InputSystem.Key.Escape);Check(s.Mode==StormSim.Sibucao.SibucaoMode.Settings,"Escape opens shared settings during preparation");float clock=prep.elapsed;var at=player.transform.position;
+    Keys(UnityEngine.InputSystem.Key.W);yield return new WaitForSecondsRealtime(.5f);Keys();yield return null;Check(Mathf.Abs(prep.elapsed-clock)<.001f&&Vector3.Distance(at,player.transform.position)<.01f,"Settings pauses preparation clock and movement");
+    yield return Press(UnityEngine.InputSystem.Key.Escape);Check(s.Mode==StormSim.Sibucao.SibucaoMode.Preparation,"Escape returns to preparation without reopening settings");
+    StormSim.Sibucao.SibucaoControls.Rebind(s.settings,9,UnityEngine.InputSystem.Key.K);yield return Press(UnityEngine.InputSystem.Key.K);Check(player.GuideOpen,"Remapped guide key opens preparation guide");ScreenCapture.CaptureScreenshot(folder+"guide-max-text.png");yield return null;yield return null;
+    typeof(StormSim.Preparedness.PreparednessPlayer).GetField("journalScroll",BindingFlags.NonPublic|BindingFlags.Instance).SetValue(player,new Vector2(0,10000));yield return null;yield return null;ScreenCapture.CaptureScreenshot(folder+"guide-bottom-max-text.png");yield return null;
+    player.CloseDesktopPanels();prep.bagRetrieved=true;foreach(var item in prep.items.Where(i=>i.portable&&i.kind!=StormSim.Preparedness.PrepKind.Bag).Take(18))item.storedIn="bag";
+    player.ToggleBagPanel();yield return null;yield return null;Check(player.BagPanelOpen,"Preparation bag panel opens");ScreenCapture.CaptureScreenshot(folder+"bag-max-text.png");yield return null;
+    typeof(StormSim.Preparedness.PreparednessPlayer).GetField("journalScroll",BindingFlags.NonPublic|BindingFlags.Instance).SetValue(player,new Vector2(0,10000));yield return null;yield return null;ScreenCapture.CaptureScreenshot(folder+"bag-bottom-max-text.png");yield return null;
+    player.CloseDesktopPanels();bridge.SkipToDuring();if(s.home)s.home.SkipTV();yield return null;yield return null;Check(!bridge.Active&&s.Mode==StormSim.Sibucao.SibucaoMode.Playing,"Preparation handoff reaches the evacuation phase");
+    s.missionGuide.Open();yield return null;yield return null;ScreenCapture.CaptureScreenshot(folder+"evacuation-guide-max-text.png");yield return null;
+    var ui=UnityEngine.Object.FindFirstObjectByType<StormSim.Sibucao.SibucaoUI>();var flags=BindingFlags.Instance|BindingFlags.NonPublic;ui.GetType().GetField("guidePage",flags).SetValue(ui,2);ui.GetType().GetField("guideScroll",flags).SetValue(ui,new Vector2(0,10000));yield return null;yield return null;ScreenCapture.CaptureScreenshot(folder+"evacuation-guide-bottom-max-text.png");yield return null;s.missionGuide.Close();
+    s.inventory.Open();yield return null;yield return null;ScreenCapture.CaptureScreenshot(folder+"evacuation-bag-max-text.png");yield return null;s.inventory.ShowStatus=true;yield return null;yield return null;ScreenCapture.CaptureScreenshot(folder+"evacuation-item-status-max-text.png");yield return null;s.inventory.Close();
+    var weather=s.weather;var flash=typeof(StormSim.Sibucao.SibucaoWeather).GetField("flash",BindingFlags.NonPublic|BindingFlags.Instance);var lighting=typeof(StormSim.Sibucao.SibucaoWeather).GetMethod("ApplyLighting",BindingFlags.NonPublic|BindingFlags.Instance);s.settings.reducedFlashes=true;flash.SetValue(weather,0f);lighting.Invoke(weather,null);float calmLight=weather.sun.intensity;flash.SetValue(weather,1f);lighting.Invoke(weather,null);Check(Mathf.Abs(weather.sun.intensity-calmLight)<.001f,"Reduced flashes suppresses thunder light pulse");
+    s.settings.reducedFlashes=false;lighting.Invoke(weather,null);Check(weather.sun.intensity>calmLight+2,"Thunder light remains available when reduced flashes is off");flash.SetValue(weather,0f);lighting.Invoke(weather,null);
+}
+System.Collections.IEnumerator Guard(){var stack=new Stack<System.Collections.IEnumerator>();stack.Push(Cases());Exception error=null;try{while(stack.Count>0){bool more=false;object value=null;try{more=stack.Peek().MoveNext();if(more)value=stack.Peek().Current;}catch(Exception ex){error=ex;break;}if(!more){stack.Pop();continue;}if(value is System.Collections.IEnumerator nested){stack.Push(nested);continue;}yield return value;}}finally{sizeIndex.SetValue(view,previousSize);view.Repaint();UnityEngine.InputSystem.InputSystem.RemoveDevice(testKeyboard);if(keyboard!=null)keyboard.MakeCurrent();EditorPrefs.SetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,oldDev);s.settings=settings;s.ApplySettings();if(savedPrefs==null)PlayerPrefs.DeleteKey("SibucaoSettings");else PlayerPrefs.SetString("SibucaoSettings",savedPrefs);PlayerPrefs.Save();if(error!=null)Check(false,error.ToString());lines.Add("Input simulation and synthetic filled-bag fixtures; not participant acceptance.");System.IO.File.WriteAllLines(folder+"checks.txt",lines);System.IO.File.WriteAllText(folder+"finished.txt",error==null?"Finished; inspect screenshots":"FAIL");}}
+s.StartCoroutine(Guard());return "Preparation/accessibility presentation checks started";
+
+}
+public static object RunAccessibility()
+{
+var s=StormSim.Sibucao.SibucaoSession.Instance;if(!EditorApplication.isPlaying||!s)throw new Exception("Play Mode required");
+var folder="Captures/Batches4-7_20260930/";var lines=new List<string>();
+var settings=s.settings;var mode=s.Mode;string savedPrefs=PlayerPrefs.HasKey("SibucaoSettings")?PlayerPrefs.GetString("SibucaoSettings"):null;float subtitle=s.subtitleUntil;
+var keyboard=UnityEngine.InputSystem.Keyboard.current;var virtualKeyboard=UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Keyboard>("StormSim validation keyboard");
+void Check(bool okay,string label){lines.Add((okay?"PASS ":"FAIL ")+label);System.IO.File.WriteAllLines(folder+"live-accessibility.txt",lines);}
+void Keys(params UnityEngine.InputSystem.Key[] keys){UnityEngine.InputSystem.InputSystem.QueueStateEvent(virtualKeyboard,new UnityEngine.InputSystem.LowLevel.KeyboardState(keys));}
+System.Collections.IEnumerator Run()
+{
+try
+{
+    Application.runInBackground=true;StormSim.Sibucao.SibucaoEditorInput.Reset();s.SetMode(StormSim.Sibucao.SibucaoMode.Paused);s.settings=JsonUtility.FromJson<StormSim.Sibucao.SibucaoSettings>(JsonUtility.ToJson(settings));virtualKeyboard.MakeCurrent();
+    StormSim.Sibucao.SibucaoControls.Rebind(s.settings,0,UnityEngine.InputSystem.Key.UpArrow);Keys(UnityEngine.InputSystem.Key.UpArrow);yield return null;yield return null;
+    Check(StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.W).isPressed&&!virtualKeyboard.wKey.isPressed,"Remapped forward reads the new Input System key while original W remains released");
+    Keys();yield return null;yield return null;
+    StormSim.Sibucao.SibucaoControls.Rebind(s.settings,4,UnityEngine.InputSystem.Key.F);Keys(UnityEngine.InputSystem.Key.F);yield return null;yield return null;
+    Check(StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.E).isPressed&&!StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.F).isPressed,"Use/carry key swap reaches the actual shared input controls");
+    s.settings.toggleGrip=true;StormSim.Sibucao.SibucaoControls.BeginGrip();Check(StormSim.Sibucao.SibucaoControls.WorkHeld,"Toggle grip begins on interaction");
+    Keys();yield return null;yield return null;Check(StormSim.Sibucao.SibucaoControls.WorkHeld,"Toggle grip stays held after releasing the key");
+    Keys(UnityEngine.InputSystem.Key.F);yield return null;Check(!StormSim.Sibucao.SibucaoControls.WorkHeld&&StormSim.Sibucao.SibucaoControls.GripReleasedThisFrame,"Second press releases a toggled grip");
+    Keys();yield return null;yield return null;Check(!StormSim.Sibucao.SibucaoControls.WorkHeld,"Released grip does not reacquire without another interaction");
+    s.settings.toggleGrip=false;Keys(UnityEngine.InputSystem.Key.F);yield return null;yield return null;Check(StormSim.Sibucao.SibucaoControls.WorkHeld,"Hold mode uses the remapped use key");Keys();yield return null;yield return null;Check(!StormSim.Sibucao.SibucaoControls.WorkHeld,"Hold mode releases with the key");
+    s.settings.fieldOfView=94;s.settings.volume=.4f;s.settings.speechVolume=0;s.settings.environmentVolume=.65f;s.settings.effectsVolume=.2f;s.ApplySettings();
+    Check(Mathf.Abs(s.player.view.fieldOfView-94)<.01f,"Evacuation camera applies FOV");Check(Mathf.Abs(AudioListener.volume-.4f)<.001f,"Master audio gain applies");
+    Check(StormSim.Sibucao.SibucaoAudioMix.Speech==0&&Mathf.Abs(StormSim.Sibucao.SibucaoAudioMix.Effects-.2f)<.001f,"Speech/effects controls are independent");
+    s.subtitleUntil=0;Check(Mathf.Abs(StormSim.Sibucao.SibucaoAudioMix.Environment-.65f)<.001f,"Environment gain applies outside speech");s.subtitleUntil=Time.unscaledTime+10;Check(Mathf.Abs(StormSim.Sibucao.SibucaoAudioMix.Environment-.325f)<.001f,"Speech notification ducks environment gain");
+    var restored=JsonUtility.FromJson<StormSim.Sibucao.SibucaoSettings>(PlayerPrefs.GetString("SibucaoSettings"));Check(restored.keyBindings[0]=="UpArrow"&&restored.fieldOfView==94&&restored.speechVolume==0,"Applied remapping, FOV and mix survive actual settings persistence");
+    var director=s.physicalDecisions.GetComponent<StormSim.Sibucao.SibucaoRouteChoices>();
+    foreach(var section in director.sections)foreach(var mission in new[]{section.left,section.right}){var record=new StormSim.Sibucao.PhysicalChoiceResult{node=section.station.index,choice=100+mission.side,choiceId=mission.id};Check(StormSim.Sibucao.SibucaoDebrief.Decision(s,record).Contains(mission.title),"Debrief names "+mission.id+" correctly");}
+}
+finally
+{
+    UnityEngine.InputSystem.InputSystem.RemoveDevice(virtualKeyboard);if(keyboard!=null)keyboard.MakeCurrent();s.settings=settings;s.subtitleUntil=subtitle;s.ApplySettings();if(savedPrefs==null)PlayerPrefs.DeleteKey("SibucaoSettings");else PlayerPrefs.SetString("SibucaoSettings",savedPrefs);PlayerPrefs.Save();StormSim.Sibucao.SibucaoControls.ResetGrip();s.SetMode(mode);lines.Add("Input System simulation; not manual keyboard or participant acceptance.");System.IO.File.WriteAllLines(folder+"live-accessibility.txt",lines);System.IO.File.WriteAllText(folder+"live-accessibility-finished.txt","Finished; inspect FAIL and Console exceptions.");
+}
+}
+s.StartCoroutine(Run());return "Live accessibility checks started";
+}
+public static object RunHands()
+{
+var s=StormSim.Sibucao.SibucaoSession.Instance;var lines=new List<string>();var meshes=s.player.hands.GetComponentsInChildren<SkinnedMeshRenderer>();int triangles=0;foreach(var r in meshes){var m=r.sharedMesh;var v=m.vertices;var t=m.triangles;triangles+=t.Length/3;bool valid=true;for(int i=0;i<t.Length;i+=3){valid&=t[i]>=0&&t[i]<v.Length&&t[i+1]>=0&&t[i+1]<v.Length&&t[i+2]>=0&&t[i+2]<v.Length;if(valid)valid&=Vector3.Cross(v[t[i+1]]-v[t[i]],v[t[i+2]]-v[t[i]]).sqrMagnitude>1e-12f;}valid&=m.boneWeights.All(w=>Mathf.Abs(w.weight0-1)<.001f&&w.boneIndex0<r.bones.Length);lines.Add((valid?"PASS ":"FAIL ")+r.name+" nondegenerate skinned geometry "+v.Length+" vertices, "+t.Length/3+" triangles");var baked=new Mesh();r.BakeMesh(baked);float nearest=baked.vertices.Min(p=>s.player.view.transform.InverseTransformPoint(r.transform.TransformPoint(p)).z);UnityEngine.Object.Destroy(baked);float handSide=Mathf.Sign(r.transform.localPosition.x);var thumb=r.transform.InverseTransformPoint(r.bones[1].position);var indexFinger=r.transform.InverseTransformPoint(r.bones[2].position);lines.Add((thumb.x*handSide<0&&indexFinger.x*handSide<0?"PASS ":"FAIL ")+r.name+" thumb and index face the space between the hands");lines.Add((nearest>s.player.view.nearClipPlane?"PASS ":"FAIL ")+r.name+" rest mesh clears camera near plane; nearest="+nearest);}lines.Add((meshes.Length==2&&triangles==616?"PASS ":"FAIL ")+"Two refined low-poly hands total "+triangles+" triangles");ScreenCapture.CaptureScreenshot("Captures/Batches4-7_20260930/refined-hands.png");System.IO.File.WriteAllLines("Captures/Batches4-7_20260930/hand-geometry.txt",lines);return string.Join("\n",lines);
+}
+public static object RunNpcs()
+{
+var s=StormSim.Sibucao.SibucaoSession.Instance;if(!EditorApplication.isPlaying||!s)throw new Exception("Play Mode required");
+string folder="Captures/Batches4-7_20260930/NPC/";System.IO.Directory.CreateDirectory(folder);var lines=new List<string>();var original=s.settings;bool oldDev=EditorPrefs.GetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,false);
+void Record(string message){lines.Add(message);System.IO.File.WriteAllLines(folder+"checks.txt",lines);}
+System.Collections.IEnumerator Cases()
+{
+    Application.runInBackground=true;EditorPrefs.SetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,true);s.UseTestSaveDirectory(System.IO.Path.GetFullPath(folder+"saves"));s.StartWithRole("Volunteer");s.StartWithDifficulty(3);yield return null;
+    var bridge=s.GetComponent<StormSim.Preparedness.SibucaoPreparationBridge>();if(bridge&&bridge.Active)bridge.SkipToDuring();if(s.home)s.home.SkipTV();StormSim.Sibucao.SibucaoEditorInput.Reset();StormSim.Sibucao.SibucaoEditorInput.Active=true;s.settings=JsonUtility.FromJson<StormSim.Sibucao.SibucaoSettings>(JsonUtility.ToJson(original));
+    var actors=UnityEngine.Object.FindObjectsByType<StormSim.Sibucao.SibucaoActor>(FindObjectsSortMode.None);Record((actors.All(a=>a.animator&&a.animator.isHuman&&a.animator.avatar.isValid)?"PASS ":"FAIL ")+actors.Length+" valid humanoid actors");
+    var director=s.physicalDecisions.GetComponent<StormSim.Sibucao.SibucaoRouteChoices>();var section=director.sections[0];s.player.Teleport(section.Approach+Vector3.up*.08f,section.left.transform.position-section.Approach);yield return new WaitForSeconds(.5f);
+    var near=actors.Where(a=>!a.GetComponent<StormSim.Sibucao.SibucaoResident>()&&!a.injuredPose&&!a.seatedPose).OrderBy(a=>(a.transform.position-s.player.transform.position).sqrMagnitude).First();
+    var nearSection=director.sections.OrderBy(sec=>(sec.Approach-near.transform.position).sqrMagnitude).First();
+    s.player.Teleport(nearSection.Approach+Vector3.up*.1f,near.transform.position-nearSection.Approach);yield return StormSim.Sibucao.Editor.SibucaoPlaythroughProbe.Get().Aim(near.transform.position+Vector3.up*1.35f);near.React();yield return new WaitForSeconds(.4f);
+    Record((near.state==StormSim.Sibucao.ResidentState.ReactionToPlayer&&!near.MissingCurrentAnimation?"PASS ":"FAIL ")+"Nearby resident acknowledges the player using an available pose");ScreenCapture.CaptureScreenshot(folder+"acknowledgement-pointing.png");yield return null;
+    foreach(bool injury in new[]{false,true}){var actor=actors.First(a=>injury?a.injuredPose:a.seatedPose);s.player.Teleport(actor.transform.position+actor.transform.forward*2+actor.transform.right*1.2f+Vector3.up*.1f,-actor.transform.forward);yield return StormSim.Sibucao.Editor.SibucaoPlaythroughProbe.Get().Aim(actor.transform.position+Vector3.up*.8f);yield return new WaitForSeconds(.5f);ScreenCapture.CaptureScreenshot(folder+(injury?"injured-posture":"seated-posture")+".png");yield return null;}
+    var residents=UnityEngine.Object.FindObjectsByType<StormSim.Sibucao.SibucaoResident>(FindObjectsSortMode.None);var start=residents.ToDictionary(r=>r,r=>r.transform.position);float startClock=Time.time;yield return new WaitForSeconds(8);float duration=Time.time-startClock;
+    int moved=0,nonfinite=0;foreach(var r in residents){float distance=Vector3.Distance(start[r],r.transform.position);if(!float.IsFinite(distance))nonfinite++;if(distance>.3f)moved++;Record("Resident "+r.name+" travelled="+distance.ToString("F2")+"m swimming="+r.Swimming+" sheltered="+r.Sheltered);}
+    Record((nonfinite==0?"PASS ":"FAIL ")+"All crowd positions remain finite over "+duration.ToString("F2")+" seconds");Record((moved>0?"PASS ":"FAIL ")+moved+" / "+residents.Length+" crowd residents travelled more than 0.3m; stationary residents require context review");
+    int blockedRoamers=0;foreach(var resident in residents.Where(r=>r.distributeFromCurrentHome))
+    {
+        var at=resident.transform.position;var obstacles=Physics.OverlapCapsule(at+Vector3.up*.28f,at+Vector3.up*(resident.height-.24f),.22f,1,QueryTriggerInteraction.Ignore).Where(c=>!c.transform.IsChildOf(resident.transform)&&!c.GetComponentInParent<StormSim.Sibucao.SibucaoResident>()&&!c.GetComponentInParent<StormSim.Sibucao.SibucaoPlayer>()&&c.bounds.max.y>at.y+.32f).ToArray();
+        if(obstacles.Length>0){blockedRoamers++;Record("OVERLAP "+resident.name+": "+string.Join(", ",obstacles.Select(c=>c.name)));}
+    }
+    Record((blockedRoamers==0?"PASS ":"FAIL ")+"Roaming residents clear full-height scene obstacles; overlaps="+blockedRoamers);
+    var flood=s.GetComponent<StormSim.Sibucao.FloodSimulationManager>();s.state.homeSeconds=960;s.state.elapsed=960;flood.RestoreClock();s.settings.reducedFlashes=true;
+    foreach(int n in new[]{0,4,8}){var target=director.sections[n];s.player.Teleport(target.EntryGround+Vector3.up*.08f,target.Approach-target.EntryGround);yield return new WaitForSeconds(3);Record("Heavy-weather B"+(n+1)+" footing="+s.player.WaterDepthAtFeet.ToString("F2")+"m target="+s.missionGuide.NavigationTarget);ScreenCapture.CaptureScreenshot(folder+"heavy-weather-B"+(n+1)+".png");yield return null;}
+}
+System.Collections.IEnumerator Guard(){var stack=new Stack<System.Collections.IEnumerator>();stack.Push(Cases());Exception error=null;try{while(stack.Count>0){bool more=false;object value=null;try{more=stack.Peek().MoveNext();if(more)value=stack.Peek().Current;}catch(Exception ex){error=ex;break;}if(!more){stack.Pop();continue;}if(value is System.Collections.IEnumerator nested){stack.Push(nested);continue;}yield return value;}}finally{StormSim.Sibucao.SibucaoEditorInput.Reset();s.settings=original;EditorPrefs.SetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,oldDev);if(error!=null)Record("FAIL "+error);Record("Staged diagnostic viewpoints; inspect screenshots for contact, readability and clipping.");System.IO.File.WriteAllText(folder+"finished.txt",error==null?"Finished; inspect reports and images":"FAIL");}}
+s.StartCoroutine(Guard());return "NPC and heavy-weather presentation checks started";
+
+}
+public static object RunAssistance()
+{
+var s=StormSim.Sibucao.SibucaoSession.Instance;if(!EditorApplication.isPlaying||!s)throw new Exception("Play Mode required");
+string folder="Captures/Batches4-7_20260930/Assistance/";System.IO.Directory.CreateDirectory(folder);var notes=new List<string>();var oldSettings=s.settings;bool oldDev=EditorPrefs.GetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,false);int activeCase=-1;bool captured=false;
+void Record(string line){notes.Add(line);System.IO.File.WriteAllLines(folder+"checks.txt",notes);}
+System.Collections.IEnumerator Observe(){while(activeCase>=0){if(!captured&&s.player.grabber.held){yield return null;yield return null;ScreenCapture.CaptureScreenshot(folder+"grip-B"+(activeCase+1)+".png");var body=s.player.grabber.held;Record((body.grip?"PASS ":"FAIL ")+"B"+(activeCase+1)+" assistance uses authored grip");Record("Hand offset from camera="+Vector3.Distance(s.player.hands.position,s.player.view.transform.position));captured=true;}yield return null;}}
+System.Collections.IEnumerator Cases(){Application.runInBackground=true;EditorPrefs.SetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,true);s.settings=JsonUtility.FromJson<StormSim.Sibucao.SibucaoSettings>(JsonUtility.ToJson(oldSettings));s.settings.toggleGrip=false;s.UseTestSaveDirectory(System.IO.Path.GetFullPath(folder+"saves"));
+foreach(int stage in new[]{5,7}){s.StartWithRole("Volunteer");s.StartWithDifficulty(2);yield return null;var bridge=s.GetComponent<StormSim.Preparedness.SibucaoPreparationBridge>();if(bridge&&bridge.Active)bridge.SkipToDuring();if(s.home)s.home.SkipTV();if(stage==7){foreach(var item in s.home.GetComponentsInChildren<StormSim.Sibucao.PhysicalGrabbable>(true).Where(i=>i.kind==StormSim.Sibucao.PhysicalItemKind.Bag||i.kind==StormSim.Sibucao.PhysicalItemKind.FirstAid).OrderBy(i=>i.kind==StormSim.Sibucao.PhysicalItemKind.Bag?0:1))s.inventory.Collect(item);}StormSim.Sibucao.SibucaoEditorInput.Reset();StormSim.Sibucao.SibucaoEditorInput.Active=true;foreach(var station in s.physicalDecisions.stations)if(station.index!=stage)s.state.physical.results[station.index]=0;yield return null;yield return null;
+var chosen=s.physicalDecisions.stations.First(x=>x.index==stage).branches[0];s.player.Teleport(chosen.station.InteractionPosition-chosen.station.transform.forward*3+Vector3.up*.1f,chosen.station.transform.forward);yield return new WaitForSeconds(.4f);Record("Activation B"+(stage+1)+" active="+chosen.station.Active+" tier="+chosen.station.TierEligible+" canEnter="+s.physicalDecisions.CanEnter(chosen.station)+" next="+s.physicalDecisions.NextCoreStage);activeCase=stage;captured=false;s.StartCoroutine(Observe());Record("START B"+(stage+1)+" "+chosen.mechanism);yield return StormSim.Sibucao.Editor.SibucaoBranchPlayProbe.Get().ExerciseExisting(chosen,true);activeCase=-1;Record((chosen.station.Resolved?"PASS ":"FAIL ")+"B"+(stage+1)+" physical assistance completion");ScreenCapture.CaptureScreenshot(folder+"finished-B"+(stage+1)+".png");yield return null;}
+var actors=UnityEngine.Object.FindObjectsByType<StormSim.Sibucao.SibucaoActor>(FindObjectsSortMode.None);Record((actors.All(a=>a.animator&&a.animator.isHuman)?"PASS ":"FAIL ")+actors.Length+" scene actors have humanoid rigs for procedural reactions");foreach(var mesh in s.player.hands.GetComponentsInChildren<SkinnedMeshRenderer>())Record("HAND "+mesh.name+" mesh="+AssetDatabase.GetAssetPath(mesh.sharedMesh)+" vertices="+mesh.sharedMesh.vertexCount+" bones="+mesh.bones.Length+" bounds="+mesh.localBounds);}
+System.Collections.IEnumerator Guard(){var stack=new Stack<System.Collections.IEnumerator>();stack.Push(Cases());Exception error=null;try{while(stack.Count>0){bool more=false;object value=null;try{more=stack.Peek().MoveNext();if(more)value=stack.Peek().Current;}catch(Exception ex){error=ex;break;}if(!more){stack.Pop();continue;}if(value is System.Collections.IEnumerator nested){stack.Push(nested);continue;}yield return value;}}finally{activeCase=-1;StormSim.Sibucao.SibucaoEditorInput.Reset();s.settings=oldSettings;EditorPrefs.SetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,oldDev);if(error!=null)Record("FAIL "+error);System.IO.File.WriteAllText(folder+"finished.txt",error==null?"Finished; inspect reports and images":"FAIL");}}
+s.StartCoroutine(Guard());return "Assistance geometry checks started";
+}
+public static object RunAudio()
+{
+var s=StormSim.Sibucao.SibucaoSession.Instance;if(!EditorApplication.isPlaying||!s)throw new Exception("Play Mode required");
+string folder="Captures/Batches4-7_20260930/Audio/";System.IO.Directory.CreateDirectory(folder);var lines=new List<string>();var original=s.settings;var mode=s.Mode;
+void Check(bool okay,string label){lines.Add((okay?"PASS ":"FAIL ")+label);System.IO.File.WriteAllLines(folder+"checks.txt",lines);}
+System.Collections.IEnumerator Cases()
+{
+    s.settings=JsonUtility.FromJson<StormSim.Sibucao.SibucaoSettings>(JsonUtility.ToJson(original));s.settings.speechVolume=1;s.settings.environmentVolume=1;s.settings.effectsVolume=1;
+    s.SetMode(StormSim.Sibucao.SibucaoMode.Playing);if(s.home)s.home.SkipTV();s.inventory.Close();s.missionGuide.Close();yield return null;yield return null;
+    var narration=s.GetComponent<StormSim.Sibucao.SibucaoNarration>();var voice=(AudioSource)typeof(StormSim.Sibucao.SibucaoNarration).GetField("voice",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(narration);var routes=s.RouteChoices;
+    var left=routes.sections[0].left;var right=routes.sections[0].right;
+    Check(narration.PlayCue("depart",true),"Narration cue is assigned and can start");yield return null;Check(voice.isPlaying&&narration.Caption!=null,"Playing narration supplies a caption");
+    left.Call();yield return null;Check(!voice.isPlaying&&left.voice.isPlaying&&s.subtitle.StartsWith("From the left:"),"Resident call replaces narration and receives subtitle priority");
+    right.Call();yield return null;Check(!left.voice.isPlaying&&right.voice.isPlaying,"A new resident call stops the previous route voice");
+    s.Say("Work feedback fixture",3);yield return null;Check(!right.voice.isPlaying,"Work feedback stops a route call before replacing its caption");right.Call();yield return null;
+    narration.PlayCue("depart",true);yield return null;Check(!right.voice.isPlaying&&voice.isPlaying,"Explicit narration replay stops the route call");
+    s.missionGuide.Open();yield return null;yield return null;Check(!voice.isPlaying&&narration.Speaking,"Opening the guide pauses narration");
+    s.subtitleUntil=0;s.missionGuide.Close();yield return null;yield return null;Check(voice.isPlaying&&s.subtitleUntil>Time.unscaledTime&&StormSim.Sibucao.SibucaoAudioMix.Environment==.5f,"Resuming narration renews its caption duration and storm ducking");
+    s.Say("Resident feedback fixture",3);yield return null;Check(!voice.isPlaying&&narration.Caption==null&&s.subtitle=="Resident feedback fixture","Contextual feedback is not hidden behind stale narration");
+    var all=new List<AudioClip>();all.AddRange(narration.cues.Select(c=>c.clip));foreach(var section in routes.sections){all.Add(section.left.voice?section.left.voice.clip:null);all.Add(section.right.voice?section.right.voice.clip:null);all.Add(section.centerVoice?section.centerVoice.clip:null);}all.Add(s.weather.rainAudio.clip);all.Add(s.weather.windAudio.clip);
+    var stats=new List<object>();foreach(var clip in all.Where(c=>c).Distinct())
+    {
+        const int frames=2048;var data=new float[frames*clip.channels];double square=0;float peak=0;long total=0;bool available=true;
+        for(int offset=0;offset<clip.samples;offset+=frames){if(!clip.GetData(data,offset)){available=false;break;}int count=Mathf.Min(frames,clip.samples-offset)*clip.channels;for(int i=0;i<count;i++){square+=data[i]*data[i];peak=Mathf.Max(peak,Mathf.Abs(data[i]));}total+=count;}
+        double rms=total>0?Math.Sqrt(square/total):-1;stats.Add(new{clip=clip.name,seconds=clip.length,available,rms,peak});if(available)Check(rms>.0001&&peak<=1,"Non-silent unclipped source "+clip.name);yield return null;
+    }
+    System.IO.File.WriteAllText(folder+"clip-levels.json",Newtonsoft.Json.JsonConvert.SerializeObject(stats,Newtonsoft.Json.Formatting.Indented));
+    foreach(StormSim.Sibucao.SibucaoSoundKind kind in Enum.GetValues(typeof(StormSim.Sibucao.SibucaoSoundKind))){StormSim.Sibucao.SibucaoSoundFeedback.Play(kind);yield return null;yield return new WaitForSeconds(.3f);}
+    Check(StormSim.Sibucao.SibucaoSoundFeedback.Instance!=null,"Procedural movement, mechanism and placement sound component is active");
+}
+System.Collections.IEnumerator Guard(){var stack=new Stack<System.Collections.IEnumerator>();stack.Push(Cases());Exception error=null;try{while(stack.Count>0){bool more=false;object value=null;try{more=stack.Peek().MoveNext();if(more)value=stack.Peek().Current;}catch(Exception ex){error=ex;break;}if(!more){stack.Pop();continue;}if(value is System.Collections.IEnumerator nested){stack.Push(nested);continue;}yield return value;}}finally{s.settings=original;s.SetMode(mode);s.RouteChoices.StopVoices();if(error!=null)Check(false,error.ToString());lines.Add("Playback-state and PCM measurements; listening acceptance remains separate.");System.IO.File.WriteAllLines(folder+"checks.txt",lines);System.IO.File.WriteAllText(folder+"finished.txt",error==null?"Finished; inspect all checks and clip levels":"FAIL");}}
+s.StartCoroutine(Guard());return "Live speech-priority and audio-level checks started";
+
+}
+public static object StartJourney(int difficulty,string role,int side)
+{
+// Continuous route segment: one explicit starting-position fixture, then production input only.
+
+var s=StormSim.Sibucao.SibucaoSession.Instance;if(!EditorApplication.isPlaying||!s)throw new Exception("Play Mode required");
+var d=s.physicalDecisions.GetComponent<StormSim.Sibucao.SibucaoRouteChoices>();
+string folder="Captures/Batches4-7_20260930/Journeys/"+role+"-D"+difficulty+"-"+side+"/";System.IO.Directory.CreateDirectory(folder);
+var notes=new List<string>();string status="starting";int current=-1;float began=Time.realtimeSinceStartup;var originalSettings=s.settings;
+bool oldDev=EditorPrefs.GetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,false);
+void Save(string line){notes.Add(DateTime.Now.ToString("HH:mm:ss")+" "+line);System.IO.File.WriteAllLines(folder+"journey.txt",notes);System.IO.File.WriteAllText(folder+"state.json",JsonUtility.ToJson(s.state,true));}
+void Check(bool okay,string message){if(!okay)throw new Exception(message);}
+System.Collections.IEnumerator E(){StormSim.Sibucao.SibucaoEditorInput.Interact=true;yield return null;yield return null;}
+System.Collections.IEnumerator Walk(Vector3 destination)
+{
+    float deadline=Time.time+Mathf.Max(30,Vector3.Distance(s.player.transform.position,destination)/.3f),lastMoved=Time.time;Vector3 last=s.player.transform.position;
+    while(Time.time<deadline)
+    {
+        if(s.Mode==StormSim.Sibucao.SibucaoMode.ArrivalReview||s.Mode==StormSim.Sibucao.SibucaoMode.Complete)break;
+        if(s.Mode==StormSim.Sibucao.SibucaoMode.Cinematic){yield return null;continue;}
+        Check(s.Mode==StormSim.Sibucao.SibucaoMode.Playing,"Travel interrupted by "+s.Mode);
+        var delta=destination-s.player.transform.position;delta.y=0;if(delta.magnitude<.18f)break;
+        if(Vector3.Distance(last,s.player.transform.position)>.08f){last=s.player.transform.position;lastMoved=Time.time;}
+        Check(Time.time-lastMoved<30,"Movement stalled at "+last+" toward "+destination);
+        var direction=delta.normalized;var yaw=Mathf.Atan2(direction.x,direction.z)*Mathf.Rad2Deg;
+        StormSim.Sibucao.SibucaoEditorInput.Look=new Vector2(Mathf.DeltaAngle(s.player.transform.eulerAngles.y,yaw),Mathf.DeltaAngle(0,s.player.view.transform.localEulerAngles.x));
+        StormSim.Sibucao.SibucaoEditorInput.Move=new Vector2(0,Mathf.Min(1,delta.magnitude/.45f));
+        StormSim.Sibucao.SibucaoEditorInput.Ascend=s.player.swimming&&s.player.swimming.IsSwimming;
+        yield return null;
+    }
+    StormSim.Sibucao.SibucaoEditorInput.Move=Vector2.zero;StormSim.Sibucao.SibucaoEditorInput.Ascend=false;
+    Check(StormSim.Sibucao.SibucaoRouteChoices.Flat(s.player.transform.position,destination)<.4f||s.Mode==StormSim.Sibucao.SibucaoMode.ArrivalReview||s.Mode==StormSim.Sibucao.SibucaoMode.Complete,"Did not reach "+destination);
+}
+Transform carried=null;
+bool IsPlayer(Collider collider)=>collider.transform.IsChildOf(s.player.transform)||(carried&&collider.transform.IsChildOf(carried));
+bool Clear(Vector3 a,Vector3 b){var delta=b-a;return !Physics.CapsuleCastAll(a+Vector3.up*.38f,a+Vector3.up*1.55f,.29f,delta.normalized,delta.magnitude,~0,QueryTriggerInteraction.Ignore).Any(h=>!IsPlayer(h.collider));}
+bool Stand(Vector3 requested,out Vector3 position)
+{
+    position=requested;
+    var ground=Physics.RaycastAll(requested+Vector3.up*.65f,Vector3.down,1.5f,~0,QueryTriggerInteraction.Ignore).Where(h=>!IsPlayer(h.collider)&&h.normal.y>.7f).OrderBy(h=>h.distance).ToArray();
+    if(ground.Length==0)return false;position=ground[0].point+Vector3.up*.025f;
+    return !Physics.OverlapCapsule(position+Vector3.up*.38f,position+Vector3.up*1.55f,.29f,~0,QueryTriggerInteraction.Ignore).Any(c=>!IsPlayer(c));
+}
+Vector3[] LocalPath(Vector3 goal,Vector3 origin)
+{
+    var start=s.player.transform.position;if(Clear(start,goal))return new[]{goal};
+    const float cell=.35f;var a=new Vector2Int(Mathf.RoundToInt((start.x-origin.x)/cell),Mathf.RoundToInt((start.z-origin.z)/cell));var b=new Vector2Int(Mathf.RoundToInt((goal.x-origin.x)/cell),Mathf.RoundToInt((goal.z-origin.z)/cell));
+    var queue=new Queue<Vector2Int>();var parent=new Dictionary<Vector2Int,Vector2Int>();var positions=new Dictionary<Vector2Int,Vector3>{{a,start}};var seen=new HashSet<Vector2Int>{a};queue.Enqueue(a);
+    while(queue.Count>0){var cur=queue.Dequeue();if(cur==b){var path=new List<Vector3>{goal};while(cur!=a){path.Add(positions[cur]);cur=parent[cur];}path.Reverse();return path.ToArray();}foreach(var offset in new[]{Vector2Int.up,Vector2Int.right,Vector2Int.down,Vector2Int.left}){var next=cur+offset;if(Mathf.Abs(next.x)>14||Mathf.Abs(next.y)>14||!seen.Add(next))continue;var p=origin+new Vector3(next.x*cell,0,next.y*cell);if(!Stand(p,out p)||Mathf.Abs(p.y-positions[cur].y)>.45f||!Clear(positions[cur],p))continue;positions[next]=p;parent[next]=cur;queue.Enqueue(next);}}
+    throw new Exception("Automation could not plan a local path to "+goal+" from "+start);
+}
+System.Collections.IEnumerator Focus(StormSim.Sibucao.SibucaoSideMission mission,Transform item)
+{
+    Physics.SyncTransforms();var collider=item.GetComponentsInChildren<Collider>().First(c=>c.enabled&&!c.isTrigger);var target=collider.bounds.center;var candidates=new List<Vector3>();
+    foreach(float radius in new[]{1.15f,1.65f,2.2f})for(int angle=0;angle<360;angle+=30){var at=target+Quaternion.Euler(0,angle,0)*Vector3.forward*radius;at.y=mission.transform.position.y+.05f;if(!Stand(at,out at))continue;var eye=at+Vector3.up*1.63f;var direction=target-eye;var hits=Physics.RaycastAll(eye,direction.normalized,3,~0,QueryTriggerInteraction.Ignore).Where(h=>!IsPlayer(h.collider)).OrderBy(h=>h.distance).ToArray();if(hits.Length>0&&(hits[0].transform==item||hits[0].transform.IsChildOf(item)))candidates.Add(at);}
+    Check(candidates.Count>0,"No accessible focus position for "+item.name);
+    Vector3[] path=null;foreach(var at in candidates.OrderBy(p=>(p-s.player.transform.position).sqrMagnitude)){try{path=LocalPath(at,mission.transform.position);break;}catch(Exception){}}
+    Check(path!=null,"Automation could not route to a visible work position for "+item.name);foreach(var p in path)yield return Walk(p);
+    yield return StormSim.Sibucao.Editor.SibucaoPlaythroughProbe.Get().Aim(target);Check(d.Focused()==mission,"Focus blocked at "+item.name+" from "+s.player.transform.position);
+}
+System.Collections.IEnumerator SideMission(StormSim.Sibucao.SibucaoRouteSection section,StormSim.Sibucao.SibucaoSideMission mission)
+{
+    var f=typeof(StormSim.Sibucao.SibucaoRouteSection).GetField("levelLayout",BindingFlags.NonPublic|BindingFlags.Instance);var layout=(StormSim.Sibucao.RouteSectionLayout)f.GetValue(section)??section.layouts.First(x=>x.home==s.state.homeIndex);
+    var input=mission==section.left?layout.leftApproach:layout.rightApproach;float lift=mission.transform.position.y-(mission==section.left?layout.left.y:layout.right.y);
+    foreach(var raw in input){var p=raw+Vector3.up*lift;if(StormSim.Sibucao.SibucaoRouteChoices.Flat(p,mission.transform.position)<2.5f)break;yield return Walk(p);}
+    while(mission.Step!=null)
+    {
+        Check(!mission.Closed,"Selected side passage flooded before work could finish");var step=mission.Step;int before=mission.State.step;status=mission.id+" step "+before;Save("WORK "+status+" "+step.instruction);ScreenCapture.CaptureScreenshot(folder+"working-B"+(section.station.index+1)+"-"+before+".png");
+        yield return Focus(mission,step.item);if(mission.State.step!=before)continue;if(step.work==StormSim.Sibucao.RouteWork.Slide||step.work==StormSim.Sibucao.RouteWork.Turn)StormSim.Sibucao.SibucaoEditorInput.UseHeld=true;yield return E();
+        if(step.work==StormSim.Sibucao.RouteWork.Slide||step.work==StormSim.Sibucao.RouteWork.Turn){StormSim.Sibucao.SibucaoEditorInput.UseHeld=true;float end=Time.time+step.seconds*3+10;while(mission.State.amount<.999f&&Time.time<end){StormSim.Sibucao.SibucaoEditorInput.ToolTurn=new Vector2(20,0);yield return null;}StormSim.Sibucao.SibucaoEditorInput.UseHeld=false;StormSim.Sibucao.SibucaoEditorInput.ToolTurn=Vector2.zero;yield return null;yield return null;}
+        else if(step.work==StormSim.Sibucao.RouteWork.Carry)
+        {
+            carried=step.item;var goal=step.target.position;var candidates=new List<Vector3>();
+            foreach(float radius in new[]{.85f,1.15f,1.45f})for(int angle=0;angle<360;angle+=30){var at=goal+Quaternion.Euler(0,angle,0)*Vector3.forward*radius;at.y=mission.transform.position.y+.05f;if(Stand(at,out at))candidates.Add(at);}
+            Vector3[] placementPath=null;foreach(var at in candidates.OrderBy(v=>(v-s.player.transform.position).sqrMagnitude)){try{placementPath=LocalPath(at,mission.transform.position);break;}catch(Exception){}}
+            Check(placementPath!=null,"Automation could not plan a standing position at placement "+step.target.name);foreach(var p in placementPath)yield return Walk(p);yield return StormSim.Sibucao.Editor.SibucaoPlaythroughProbe.Get().Aim(goal+Vector3.up*.2f);float end=Time.time+8;while(!mission.PlacementReady&&Time.time<end)yield return null;Check(mission.PlacementReady,"Carried object cannot reach placement "+step.target.name);yield return E();carried=null;
+        }
+        else if(step.work==StormSim.Sibucao.RouteWork.Escort)
+        {
+            float end=Time.time+600;while(mission.State.step==before&&Time.time<end){var goal=mission.WorkTarget;yield return Walk(goal+section.station.transform.right*.3f);yield return null;Check(!mission.EscortStatus?.StartsWith("Group blocked")??true,"Escort blocked at "+goal);}
+        }
+        Check(mission.State.step>before,"Work did not advance: "+step.instruction);
+    }
+    int nearest=Enumerable.Range(0,mission.route.Length).OrderBy(i=>(mission.route[i]-s.player.transform.position).sqrMagnitude).First();foreach(var p in mission.route.Skip(nearest))yield return Walk(p);yield return Walk(section.Merge);
+    Check(mission.State.complete,"Side work did not record at the merge");
+}
+System.Collections.IEnumerator Journey()
+{
+    Application.runInBackground=true;EditorPrefs.SetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,true);s.UseTestSaveDirectory(System.IO.Path.GetFullPath(folder+"saves"));s.StartWithRole(role);s.StartWithDifficulty(difficulty);yield return null;
+    var bridge=s.GetComponent<StormSim.Preparedness.SibucaoPreparationBridge>();if(bridge&&bridge.Active)bridge.SkipToDuring();if(s.home)s.home.SkipTV();
+    StormSim.Sibucao.SibucaoEditorInput.Reset();StormSim.Sibucao.SibucaoEditorInput.Active=true;s.settings=JsonUtility.FromJson<StormSim.Sibucao.SibucaoSettings>(JsonUtility.ToJson(originalSettings));s.settings.toggleGrip=false;
+    var first=d.sections[0];s.player.Teleport(first.EntryGround+Vector3.up*.05f,first.station.transform.forward);yield return null;yield return null;
+    Save("BEGIN route-only continuous run; role="+role+" difficulty="+difficulty+" side="+side+" home="+s.state.homeIndex+". Preparation skipped and one starting-position fixture at the first junction. No later teleports, clock writes or direct outcome completion.");
+    for(int n=0;n<9;n++)
+    {
+        current=n;var section=d.sections[n];status="approaching B"+(n+1);Save(status);
+        if(n>0){float start=s.route.Progress(s.player.transform.position),end=s.route.Progress(section.EntryGround);var joinOffset=s.player.transform.position-s.route.Sample(start);joinOffset.y=0;start=Mathf.Min(end,start+Mathf.Min(24,joinOffset.magnitude));for(float progress=start+2;progress<end-2;progress+=2)yield return Walk(s.route.Sample(progress));}
+        yield return Walk(section.EntryGround);yield return Walk(section.Approach);
+        if(side<2)yield return SideMission(section,side==0?section.left:section.right);
+        else {int[] choices={2,0,1,0,2,2,0,2,0};yield return StormSim.Sibucao.Editor.SibucaoBranchPlayProbe.Get().ExerciseExisting(section.station.branches[choices[n]],false);}
+        Check(s.state.physical.results[n]>=0,"No recorded outcome for B"+(n+1));Save("PASS encounter B"+(n+1)+" result="+s.state.physical.results[n]+" clock="+s.state.homeSeconds);
+        ScreenCapture.CaptureScreenshot(folder+"B"+(n+1)+".png");yield return null;
+        while(s.Mode==StormSim.Sibucao.SibucaoMode.Cinematic)yield return null;
+        if(side<2){var layout=(StormSim.Sibucao.RouteSectionLayout)typeof(StormSim.Sibucao.SibucaoRouteSection).GetField("levelLayout",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(section);if(layout!=null&&layout.fittedRamps)yield return Walk(layout.exitGround);}
+    }
+    for(float progress=s.route.Progress(s.player.transform.position)+2;progress<s.route.length&&s.Mode==StormSim.Sibucao.SibucaoMode.Playing;progress+=2)yield return Walk(s.route.Sample(progress));if(s.Mode==StormSim.Sibucao.SibucaoMode.Playing)yield return Walk(s.physicalDecisions.evacuationCenter.arrivalPoint.position);
+    Check(s.Mode==StormSim.Sibucao.SibucaoMode.ArrivalReview,"School reception did not open");s.physicalDecisions.ConfirmArrivalReport();Check(s.state.physical.arrivalReceived&&!s.state.physical.arrivalReported,"Reception did not precede handover");s.physicalDecisions.ConfirmArrivalReport();Check(s.Mode==StormSim.Sibucao.SibucaoMode.Complete,"Handover did not complete the run");Save("PASS JOURNEY wallSeconds="+(Time.realtimeSinceStartup-began));
+}
+System.Collections.IEnumerator Guard()
+{
+    var stack=new Stack<System.Collections.IEnumerator>();stack.Push(Journey());Exception error=null;
+    try{while(stack.Count>0){bool more=false;object value=null;try{more=stack.Peek().MoveNext();if(more)value=stack.Peek().Current;}catch(Exception ex){error=ex;break;}if(!more){stack.Pop();continue;}if(value is System.Collections.IEnumerator nested){stack.Push(nested);continue;}yield return value;}}
+    finally{StormSim.Sibucao.SibucaoEditorInput.Reset();s.settings=originalSettings;EditorPrefs.SetBool(StormSim.Sibucao.SibucaoDevelopmentControls.EditorPreference,oldDev);if(error!=null)Save("FAIL "+status+": "+error);System.IO.File.WriteAllText(folder+"finished.txt",error==null?"PASS":"FAIL");}
+}
+s.StartCoroutine(Guard());return "Continuous route segment started: "+folder;
+
+}
+public static void Start(){if(!EditorApplication.isPlaying||!SibucaoSession.Instance)throw new Exception("Play Mode required");SibucaoSession.Instance.StartCoroutine(Sequence());}
+static IEnumerator Sequence()
+{
+    var notes=new List<string>();string archive="before-suite-"+DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+    var cases=new (string name,Func<object> run,string marker,string report)[]{("Preparation",RunPreparation,"Preparation/finished.txt","Preparation/checks.txt"),("Preparation720",RunPreparation720,"Preparation-720/finished.txt","Preparation-720/checks.txt"),("Accessibility",RunAccessibility,"live-accessibility-finished.txt","live-accessibility.txt"),("Hands",RunHands,null,"hand-geometry.txt"),("Npcs",RunNpcs,"NPC/finished.txt","NPC/checks.txt"),("Assistance",RunAssistance,"Assistance/finished.txt","Assistance/checks.txt"),("Audio",RunAudio,"Audio/finished.txt","Audio/checks.txt")};
+    foreach(var item in cases)
+    {
+        string report=Folder+item.report;string directory=Path.GetDirectoryName(report);Directory.CreateDirectory(directory);
+        if(item.marker!=null&&File.Exists(Folder+item.marker))File.Delete(Folder+item.marker);
+        string backup=Path.Combine(directory,archive);Directory.CreateDirectory(backup);
+        foreach(var file in Directory.GetFiles(directory)){if(directory.TrimEnd('/','\\')!=Folder.TrimEnd('/','\\')||Path.GetFullPath(file)==Path.GetFullPath(report))File.Copy(file,Path.Combine(backup,Path.GetFileName(file)),true);}
+        notes.Add("START "+item.name+" UTC "+DateTime.UtcNow.ToString("O"));File.WriteAllLines(Folder+"review-suite.txt",notes);
+        bool started=true;try{item.run();}catch(Exception ex){notes.Add("FAIL "+item.name+": "+ex);started=false;}
+        if(started&&item.marker!=null){float until=Time.realtimeSinceStartup+1800;while(!File.Exists(Folder+item.marker)&&Time.realtimeSinceStartup<until)yield return new WaitForSecondsRealtime(.2f);if(!File.Exists(Folder+item.marker)){notes.Add("FAIL "+item.name+" exceeded timeout; sequence stopped to prevent overlapping tests");File.WriteAllLines(Folder+"review-suite.txt",notes);yield break;}}
+        yield return null;yield return null;
+        notes.Add((started&&File.Exists(report)&&!File.ReadAllText(report).Split('\n').Any(line=>line.StartsWith("FAIL"))?"PASS ":"FAIL ")+item.name+"; inspect "+report);File.WriteAllLines(Folder+"review-suite.txt",notes);
+    }
+    File.WriteAllText(Folder+"review-suite-finished.txt","Finished; inspect every report and screenshot.");
+}
+}
+}

@@ -1,0 +1,11 @@
+const fs=require('fs'),path=require('path'),crypto=require('crypto');
+const root=path.resolve(__dirname,'../..');
+const original=JSON.parse(fs.readFileSync(path.join(root,'Captures/Batches4-7_20260930/pre-build-source-snapshot.json'),'utf8'));
+const drafts=[['SibucaoHandPresentation','Runtime'],['SibucaoNarration','Runtime'],['SibucaoSession','Runtime'],['SibucaoRouteChoices','Runtime'],['SibucaoSideMission','Runtime'],['SibucaoUI','Runtime'],['SibucaoRouteDeck','Runtime'],['SibucaoDesktopBenchmark','Runtime'],['SibucaoReleaseChecks','Editor']].map(([name,folder])=>['Tools/Validation/'+name+'-next.cs.txt','Assets/StormSim/Sibucao/'+folder+'/'+name+'.cs']);
+drafts.push(['Tools/Validation/PreparednessPlayer-next.cs.txt','Assets/StormSim/Preparedness/Runtime/PreparednessPlayer.cs']);
+const destinations=drafts.map(x=>x[1]).concat('Assets/StormSim/Sibucao/Runtime/SibucaoPlayer.cs');
+for(const file of destinations){const before=original.files.find(x=>x.path===file);if(!before||crypto.createHash('sha256').update(fs.readFileSync(path.join(root,file))).digest('hex')!==before.sha256)throw Error('Source changed since baseline; merge explicitly: '+file);}
+for(const [source,destination] of drafts){const backup=path.join(root,'Backups/Batches4-7_20260930/BeforeFinalCorrections',destination);fs.mkdirSync(path.dirname(backup),{recursive:true});fs.copyFileSync(path.join(root,destination),backup);fs.copyFileSync(path.join(root,source),path.join(root,destination));}
+const player=path.join(root,'Assets/StormSim/Sibucao/Runtime/SibucaoPlayer.cs');let text=fs.readFileSync(player,'utf8');if(!text.includes('i<5?-45:45'))throw Error('Thumb yaw source changed');fs.copyFileSync(player,path.join(root,'Backups/Batches4-7_20260930/BeforeFinalCorrections/Assets/StormSim/Sibucao/Runtime/SibucaoPlayer.cs'));fs.writeFileSync(player,text.replace('i<5?-45:45','i<5?45:-45'));
+for(const [name,folder] of [['SibucaoDesktopBuildSanitizer','Editor'],['SibucaoStandaloneRecoveryChecks','Runtime']]){const dest=path.join(root,'Assets/StormSim/Sibucao',folder,name+'.cs');if(fs.existsSync(dest))throw Error('New source already exists: '+dest);fs.copyFileSync(path.join(root,'Tools/Validation',name+'.cs.txt'),dest);}
+console.log('Applied ten reviewed drafts, corrected mirrored thumb yaw, and added desktop sanitation/recovery diagnostics. Refresh and compilation are required.');

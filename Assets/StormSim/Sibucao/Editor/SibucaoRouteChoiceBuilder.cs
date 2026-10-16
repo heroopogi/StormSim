@@ -1,0 +1,616 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+
+namespace StormSim.Sibucao.Editor
+{
+    public static class SibucaoRouteChoiceBuilder
+    {
+        const string Folder = "Assets/StormSim/Sibucao/Art/RouteChoices";
+        static Material wood, metal, orange, cloth, paper, ink;
+        static Transform actorTemplate;
+        static SibucaoSideMission mission;
+        static readonly List<RouteMissionStep> work = new List<RouteMissionStep>();
+        static readonly List<Transform> people = new List<Transform>();
+        public static readonly string[] Titles = {
+            "Open the evacuation courtyard", "Help a parent with a stroller", "Secure the loose storm shutter", "Recover a frightened pet",
+            "Mark the exposed drain", "Open the covered passage", "Report the fallen cable", "Redirect approaching residents",
+            "Protect medicine and documents", "Restore the battery lantern", "Reunite a separated child", "Guide a resident with low vision",
+            "Prepare life jackets", "Complete the headcount", "Deliver responder equipment", "Bring the family under cover",
+            "Establish the inland diversion", "Open the secondary entrance" };
+        public static readonly string[] Calls = {
+            "The courtyard gate is blocked. Can you help open it?", "Could you carry this bag while I push the stroller?",
+            "This shutter is loose. Help me lower it and fasten the storm bolt.", "My dog is hiding here. I have a carrier ready.",
+            "There is an open drain here. We need the barriers!", "The caretaker has a key for the covered passage.",
+            "Use this radio to report the fallen cable from here.", "That street is closed. Help me direct this family around it.",
+            "My medicine pouch is leaking. There is a dry box here.", "Our lantern went out. There are spare batteries on the shelf.",
+            "This child is waiting for their guardian. Please speak to the volunteer.", "Could someone guide me along this passage?",
+            "Help us fit these life jackets before boarding.", "Please help check who is here before the group moves on.",
+            "The responders need the folded stretcher from this rack.", "We are soaked. Can you help us into the shelter?",
+            "The inland signs have fallen. The warden needs them put back.", "The caretaker has the key. Help open this school entrance." };
+        static readonly string[] Places = { "OPEN COURTYARD", "STROLLER HELP", "SECURE SHUTTER", "PET RESCUE", "SIDE LANE", "COVERED PASSAGE", "BARANGAY RADIO", "DIVERSION", "WAITING SHED", "LIT PASSAGE", "REUNION POINT", "VOLUNTEER POST", "BOARDING QUEUE", "HEADCOUNT", "AID POST", "SHELTER", "INLAND ROUTE", "SCHOOL ENTRANCE" };
+        public static readonly string[] CenterCalls = { "Check the condition of the road ahead.", "The stalled cars are blocking the road.", "The canal runs beside this junction.", "There is a fallen cable on the road ahead.", "There is a damaged bag and scattered supplies here.", "A wheelchair user is waiting at the curb.", "The rescue checkpoint is ahead.", "An evacuee has collapsed on the road.", "The path ahead runs along the creek." };
+
+        [MenuItem("StormSim/Route choices/Build all nine sections")]
+        public static void Build()
+        {
+            if (Application.isPlaying) throw new InvalidOperationException("Build in Edit Mode.");
+            var s = UnityEngine.Object.FindFirstObjectByType<SibucaoSession>();
+            if (!s || s.gameObject.scene.name != "SIBUCAO_RAIN") throw new InvalidOperationException("Open SIBUCAO_RAIN first.");
+            var manager = s.physicalDecisions;
+            var cores = manager.stations.Where(st => st && !st.supplementary && st.index < 9).OrderBy(st => st.index).ToArray();
+            if (cores.Length != 9) throw new InvalidOperationException("Expected nine core stations.");
+            actorTemplate = cores[7].branches.First(b => b.helper).helper;
+            PrepareMaterials();
+            var director = manager.GetComponent<SibucaoRouteChoices>();
+            if (!director) director = Undo.AddComponent<SibucaoRouteChoices>(manager.gameObject);
+            Undo.RecordObject(director, "Build route choices");
+            director.sections = new SibucaoRouteSection[9];
+            for (int i = 0; i < 9; i++)
+            {
+                var old = cores[i].transform.Find("Three passage approach");
+                if (old) Undo.DestroyObjectImmediate(old.gameObject);
+                var root = new GameObject("Three passage approach"); Undo.RegisterCreatedObjectUndo(root, "Create route choices");
+                root.transform.SetParent(cores[i].transform, false);
+                var section = root.AddComponent<SibucaoRouteSection>(); section.station = cores[i]; section.director = director;
+                section.centerLine=CenterCalls[i];
+                section.centerVoice=root.AddComponent<AudioSource>();section.centerVoice.playOnAwake=false;section.centerVoice.spatialBlend=1;
+                section.centerVoice.minDistance=3;section.centerVoice.maxDistance=30;section.centerVoice.rolloffMode=AudioRolloffMode.Linear;
+                section.centerVoice.clip=AssetDatabase.LoadAssetAtPath<AudioClip>(Folder+"/Calls/B"+(i+1)+"_center.wav");
+                section.decks=root.AddComponent<SibucaoRouteDeck>();section.decks.timber=wood;section.decks.metal=metal;
+                director.sections[i] = section;
+                section.approachMarker = Empty(root.transform, "Shared approach - inspect before choosing", Vector3.back * 16);
+                section.mergeMarker = Empty(root.transform, "Passages rejoin", Vector3.forward * 14);
+                section.left = BuildMission(section, i * 2); section.right = BuildMission(section, i * 2 + 1);
+                section.leftSign = Sign(root.transform, "< " + Places[i * 2], new Vector3(-2.4f, 0, -11),1.55f);
+                section.rightSign = Sign(root.transform, Places[i * 2 + 1] + " >", new Vector3(2.4f, 0, -11),1.55f);
+                // Keep layout references, but omit decorative route indicators from the scene.
+                section.leftSign.gameObject.SetActive(false);
+                section.rightSign.gameObject.SetActive(false);
+                SibucaoRouteSection.FitApproachSign(section.leftSign);
+                SibucaoRouteSection.FitApproachSign(section.rightSign);
+                section.layouts = new RouteSectionLayout[4];
+                EditorUtility.SetDirty(section);
+            }
+            // Authored paths are fitted separately to every starting home's station positions.
+            for (int home = 0; home < 4; home++)
+                for (int i = 0; i < 9; i++)
+                {
+                    var section = director.sections[i];
+                    section.gameObject.SetActive(false); Physics.SyncTransforms();
+                    float start = s.route.Progress(s.homes[home].standingPoint.position);
+                    float distance = start + Mathf.Max(5, (s.route.length - start - 12) * (i + 1) / 10f);
+                    var center = s.route.Sample(distance);
+                    var forward = s.route.Sample(distance + 2) - s.route.Sample(distance - 2); forward.y = 0; forward.Normalize();
+                    try
+                    {
+                        section.layouts[home] = new PassageFitter(center, Quaternion.LookRotation(forward), section.station.transform).Fit(home);
+                    }
+                    finally { section.gameObject.SetActive(true); }
+                }
+            foreach (var section in director.sections)
+            {
+                var layout = section.layouts[0];
+                section.approachMarker.position = layout.approach; section.mergeMarker.position = layout.merge;
+                section.left.transform.SetPositionAndRotation(layout.left, section.station.transform.rotation);
+                section.right.transform.SetPositionAndRotation(layout.right, section.station.transform.rotation);
+                section.left.route = layout.leftPath; section.right.route = layout.rightPath;
+                section.decks.Rebuild(layout);
+                section.leftSign.position = layout.approach + -section.station.transform.forward * 2 - section.station.transform.right * 1.4f;
+                section.rightSign.position = layout.approach + -section.station.transform.forward * 2 + section.station.transform.right * 1.4f;
+                EditorUtility.SetDirty(section);
+            }
+            Physics.SyncTransforms();
+            foreach (var surroundings in UnityEngine.Object.FindObjectsByType<SibucaoObstacleSurroundings>(FindObjectsSortMode.None)) surroundings.Rebuild();
+            foreach (var enclosure in UnityEngine.Object.FindObjectsByType<SibucaoCarEnclosure>(FindObjectsSortMode.None)) enclosure.Rebuild();
+            EditorUtility.SetDirty(director); EditorSceneManager.MarkSceneDirty(s.gameObject.scene);
+            AssetDatabase.SaveAssets();
+            Debug.Log("Built 9 three-passage sections, 18 physical side missions and 72 home-specific side paths. Validate before saving.");
+        }
+        // Refresh only these props; retain every fitted home/flood path and ramp.
+        [MenuItem("StormSim/Route choices/Refresh unique first two junctions")]
+        public static void RefreshFirstTwo()
+        {
+            if (Application.isPlaying) throw new InvalidOperationException("Stop Play Mode before authoring.");
+            var director = UnityEngine.Object.FindAnyObjectByType<SibucaoRouteChoices>();
+            if (!director || director.sections.Length != 9) throw new InvalidOperationException("Expected the existing nine sections.");
+            actorTemplate = director.sections[7].station.branches.First(b => b.helper).helper;
+            PrepareMaterials();
+            for (int i = 0; i < 2; i++)
+            {
+                var section = director.sections[i];
+                Undo.RecordObject(section, "Distinct first two junctions");
+                for (int side = 0; side < 2; side++)
+                {
+                    var old = side == 0 ? section.left : section.right;
+                    var fresh = BuildMission(section, i * 2 + side);
+                    Undo.RegisterCreatedObjectUndo(fresh.gameObject, "Replace side mission props");
+                    fresh.transform.SetPositionAndRotation(old.transform.position, old.transform.rotation);
+                    fresh.route = (Vector3[])old.route.Clone();
+                    fresh.closureDepth = old.closureDepth;
+                    if (side == 0) section.left = fresh; else section.right = fresh;
+                    Undo.DestroyObjectImmediate(old.gameObject);
+                    var sign = side == 0 ? section.leftSign : section.rightSign;
+                    var label = side == 0 ? "< " + Places[i * 2] : Places[i * 2 + 1] + " >";
+                    Undo.RecordObject(sign.GetComponentInChildren<TextMesh>(), "Update passage sign");
+                    sign.GetComponentInChildren<TextMesh>().text = label;
+                    sign.name = label;
+                    EditorUtility.SetDirty(fresh);
+                }
+                EditorUtility.SetDirty(section);
+            }
+            Physics.SyncTransforms();
+            EditorSceneManager.MarkSceneDirty(director.gameObject.scene);
+        }
+        static void PrepareMaterials()
+        {
+            if (!AssetDatabase.IsValidFolder(Folder)) AssetDatabase.CreateFolder("Assets/StormSim/Sibucao/Art", "RouteChoices");
+            wood = Mat("Weathered timber", new Color(.36f,.26f,.16f)); metal = Mat("Dull galvanized steel", new Color(.34f,.39f,.40f));
+            orange = Mat("Rescue orange", new Color(.8f,.28f,.065f)); cloth = Mat("Dark teal canvas", new Color(.12f,.28f,.29f));
+            paper = Mat("Off white sign", new Color(.81f,.79f,.67f)); ink = Mat("Charcoal", new Color(.055f,.07f,.065f));
+        }
+        static Material Mat(string name, Color color)
+        {
+            string path = Folder + "/" + name + ".mat"; var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (!mat) { mat = new Material(Shader.Find("Universal Render Pipeline/Lit")); mat.name = name; mat.color = color; mat.SetFloat("_Smoothness", .17f); AssetDatabase.CreateAsset(mat, path); }
+            return mat;
+        }
+        static Transform Empty(Transform parent, string name, Vector3 at)
+        { var t = new GameObject(name).transform; t.SetParent(parent,false); t.localPosition = at; return t; }
+        static Transform Box(Transform parent, string name, Vector3 at, Vector3 size, Material mat, PrimitiveType shape = PrimitiveType.Cube)
+        {
+            var go = GameObject.CreatePrimitive(shape); go.name = name; go.transform.SetParent(parent,false);
+            go.transform.localPosition = at; go.transform.localScale = size; go.GetComponent<Renderer>().sharedMaterial = mat; return go.transform;
+        }
+        static Transform Prop(string name, Vector3 at, Vector3 size, Material mat, PrimitiveType shape = PrimitiveType.Cube)
+        { var root = Empty(mission.transform,name,at); Box(root,name + " body",Vector3.zero,size,mat,shape); return root; }
+        static Transform Target(string name, Vector3 at) => Empty(mission.transform,name,at);
+        static Transform Person(string name, Vector3 at, bool companion = false, float scale = 1)
+        {
+            var actor = UnityEngine.Object.Instantiate(actorTemplate.gameObject, mission.transform).transform;
+            actor.name = name; actor.localPosition = at; actor.localRotation = Quaternion.Euler(0,180,0); actor.localScale = Vector3.one * scale;
+            var resident = actor.GetComponent<SibucaoResident>(); if (resident) UnityEngine.Object.DestroyImmediate(resident);
+            var model = actor.GetComponent<SibucaoActor>(); if (model) model.role = name;
+            if (companion) people.Add(actor);
+            return actor;
+        }
+        static RouteMissionStep Add(RouteWork type, Transform item, string instruction, Transform target = null, string response = null)
+        {
+            var step = new RouteMissionStep { work=type,item=item,target=target,originalParent=item.parent,instruction=instruction,response=response,
+                from=item.localPosition,to=item.localPosition,fromAngle=item.localEulerAngles,toAngle=item.localEulerAngles,seconds=3 };
+            work.Add(step); return step;
+        }
+        static void Talk(Transform actor, string instruction, string response) => Add(RouteWork.Talk,actor,instruction,null,response);
+        static RouteMissionStep Slide(Transform item, string instruction, Vector3 delta, float seconds = 3)
+        { var step=Add(RouteWork.Slide,item,instruction); step.to+=delta;step.seconds=seconds;return step; }
+        static RouteMissionStep Turn(Transform item, string instruction, float degrees = 90, float seconds = 3)
+        {var step=Add(RouteWork.Turn,item,instruction);step.toAngle+=Vector3.up*degrees;step.seconds=seconds;return step;}
+        static RouteMissionStep Carry(Transform item, string instruction, Transform target) => Add(RouteWork.Carry,item,instruction,target);
+        static RouteMissionStep LiftLid(Transform item,string instruction,float degrees=100)
+        {var step=Add(RouteWork.Turn,item,instruction);step.toAngle+=Vector3.right*degrees;return step;}
+        static Transform Dock(Transform parent,string label,Vector3 local) => Empty(parent,label,local);
+        static void Escort(Transform actor, string instruction) => Add(RouteWork.Escort,actor,instruction,null,"Stay together. Follow this passage toward the receiving volunteer.");
+        static Transform Gate(string name, Vector3 at)
+        {
+            var pivot=Empty(mission.transform,name,at);
+            Box(pivot,"Gate lower rail",new Vector3(.8f,.55f,0),new Vector3(1.6f,.09f,.1f),metal);
+            Box(pivot,"Gate upper rail",new Vector3(.8f,1.35f,0),new Vector3(1.6f,.09f,.1f),metal);
+            for(int i=0;i<7;i++)Box(pivot,"Gate upright",new Vector3(i*.26f, .85f,0),new Vector3(.065f,1.65f,.08f),metal);
+            return pivot;
+        }
+        static Transform Sign(Transform parent,string label,Vector3 at,float height=1.7f)
+        {
+            var root=Empty(parent,label,at);
+            float postHeight=height>2?height-.1f:height;
+            Box(root,"Sign post",new Vector3(0,postHeight*.5f,0),new Vector3(.08f,postHeight,.08f),wood);
+            Box(root,"Direction board",new Vector3(0,height,0),new Vector3(2.3f,.46f,.09f),paper);
+            var text=Empty(root,"Printed destination",new Vector3(0,height,-.051f)).gameObject.AddComponent<TextMesh>();
+            text.text=label;text.fontSize=48;text.characterSize=.035f;text.anchor=TextAnchor.MiddleCenter;text.alignment=TextAlignment.Center;text.color=new Color(.055f,.075f,.06f);
+            return root;
+        }
+        static void Shelter()
+        {
+            for(int i=0;i<4;i++)Box(mission.transform,"Shelter post",new Vector3(i%2==0?-1.65f:1.65f,1.35f,i<2?-1.8f:2.4f),new Vector3(.09f,2.7f,.09f),metal);
+            Box(mission.transform,"Covered waiting area roof",new Vector3(0,2.75f,.3f),new Vector3(3.5f,.1f,4.4f),metal);
+        }
+        static Transform Table()
+        {
+            var table=Prop("Work table",new Vector3(0,.85f,.7f),new Vector3(1.5f,.08f,.65f),wood);
+            for(int i=0;i<4;i++)Box(table,"Table leg",new Vector3(i%2==0?-.65f:.65f,-.43f,i<2?-.25f:.25f),new Vector3(.06f,.85f,.06f),metal);
+            return table;
+        }
+        static SibucaoSideMission BuildMission(SibucaoRouteSection section,int id)
+        {
+            work.Clear();people.Clear();
+            var root=new GameObject((id%2==0?"Left - ":"Right - ")+Titles[id]);root.transform.SetParent(section.transform,false);
+            mission=root.AddComponent<SibucaoSideMission>();mission.section=section;mission.id="B"+(id/2+1)+(id%2==0?"_left":"_right");
+            mission.side=id%2;mission.title=Titles[id];mission.callLine=Calls[id];mission.completionLine="Thank you. We can continue from here.";
+            mission.teamwork=new[]{1,3,7,8,10,11,12,13,14,15,17}.Contains(id);
+            mission.caller=Person(id==10?"Volunteer with separated child":id>=12?"Receiving volunteer":"Resident",new Vector3(1.2f,0,-1.2f));
+            mission.voice=mission.caller.gameObject.AddComponent<AudioSource>();mission.voice.playOnAwake=false;mission.voice.spatialBlend=1;mission.voice.minDistance=3;mission.voice.maxDistance=28;mission.voice.rolloffMode=AudioRolloffMode.Linear;
+            mission.voice.clip=AssetDatabase.LoadAssetAtPath<AudioClip>(Folder+"/Calls/"+mission.id+".wav");
+            // Old unfinished work must not skip a new interaction after an update.
+            // Section results remain unchanged, so completed junctions stay completed.
+            if (id == 1 || id == 2) mission.id += "_v2";
+            var closure=Sign(mission.transform,"PASSAGE FLOODED",new Vector3(-1.2f,0,-1.8f));mission.floodClosure=closure.gameObject;closure.gameObject.SetActive(false);
+            Sign(mission.transform,Places[id],new Vector3(-1.5f,0,1.7f)).gameObject.SetActive(false);
+            if(new[]{3,5,6,8,9,10,12,13,14,15}.Contains(id))Shelter();
+            BuildWork(id);
+            mission.steps=work.ToArray();mission.companions=people.ToArray();mission.companionStarts=people.Select(p=>p.localPosition).ToArray();
+            return mission;
+        }
+        static void BuildWork(int id)
+        {
+            var resident=mission.caller;
+            switch(id)
+            {
+                case 0:
+                {
+                    var gate=Gate("Courtyard gate",new Vector3(-.85f,0,.2f));
+                    for(int i=0;i<2;i++){var crate=Prop("Light crate "+(i+1),new Vector3(i*.65f-.35f,.3f,-.6f),new Vector3(.58f,.6f,.55f),wood);Carry(crate,"move the crate off the gate swing",Target("crate storage recess",new Vector3(-1.3f,.3f,-1.4f+i*.65f)));}
+                    var bolt=Box(gate,"Sliding bolt",new Vector3(1.25f,1,.1f),new Vector3(.3f,.07f,.08f),orange);
+                    Slide(bolt,"slide the gate bolt to the right",Vector3.right*.25f);Turn(gate,"swing the courtyard gate open",100,5);
+                    var hook=Prop("Gate retaining hook",new Vector3(-.85f,1,.4f),new Vector3(.16f,.1f,.1f),metal);Turn(hook,"secure the gate retaining hook");break;
+                }
+                case 1:
+                {
+                    people.Add(resident);
+                    var stroller=Cart("Stroller",new Vector3(.65f,0,1.3f),cloth);people.Add(stroller);
+                    Box(stroller,"Stroller canopy",new Vector3(0,.95f,0),new Vector3(.62f,.13f,.65f),cloth);
+                    var brake=Box(stroller,"Stroller parking brake",new Vector3(.4f,-.18f,-.42f),new Vector3(.16f,.1f,.2f),orange);
+                    Talk(resident,"agree on help with the parent","Please release the stroller brake and carry my supply bag. I will keep hold of the stroller and push it along the raised passage.");
+                    Turn(brake,"release the stroller parking brake while the parent holds the handle",45,3);
+                    var bag=Prop("Parent's supply bag",new Vector3(.2f,.3f,.9f),new Vector3(.4f,.55f,.3f),cloth);
+                    Carry(bag,"carry the supply bag",Target("sheltered bag shelf",new Vector3(-1.1f,.85f,1.9f)));
+                    Escort(resident,"walk with the parent and stroller");break;
+                }
+                case 2:
+                {
+                    // A shop-front shutter beside the passage, never a door across it.
+                    for(int side=-1;side<=1;side+=2)
+                        Box(mission.transform,"Shutter guide rail",new Vector3(side*.86f,1.3f,.75f),new Vector3(.08f,2.6f,.12f),metal);
+                    Box(mission.transform,"Shutter roller housing",new Vector3(0,2.65f,.75f),new Vector3(1.85f,.22f,.25f),metal);
+                    var shutter=Empty(mission.transform,"Loose corrugated storm shutter",new Vector3(0,1.85f,.75f));
+                    for(int slat=0;slat<8;slat++)
+                        Box(shutter,"Shutter slat",new Vector3(0,-.5f+slat*.14f,0),new Vector3(1.62f,.12f,.08f),metal);
+                    Box(shutter,"Orange pull handle",new Vector3(0,-.55f,-.13f),new Vector3(.45f,.08f,.09f),orange);
+                    var strap=Prop("Shutter restraining strap",new Vector3(.45f,.85f,-.4f),new Vector3(.16f,.4f,.07f),cloth);
+                    // Bring the release loop to the existing approach endpoint.
+                    // Its visible webbing connects it to the upper shutter housing.
+                    var webbingDelta=new Vector3(0,1.7f,1.15f);
+                    var webbing=Box(strap,"Shutter release webbing",webbingDelta*.5f,new Vector3(.035f,webbingDelta.magnitude,.025f),cloth);
+                    webbing.localRotation=Quaternion.FromToRotation(Vector3.up,webbingDelta);
+                    UnityEngine.Object.DestroyImmediate(webbing.GetComponent<Collider>());
+                    Slide(strap,"release the shutter strap while the resident steadies the panel",Vector3.down*.25f,3);
+                    Slide(shutter,"pull the orange handle down along the shutter guides",Vector3.down*.85f,6);
+                    var bolt=Prop("Shutter storm bolt",new Vector3(.6f,.53f,.61f),new Vector3(.28f,.1f,.1f),orange);
+                    Slide(bolt,"slide the storm bolt into the wall bracket",Vector3.right*.18f,3).response="The panel is secured. The passage beside the shop is clear.";
+                    break;
+                }
+                case 3:
+                {
+                    Table();var carrier=Empty(mission.transform,"Pet carrier",new Vector3(-.75f,.32f,-.5f));
+                    Box(carrier,"Carrier floor",new Vector3(0,-.28f,0),new Vector3(.75f,.04f,.5f),cloth);
+                    Box(carrier,"Carrier roof",new Vector3(0,.28f,0),new Vector3(.75f,.04f,.5f),cloth);
+                    for(int wall=-1;wall<=1;wall+=2)Box(carrier,"Carrier side",new Vector3(wall*.36f,0,0),new Vector3(.03f,.55f,.5f),cloth);
+                    var door=Empty(carrier,"Carrier door",new Vector3(-.36f,0,-.26f));Box(door,"Carrier door panel",new Vector3(.33f,0,0),new Vector3(.66f,.5f,.035f),metal);
+                    var dog=Dog(new Vector3(.8f,0,1.4f));
+                    Talk(resident,"ask the owner about the dog","He is hiding under the bench. Put the carrier close and use his food.");
+                    Carry(carrier,"place the carrier beside the bench",Target("bench-side carrier spot",new Vector3(.55f,.32f,1.1f)));
+                    Turn(door,"open the carrier door",90);
+                    var food=Prop("Dog food bowl",new Vector3(-.3f,.95f,.7f),new Vector3(.25f,.07f,.25f),orange,PrimitiveType.Cylinder);
+                    Carry(food,"place the food inside the carrier",Dock(carrier,"carrier food tray",new Vector3(0,-.18f,0)));
+                    var entice=Slide(dog,"coax the dog toward its food",new Vector3(-.25f,0,-.3f),5);entice.response="The dog has entered the carrier.";entice.attachAfter=carrier;
+                    var close=Turn(door,"close and latch the carrier door",-90);close.fromAngle=Vector3.up*90;close.toAngle=Vector3.zero;
+                    Carry(carrier,"return the carrier to its owner",Target("owner's carrier stand",new Vector3(1.2f,.32f,-.5f)));break;
+                }
+                case 4:
+                {
+                    Prop("Exposed drain opening",new Vector3(0,.025f,1.3f),new Vector3(.75f,.03f,.9f),ink);
+                    for(int i=0;i<3;i++)
+                    {
+                        var barrier=Barrier("Portable drain barrier "+(i+1),new Vector3(-1.25f+i*.65f,0,-1));
+                        Carry(barrier,"place a barrier around the open drain",Target("drain perimeter "+(i+1),new Vector3(i==0?-.65f:i==1?.65f:0,0,i==2?.6f:1.3f)));
+                    }break;
+                }
+                case 5:
+                {
+                    Talk(resident,"ask permission to use the passage","Take this key. Open the passage and secure both doors; I will direct people through.");
+                    var key=Prop("Passage key",new Vector3(1.15f,1.05f,.2f),new Vector3(.18f,.04f,.07f),orange);
+                    var gate=Gate("Covered passage door",new Vector3(-.85f,0,-.45f));
+                    Carry(key,"take the key to the lock",Target("passage lock",new Vector3(.55f,1,-.45f)));
+                    Turn(key,"turn the passage key");Turn(gate,"open the passage door",100,4);
+                    var second=Gate("Far passage door",new Vector3(-.85f,0,1.8f));Turn(second,"secure the far door open",100,4);break;
+                }
+                case 6:
+                {
+                    Table();var radio=Prop("Barangay radio",new Vector3(-.4f,1.02f,.7f),new Vector3(.35f,.26f,.2f),metal);
+                    Box(radio,"Radio antenna",new Vector3(-.12f,.3f,0),new Vector3(.025f,.45f,.025f),ink);
+                    var knob=Box(radio,"Channel selector",new Vector3(.1f,.02f,-.13f),new Vector3(.06f,.06f,.06f),orange,PrimitiveType.Cylinder);
+                    Turn(knob,"tune to the barangay response channel",90);
+                    var map=Prop("Street location map",new Vector3(.4f,.94f,.7f),new Vector3(.55f,.02f,.42f),paper);
+                    Talk(map,"identify this street and the fallen cable","Location confirmed: the fallen cable is beside this section's junction. Stay at this radio post.");
+                    var mic=Box(radio,"Transmit switch",new Vector3(-.08f,0,-.14f),new Vector3(.09f,.07f,.06f),orange);
+                    var report=Slide(mic,"press the transmit switch and report the landmark",new Vector3(0,0,.04f));report.response="Dispatcher: Report received. Keep clear of the cable and continue via this side passage.";break;
+                }
+                case 7:
+                {
+                    people.Add(Person("Family member",new Vector3(.2f,0,1.4f),false));people.Add(Person("Family member with child",new Vector3(.9f,0,1.8f),false));
+                    Talk(resident,"call the family's attention","The cable is down ahead. Please follow the diversion with me.");
+                    var sign=Sign(mission.transform,"EVACUATION >",new Vector3(-.7f,0,0));Turn(sign,"turn the diversion board toward this passage",65,4);
+                    Escort(resident,"lead the family into the alternate passage");break;
+                }
+                case 8:
+                {
+                    Table();var container=Empty(mission.transform,"Waterproof document box",new Vector3(-.4f,1.02f,.7f));
+                    Box(container,"Box floor",new Vector3(0,-.09f,0),new Vector3(.6f,.03f,.4f),cloth);
+                    for(int wall=-1;wall<=1;wall+=2)Box(container,"Box side",new Vector3(wall*.285f,0,0),new Vector3(.03f,.2f,.4f),cloth);
+                    var lid=Empty(container,"Box lid",new Vector3(0,.12f,.21f));Box(lid,"Hinged lid panel",new Vector3(0,0,-.21f),new Vector3(.62f,.04f,.42f),metal);
+                    LiftLid(lid,"open the waterproof box lid",100);
+                    foreach(var label in new[]{"Labeled medicine pack","Household documents"})
+                    {var item=Prop(label,new Vector3(.5f,1.05f,label.StartsWith("Labeled")?.5f:.95f),new Vector3(.22f,.08f,.18f),paper);Carry(item,"place "+label.ToLower()+" in the box",Dock(container,"waterproof box interior",new Vector3(label.StartsWith("Labeled")?-.13f:.13f,-.02f,0)));}
+                    var close=LiftLid(lid,"close the box lid",-100);close.fromAngle=Vector3.right*100;close.toAngle=Vector3.zero;
+                    var latch=Box(container,"Box latch",new Vector3(0,0,-.22f),new Vector3(.14f,.08f,.03f),orange);Slide(latch,"fasten the waterproof latch",Vector3.up*.05f);
+                    Carry(container,"return the sealed box",Target("owner's dry shelf",new Vector3(1.1f,1,.2f)));break;
+                }
+                case 9:
+                {
+                    Table();var lantern=Prop("Battery lantern",new Vector3(0,1.14f,.7f),new Vector3(.28f,.44f,.28f),metal,PrimitiveType.Cylinder);
+                    Box(lantern,"Lantern diffuser",new Vector3(0,.08f,0),new Vector3(.24f,.26f,.24f),paper,PrimitiveType.Cylinder);
+                    var cap=Box(lantern,"Battery compartment cap",new Vector3(0,-.12f,-.16f),new Vector3(.2f,.13f,.03f),orange);
+                    Turn(cap,"open the battery compartment",90);
+                    for(int i=0;i<2;i++){var battery=Prop("Spare battery "+(i+1),new Vector3(-.65f+i*.22f,1.05f,.5f),new Vector3(.05f,.06f,.05f),orange,PrimitiveType.Cylinder);Carry(battery,"insert the battery positive end upward",Dock(lantern,"battery socket "+(i+1),new Vector3(-.055f+i*.11f,-.12f,0)));}
+                    var close=Turn(cap,"close the battery compartment",-90);close.fromAngle=Vector3.up*90;close.toAngle=Vector3.zero;
+                    var button=Box(lantern,"Lantern switch",new Vector3(0,0,-.16f),new Vector3(.06f,.06f,.03f),orange);
+                    var light=lantern.gameObject.AddComponent<Light>();light.type=LightType.Point;light.range=8;light.intensity=2;light.color=new Color(1,.88f,.62f);light.enabled=false;
+                    Slide(button,"switch on the lantern",Vector3.up*.04f).lamp=light;
+                    Carry(lantern,"hang the lantern by the passage",Target("lantern hook",new Vector3(-1.1f,1.6f,1.5f)));break;
+                }
+                case 10:
+                {
+                    var child=Person("Child waiting with volunteer",new Vector3(-.35f,0,1.5f),true,.66f);people.Add(resident);
+                    Talk(resident,"ask the volunteer about the guardian","The guardian is at the next receiving post. We will confirm by radio before leaving.");
+                    var radio=Prop("Volunteer radio",new Vector3(-.5f,1,0),new Vector3(.17f,.3f,.09f),metal);
+                    Talk(radio,"confirm the guardian's name and reunion point","Receiving volunteer: Identity confirmed. Bring the child with their volunteer via this passage.");
+                    Escort(child,"accompany the child and volunteer");
+                    Talk(resident,"confirm the supervised handover","The receiving volunteer has verified the guardian. The child is reunited.");break;
+                }
+                case 11:
+                {
+                    people.Add(resident);
+                    var cane=Box(resident,"White mobility cane",new Vector3(.4f,.6f,.3f),new Vector3(.025f,1.2f,.025f),paper);
+                    Talk(resident,"ask how the resident wants assistance","Please walk close ahead, tell me about turns, and wait for me at each one.");
+                    Escort(resident,"guide the resident along the raised passage");
+                    Talk(resident,"introduce the receiving volunteer","Thank you. I am with the receiving volunteer now.");break;
+                }
+                case 12:
+                {
+                    Table();var lid=Empty(mission.transform,"Life jacket box lid",new Vector3(-.3f,1.36f,1.05f));Box(lid,"Equipment lid panel",new Vector3(0,0,-.35f),new Vector3(.9f,.08f,.7f),wood);LiftLid(lid,"open the equipment box",100);
+                    for(int i=0;i<3;i++)
+                    {
+                        var passenger=Person("Passenger "+(i+1),new Vector3(-1+i,0,1.75f));
+                        var jacket=Prop("Life jacket size "+(i+1),new Vector3(-.65f+i*.4f,1.08f,.7f),new Vector3(.35f,.4f,.15f),orange);
+                        Carry(jacket,"hand the requested jacket to passenger "+(i+1),Target("passenger "+(i+1)+" jacket position",new Vector3(-1+i,1.3f,1.35f)));
+                        var buckle=Box(jacket,"Jacket buckle",new Vector3(0,-.08f,-.1f),new Vector3(.1f,.05f,.035f),ink);Slide(buckle,"fasten the jacket buckle",Vector3.right*.07f);
+                    }
+                    Talk(resident,"request the responder's fit check","Fit checked. This group can join the boarding queue.");break;
+                }
+                case 13:
+                {
+                    Table();var card=Prop("Household headcount card",new Vector3(0,.92f,.65f),new Vector3(.4f,.025f,.3f),paper);
+                    Talk(card,"read the household list","Three members are listed. Confirm each person before marking attendance.");
+                    for(int i=0;i<3;i++){var member=Person("Household member "+(i+1),new Vector3(-1+i,0,1.8f));Talk(member,"confirm household member "+(i+1),"Present. Please mark my name.");var mark=Box(card,"Attendance mark "+i,new Vector3(-.1f+i*.1f,.015f,0),new Vector3(.03f,.006f,.06f),ink);mark.gameObject.SetActive(false);Add(RouteWork.Check,card,"mark the confirmed member").reveal=mark.gameObject;}
+                    Carry(card,"hand the completed headcount to the responder",Target("responder's clipboard",new Vector3(1.15f,1,.4f)));break;
+                }
+                case 14:
+                {
+                    var kit=Prop("Folded stretcher case",new Vector3(-.4f,.6f,0),new Vector3(.5f,1.15f,.24f),cloth);
+                    var strap=Box(kit,"Rack retaining strap",new Vector3(0,0,-.14f),new Vector3(.52f,.06f,.04f),orange);Slide(strap,"release the retaining strap",Vector3.right*.4f);
+                    Carry(kit,"carry the folded stretcher to the team",Target("responder equipment staging area",new Vector3(1,.6f,1.7f)));
+                    Talk(resident,"hand the equipment over","Equipment received. Our trained team will handle the transfer.");break;
+                }
+                case 15:
+                {
+                    var gate=Gate("Designated shelter door",new Vector3(-.85f,0,-.65f));Turn(gate,"open the shelter door",100,4);
+                    for(int i=0;i<3;i++)
+                    {
+                        var family=Person("Rain-soaked family member "+(i+1),new Vector3(-1+i,0,1.7f),true,i==1?.72f:1);
+                        var blanket=Prop("Dry blanket "+(i+1),new Vector3(-1.1f,.85f-i*.13f,.2f),new Vector3(.5f,.1f,.4f),cloth);
+                        Carry(blanket,"give a dry blanket to family member "+(i+1),Target("family member "+(i+1)+" blanket",new Vector3(-1+i,.9f,1.45f)));
+                    }
+                    Escort(resident,"accompany the family to the shelter volunteer");break;
+                }
+                case 16:
+                {
+                    Talk(resident,"check the inland diversion with the warden","The creek shortcut is closed. Attach these arrows to the inland-route posts.");
+                    for(int i=0;i<3;i++)
+                    {
+                        var arrow=Prop("INLAND arrow board "+(i+1),new Vector3(-.65f+i*.55f,.3f,-.5f),new Vector3(.75f,.25f,.05f),paper);
+                        var target=Target("inland sign post "+(i+1),new Vector3(-1.1f+i*1.1f,1.35f,1.4f));
+                        Box(mission.transform,"Existing sign post",target.localPosition-Vector3.up*.65f,new Vector3(.065f,1.4f,.065f),wood);
+                        Carry(arrow,"attach the arrow board",target);Turn(arrow,"align the arrow with the inland passage",35);
+                    }break;
+                }
+                case 17:
+                {
+                    Talk(resident,"get the caretaker's permission and key","This is the school's secondary gate. Open it and clear the stored supplies from the entrance.");
+                    var key=Prop("School gate key",new Vector3(1.15f,1,.35f),new Vector3(.18f,.04f,.07f),orange);
+                    var gate=Gate("School secondary gate",new Vector3(-.85f,0,-.35f));
+                    Carry(key,"take the key to the school gate",Target("school gate lock",new Vector3(.5f,1,-.35f)));Turn(key,"unlock the school gate");Turn(gate,"secure the gate open",100,4);
+                    for(int i=0;i<2;i++){var supply=Prop("Stored supply box "+(i+1),new Vector3(-.35f+i*.7f,.3f,.2f),new Vector3(.6f,.6f,.55f),wood);Carry(supply,"move the supplies beside the entrance",Target("supply storage "+i,new Vector3(-1.25f,.3f,1+i*.7f)));}
+                    people.Add(Person("Waiting evacuee",new Vector3(.7f,0,1.6f)));Escort(resident,"let the waiting group enter with you");break;
+                }
+            }
+        }
+        static Transform Cart(string name,Vector3 at,Material material)
+        {
+            var root=Prop(name,at+Vector3.up*.45f,new Vector3(.75f,.12f,.95f),material);
+            for(int i=0;i<4;i++){var wheel=Box(root,"Wheel",new Vector3(i%2==0?-.38f:.38f,-.22f,i<2?-.33f:.33f),new Vector3(.3f,.08f,.3f),ink,PrimitiveType.Cylinder);wheel.localRotation=Quaternion.Euler(0,0,90);}
+            Box(root,"Push handle",new Vector3(0,.42f,-.48f),new Vector3(.65f,.06f,.07f),metal);return root;
+        }
+        static Transform Barrier(string name,Vector3 at)
+        {
+            var root=Empty(mission.transform,name,at);
+            for(int i=0;i<2;i++)Box(root,"Barrier upright",new Vector3(i==0?-.4f:.4f,.45f,0),new Vector3(.07f,.9f,.07f),orange);
+            Box(root,"Barrier rail",new Vector3(0,.7f,0),new Vector3(.9f,.17f,.08f),paper);
+            Box(root,"Barrier foot",new Vector3(0,.05f,0),new Vector3(.9f,.08f,.35f),metal);return root;
+        }
+        static Transform Dog(Vector3 at)
+        {
+            var root=Empty(mission.transform,"Owner's frightened dog",at);
+            Box(root,"Dog body",new Vector3(0,.28f,0),new Vector3(.22f,.3f,.45f),wood,PrimitiveType.Capsule);
+            Box(root,"Dog head",new Vector3(0,.39f,-.25f),new Vector3(.22f,.22f,.24f),wood,PrimitiveType.Sphere);
+            for(int i=0;i<4;i++)Box(root,"Dog leg",new Vector3(i%2==0?-.08f:.08f,.1f,i<2?-.15f:.15f),new Vector3(.055f,.22f,.055f),wood);
+            return root;
+        }
+
+        // Editor-only ground/collision fitting. Every stored point is ordinary world geometry.
+        public static RouteSectionLayout FitAreaLayout(Vector3 center,Quaternion rotation,Transform ignored,int home) => new PassageFitter(center,rotation,ignored).Fit(home);
+        sealed class PassageFitter
+        {
+            readonly Vector3 center;readonly Quaternion rotation;readonly Transform ignore;
+            readonly Dictionary<Vector2Int,Vector3> ground=new Dictionary<Vector2Int,Vector3>();
+            readonly HashSet<Vector2Int> blocked=new HashSet<Vector2Int>();
+            const float Cell=1;
+            public PassageFitter(Vector3 c,Quaternion r,Transform ignored){center=c;rotation=r;ignore=ignored;}
+            bool Ignore(Collider col) => col.transform.IsChildOf(ignore) || col.GetComponentInParent<SibucaoRouteSection>() || col.GetComponentInParent<SibucaoPlayer>() || col.GetComponentInParent<SibucaoObstacleSurroundings>();
+            bool Floor(Collider col) => col.name.StartsWith("Ground ") || col.name.StartsWith("Measured terrain") || col.name == "Felix Amante Drive" || col.name == "Carlos Hilado Highway" || col is TerrainCollider;
+            bool Ground(Vector2Int cell,out Vector3 p)
+            {
+                if(ground.TryGetValue(cell,out p))return true;if(blocked.Contains(cell))return false;
+                p=center+rotation*new Vector3(cell.x*Cell,0,cell.y*Cell);
+                var hits=Physics.RaycastAll(p+Vector3.up*8,Vector3.down,16,~0,QueryTriggerInteraction.Ignore);Array.Sort(hits,(a,b)=>a.distance.CompareTo(b.distance));
+                bool found=false;
+                foreach(var h in hits)
+                {
+                    if(Ignore(h.collider))continue;
+                    if(h.normal.y<.88f||!Floor(h.collider))continue;p=h.point+Vector3.up*.03f;found=true;break;
+                }
+                if(!found){blocked.Add(cell);return false;}
+                foreach(var col in Physics.OverlapCapsule(p+Vector3.up*.5f,p+Vector3.up*1.6f,.36f,~0,QueryTriggerInteraction.Ignore))
+                    if(!Ignore(col)&&!Floor(col)) {blocked.Add(cell);return false;}
+                ground[cell]=p;return true;
+            }
+            bool ClearPlot(Vector2Int cell)
+            {
+                if(!Ground(cell,out var p))return false;
+                foreach(var col in Physics.OverlapBox(p+Vector3.up*1.4f,new Vector3(1.8f,1.3f,2.25f),rotation,~0,QueryTriggerInteraction.Ignore))
+                    if(!Ignore(col)&&!Floor(col))return false;
+                for(int x=-1;x<=1;x++)for(int z=-2;z<=2;z++)if(!Ground(cell+new Vector2Int(x,z),out var other)||Mathf.Abs(other.y-p.y)>.6f)return false;
+                return true;
+            }
+            Vector2Int Nearest(Vector2Int start)
+            {
+                for(int r=0;r<10;r++)for(int x=-r;x<=r;x++)for(int z=-r;z<=r;z++)
+                {var c=start+new Vector2Int(x,z);if(Ground(c,out _))return c;}
+                throw new InvalidOperationException("No walkable approach near "+center);
+            }
+            List<Vector3> Path(Vector2Int start,Vector2Int end,int side)
+            {
+                var open=new List<Vector2Int>{start};var parent=new Dictionary<Vector2Int,Vector2Int>();var cost=new Dictionary<Vector2Int,float>{{start,0}};
+                var visited=new HashSet<Vector2Int>();int visits=0;
+                while(open.Count>0&&visits++<6000)
+                {
+                    int best=0;float score=float.MaxValue;for(int i=0;i<open.Count;i++){float f=cost[open[i]]+Vector2Int.Distance(open[i],end);if(f<score){score=f;best=i;}}
+                    var cur=open[best];open.RemoveAt(best);if(!visited.Add(cur))continue;
+                    if(cur==end){var path=new List<Vector3>();for(var c=end;;c=parent[c]){path.Add(ground[c]);if(c==start)break;}path.Reverse();return path;}
+                    for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++)
+                    {
+                        if(x==0&&z==0)continue;var next=cur+new Vector2Int(x,z);
+                        if(Mathf.Abs(next.x)>32||Mathf.Abs(next.y)>30||visited.Contains(next))continue;
+                        if(next.y>-5&&next.y<8&&Mathf.Abs(next.x)<3)continue;
+                        if(!Ground(next,out var p)||Mathf.Abs(p.y-ground[cur].y)>.45f)continue;
+                        if(x!=0&&z!=0&&(!Ground(cur+new Vector2Int(x,0),out _)||!Ground(cur+new Vector2Int(0,z),out _)))continue;
+                        bool obstruction=false;var movement=p-ground[cur];
+                        foreach(var h in Physics.CapsuleCastAll(ground[cur]+Vector3.up*.5f,ground[cur]+Vector3.up*1.55f,.34f,movement.normalized,movement.magnitude,~0,QueryTriggerInteraction.Ignore))
+                            if(!Ignore(h.collider)&&!Floor(h.collider)){obstruction=true;break;}
+                        if(obstruction)continue;
+                        float candidate=cost[cur]+Vector2Int.Distance(cur,next);if(cost.TryGetValue(next,out var prior)&&prior<=candidate)continue;
+                        cost[next]=candidate;parent[next]=cur;open.Add(next);
+                    }
+                }
+                return null;
+            }
+            public RouteSectionLayout Fit(int home)
+            {
+                foreach(int setback in new[]{-12,-16,-10,-20,-8,-24,-28,-32})
+                foreach(int offset in new[]{0,-2,2,-4,4}) { var found=TryFit(home,setback,offset);if(found!=null)return found; }
+                foreach(int setback in new[]{-12,-16,-10,-20,-8}) { var found=TryFit(home,setback,0,false);if(found!=null)return found; }
+                throw new InvalidOperationException("No accessible pair of side passages for home "+home+" at "+center+". Layout needs manual attention.");
+            }
+            RouteSectionLayout TryFit(int home,int setback,int approachX,bool requireVisible=true)
+            {
+                var approach=Nearest(new Vector2Int(approachX,setback));var merge=Nearest(new Vector2Int(0,15));
+                var layout=new RouteSectionLayout{home=home,approach=ground[approach],merge=ground[merge]};
+                foreach(int side in new[]{-1,1})
+                {
+                    bool found=false;
+                    for(int x=2;x<=23&&!found;x++)for(int z=-20;z<=12&&!found;z+=2)
+                    {
+                        if(z<setback+6)continue;
+                        var c=new Vector2Int(x*side,z);if(!ClearPlot(c))continue;
+                        var eye=ground[approach]+Vector3.up*1.65f;var view=ground[c]+Vector3.up*1.3f;bool hidden=false;
+                        foreach(var h in Physics.RaycastAll(eye,(view-eye).normalized,Vector3.Distance(eye,view),~0,QueryTriggerInteraction.Ignore))
+                            if(!Ignore(h.collider)){hidden=true;break;}
+                        if(hidden&&requireVisible)continue;
+                        var first=Path(approach,c,side);if(first==null)continue;var second=Path(c,merge,side);if(second==null)continue;
+                        if(side<0){layout.left=ground[c];layout.leftApproach=first.ToArray();layout.leftPath=second.ToArray();}else{layout.right=ground[c];layout.rightApproach=first.ToArray();layout.rightPath=second.ToArray();}
+                        found=true;
+                    }
+                    if(!found&&!FitDeck(layout,side))return null;
+                }
+                return layout;
+            }
+            bool FitDeck(RouteSectionLayout layout,int side)
+            {
+                for(int x=4;x<=10;x+=2)for(int z=-8;z<=2;z+=2)
+                {
+                    if(z<(Quaternion.Inverse(rotation)*(layout.approach-center)).z+6)continue;
+                    var p=center+rotation*new Vector3(side*x,.2f,z);
+                    for(int gx=-1;gx<=1;gx++)for(int gz=-1;gz<=1;gz++)
+                        foreach(var h in Physics.RaycastAll(p+rotation*new Vector3(gx*1.8f,8,gz*2.3f),Vector3.down,16,~0,QueryTriggerInteraction.Ignore))
+                            if(Floor(h.collider))p.y=Mathf.Max(p.y,h.point.y+.05f);
+                    bool obstructed=false;
+                    foreach(var col in Physics.OverlapBox(p+Vector3.up*1.3f,new Vector3(1.8f,1.25f,2.3f),rotation,~0,QueryTriggerInteraction.Ignore))
+                        if(!Ignore(col)&&!Floor(col)){obstructed=true;break;}
+                    if(obstructed)continue;
+                    foreach(var h in Physics.RaycastAll(p+Vector3.up*8,Vector3.down,10,~0,QueryTriggerInteraction.Ignore))
+                        if(Floor(h.collider)&&h.point.y>p.y+.05f){obstructed=true;break;}
+                    if(obstructed)continue;
+                    var approachSide=layout.approach+rotation*Vector3.right*side*x;
+                    approachSide.y=Mathf.Max(p.y,layout.approach.y);
+                    var exit=center+rotation*new Vector3(side*x,.2f,8);exit.y=Mathf.Max(p.y,layout.merge.y);
+                    var incoming=new[]{layout.approach,approachSide,p};var outgoing=new[]{p,exit,layout.merge};
+                    foreach(var route in new[]{incoming,outgoing})for(int i=1;i<route.Length;i++)
+                    {
+                        var d=route[i]-route[i-1];
+                        foreach(var h in Physics.CapsuleCastAll(route[i-1]+Vector3.up*.45f,route[i-1]+Vector3.up*1.7f,.4f,d.normalized,d.magnitude,~0,QueryTriggerInteraction.Ignore))
+                            if(!Ignore(h.collider)&&!Floor(h.collider)){obstructed=true;break;}
+                        if(Mathf.Abs(d.y)>new Vector2(d.x,d.z).magnitude*.3f)obstructed=true;
+                    }
+                    if(obstructed)continue;
+                    var eye=layout.approach+Vector3.up*1.65f;var delta=p+Vector3.up*1.3f-eye;
+                    foreach(var h in Physics.RaycastAll(eye,delta.normalized,delta.magnitude,~0,QueryTriggerInteraction.Ignore))if(!Ignore(h.collider)){obstructed=true;break;}
+                    if(obstructed)continue;
+                    if(side<0){layout.left=p;layout.leftDeck=true;layout.leftApproach=incoming;layout.leftPath=outgoing;}
+                    else{layout.right=p;layout.rightDeck=true;layout.rightApproach=incoming;layout.rightPath=outgoing;}
+                    return true;
+                }
+                return false;
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+

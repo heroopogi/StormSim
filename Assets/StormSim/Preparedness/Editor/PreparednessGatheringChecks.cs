@@ -1,0 +1,1 @@
+namespace StormSim.Preparedness.Editor { public static class PreparednessGatheringChecks { public static string Run()=>PreparednessTwoHandChecks.Run(); } }

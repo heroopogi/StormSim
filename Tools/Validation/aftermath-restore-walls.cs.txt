@@ -1,0 +1,10 @@
+foreach(var f in UnityEngine.Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None))
+{
+ if(f.name!="plaster"||!f.transform.parent||(f.transform.parent.name!="Neighbourhood -1_6"&&f.transform.parent.name!="Neighbourhood -1_7"))continue;
+ int batch=f.transform.parent.name=="Neighbourhood -1_6"?11:12;
+ var original=AssetDatabase.LoadAllAssetsAtPath("Assets/StormSim/Generated/BanagoArchitecture_20260907_015351/Neighbourhood "+batch+".asset").OfType<Mesh>().Single(m=>m.name=="Neighbourhood "+batch);
+ f.sharedMesh=original;f.GetComponent<MeshCollider>().sharedMesh=original;
+}
+var capture=typeof(StormSim.Sibucao.Editor.SibucaoAftermathBuilder).GetMethod("Capture",BindingFlags.Static|BindingFlags.NonPublic);
+capture.Invoke(null,new object[]{"wall-diagnostic",new Vector3(-28,16,677),new Vector3(-44,1,660)});
+return "Original wall geometry restored for diagnostic.";

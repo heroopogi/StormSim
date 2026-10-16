@@ -1,0 +1,14 @@
+var list=new System.Collections.Generic.List<string>();
+foreach(var f in UnityEngine.Object.FindObjectsByType<UnityEngine.MeshFilter>(UnityEngine.FindObjectsSortMode.None))
+{
+ var r=f.GetComponent<UnityEngine.Renderer>();if(!r)continue;
+ if(!r.bounds.Intersects(new UnityEngine.Bounds(new UnityEngine.Vector3(-50,3,680),new UnityEngine.Vector3(80,30,100))))continue;
+ if(!f.name.ToLower().Contains("metal")&&!f.name.ToLower().Contains("plaster")&&!f.name.ToLower().Contains("roof"))continue;
+ string path=f.name;var t=f.transform.parent;while(t){path=t.name+"/"+path;t=t.parent;}
+ list.Add(path+" | center "+r.bounds.center+" size "+r.bounds.size+" vertices "+f.sharedMesh.vertexCount+" | "+UnityEditor.AssetDatabase.GetAssetPath(f.sharedMesh));
+}
+foreach(var h in UnityEngine.Object.FindObjectsByType<BanagoHousePreview>(UnityEngine.FindObjectsInactive.Include,UnityEngine.FindObjectsSortMode.None))
+{
+ if(h.name.Contains("1446")||h.name.Contains("1511")||h.name.Contains("1420"))list.Add("HOUSE: "+UnityEditor.EditorJsonUtility.ToJson(h)+" transform "+h.transform.position+" scale "+h.transform.lossyScale);
+}
+System.IO.File.WriteAllLines("Captures/Aftermath/roof-inspection.txt",list);return string.Join("\n",list);

@@ -1,0 +1,160 @@
+{
+  "cues": [
+    {
+      "key": "home",
+      "text": "Prepare your go-bag before leaving. Open storage and carry the bag, then carry and pack the supplies you choose. Use the on-screen prompts for your controls. Check the door before leaving. Your guide lists the remaining preparation tasks."
+    },
+    {
+      "key": "depart",
+      "text": "Your destination is the school evacuation center. Follow the yellow arrows on the map and the turn direction above. Inspect each obstacle before choosing a passage. Press N to repeat the latest narration."
+    },
+    {
+      "key": "wade",
+      "text": "The water is slowing your steps. You cannot run or jump while wading in deeper water. Follow the route toward raised footing. The display tells you whether your feet are wet or on a dry platform."
+    },
+    {
+      "key": "swim",
+      "text": "You are now swimming. Use your movement controls and the rise or dive controls shown in the guide. Watch your breath and look for a marked landing where you can return to dry footing."
+    },
+    {
+      "key": "tired",
+      "text": "Your stamina is low. Slow down and rest on dry footing. Running, swimming, carrying and difficult water take more effort. Watch the stamina display and recover before sprinting again."
+    },
+    {
+      "key": "complete",
+      "text": "This encounter is complete. Follow the updated yellow route toward the next task and the school evacuation center."
+    },
+    {
+      "key": "station_sibucao_d33",
+      "text": "A fallen palm blocks the first street. Face the trunk and follow the climbing prompt. Shift your footing when prompted. You can also inspect the surrounding lane."
+    },
+    {
+      "key": "station_sibucao_d34",
+      "text": "A supply cart has overturned. Inspect the sealed water bottle and food pack. Carry and pack the supplies you choose, following the on-screen controls. Then continue past the cart. You can also inspect the side lane."
+    },
+    {
+      "key": "station_sibucao_b1",
+      "text": "The first junction offers three passages. Ahead is the wet street crossing, left is the courtyard gate, and right is a parent with a stroller. Inspect the scene, then approach the task you choose."
+    },
+    {
+      "key": "station_sibucao_b2",
+      "text": "The stalled cars block the main road. You can work through their passage, secure the loose shutter on the left, or help recover a frightened pet on the right."
+    },
+    {
+      "key": "station_sibucao_b3",
+      "text": "Inspect the canal junction. You can take the central route, mark the exposed drain on the left, or open the covered passage on the right."
+    },
+    {
+      "key": "station_sibucao_b4",
+      "text": "A fallen cable blocks the road ahead. The left radio post lets you report it. On the right, help redirect a family through the diversion."
+    },
+    {
+      "key": "station_sibucao_b5",
+      "text": "Your supplies need attention. Check the damaged bag ahead, protect medicine and documents on the left, or restore the battery lantern on the right."
+    },
+    {
+      "key": "station_sibucao_b6",
+      "text": "A resident is waiting at the curb. You can help at the center, assist with a supervised child reunion on the left, or guide a resident with low vision on the right."
+    },
+    {
+      "key": "station_sibucao_b7",
+      "text": "The rescue checkpoint is ahead. You can approach the checkpoint, help fit life jackets on the left, or complete the household headcount on the right."
+    },
+    {
+      "key": "station_sibucao_b8",
+      "text": "An evacuee has collapsed near the road. You can respond at the center, bring equipment to responders on the left, or help a family into shelter on the right."
+    },
+    {
+      "key": "station_sibucao_b9",
+      "text": "This junction is near the creek and school approach. Inspect the center path, establish the inland diversion on the left, or open the secondary entrance on the right. Continue to the evacuation center after your task."
+    },
+    {
+      "key": "side_B1_left",
+      "text": "Open the evacuation courtyard. Move the crate off the gate swing. Inspect the marked person or object and follow the action prompt. Complete the work, then follow the passage to the next meeting point."
+    },
+    {
+      "key": "side_B1_right_v2",
+      "text": "Help a parent with a stroller. Agree on help with the parent. Inspect the marked person or object and follow the action prompt. Complete the work, then follow the passage to the next meeting point."
+    },
+    {
+      "key": "side_B2_left_v2",
+      "text": "Secure the loose storm shutter. Release the shutter strap while the resident steadies the panel. Inspect the marked person or object and follow the action prompt. Complete the work, then follow the passage to the next meeting point."
+    },
+    {
+      "key": "side_B2_right",
+      "text": "Recover a frightened pet. Ask the owner about the dog. Inspect the marked person or object and follow the action prompt. Complete the work, then follow the passage to the next meeting point."
+    },
+    {
+      "key": "side_B3_left",
+      "text": "Mark the exposed drain. Place a barrier around the open drain. Inspect the marked person or object and follow the action prompt. Complete the work, then follow the passage to the next meeting point."
+    },
+    {
+      "key": "side_B3_right",
+      "text": "Open the covered passage. Ask permission to use the passage. Inspect the marked person or object and follow the action prompt. Complete the work, then follow the passage to the next meeting point."
+    },
+    {
+      "key": "side_B4_left",
+      "text": "Report the fallen cable. Tune to the barangay response channel. Inspect the marked person or object and follow the action prompt. Complete the work, then follow the passage to the next meeting point."
+    },
+    {
+      "key": "side_B4_right",
+      "text": "Redirect approaching residents. Call the family's attention. Inspect the marked person or object and follow the action prompt. Complete the work, then follow the passage to the next meeting point."
+    },
+    {
+      "key": "side_B5_left",
+      "text": "Protect medicine and documents. Open the waterproof box lid. Inspect the marked person or object and follow the action prompt. Complete the work, then follow the passage to the next meeting point."
+    },
+    {
+      "key": "side_B5_right",
+      "text": "Restore the battery lantern. Open the battery compartment. Inspect the marked person or object and follow the action prompt. Complete the work, then follow the passage to the next meeting point."
+    },
+    {
+      "key": "side_B6_left",
+      "text": "Reunite a separated child. Ask the volunteer about the guardian. Inspect the marked person or object and follow the action prompt. Complete the work, then follow the passage to the next meeting point."
+    },
+    {
+      "key": "side_B6_right",
+      "text": "Guide a resident with low vision. Ask how the resident wants assistance. Inspect the marked person or object and follow the action prompt. Complete the work, then follow the passage to the next meeting point."
+    },
+    {
+      "key": "side_B7_left",
+      "text": "Prepare life jackets. Open the equipment box. Inspect the marked person or object and follow the action prompt. Complete the work, then follow the passage to the next meeting point."
+    },
+    {
+      "key": "side_B7_right",
+      "text": "Complete the headcount. Read the household list. Inspect the marked person or object and follow the action prompt. Complete the work, then follow the passage to the next meeting point."
+    },
+    {
+      "key": "side_B8_left",
+      "text": "Deliver responder equipment. Release the retaining strap. Inspect the marked person or object and follow the action prompt. Complete the work, then follow the passage to the next meeting point."
+    },
+    {
+      "key": "side_B8_right",
+      "text": "Bring the family under cover. Open the shelter door. Inspect the marked person or object and follow the action prompt. Complete the work, then follow the passage to the next meeting point."
+    },
+    {
+      "key": "side_B9_left",
+      "text": "Establish the inland diversion. Check the inland diversion with the warden. Inspect the marked person or object and follow the action prompt. Complete the work, then follow the passage to the next meeting point."
+    },
+    {
+      "key": "side_B9_right",
+      "text": "Open the secondary entrance. Get the caretaker's permission and key. Inspect the marked person or object and follow the action prompt. Complete the work, then follow the passage to the next meeting point."
+    },
+    {
+      "text": "The porch awning has collapsed. Release both rope knots, then take the lifting grip and walk backward to raise the awning. Follow the prompt to secure it before walking through. You can also inspect the side gap.",
+      "key": "station_sibucao_d44"
+    },
+    {
+      "text": "The porch awning has collapsed. Release both rope knots, then take the lifting grip and walk backward to raise the awning. Follow the prompt to secure it before walking through. You can also inspect the side gap.",
+      "key": "station_sibucao_d45"
+    },
+    {
+      "text": "The porch awning has collapsed. Release both rope knots, then take the lifting grip and walk backward to raise the awning. Follow the prompt to secure it before walking through. You can also inspect the side gap.",
+      "key": "station_sibucao_d46"
+    },
+    {
+      "text": "The porch awning has collapsed. Release both rope knots, then take the lifting grip and walk backward to raise the awning. Follow the prompt to secure it before walking through. You can also inspect the side gap.",
+      "key": "station_sibucao_d47"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+int ApplyLayoutPreview()
+{
+    var pet=d.sections[1].right;foreach(var step in pet.steps){if(step.work==StormSim.Sibucao.RouteWork.Slide&&step.item&&step.item.name=="Owner's frightened dog"){step.from=new Vector3(1.25f,0,1.6f);if(pet.State.step==4&&pet.State.amount==0)step.item.localPosition=step.from;}}
+    int count=0;
+    foreach(var section in d.sections)
+    {
+        var deck=section.decks;if(!deck)continue;
+        var generated=(Transform)typeof(StormSim.Sibucao.SibucaoRouteDeck).GetField("generated",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(deck);if(!generated)continue;
+        var old=generated.Find("RC2 work-deck connector preview");if(old)UnityEngine.Object.DestroyImmediate(old.gameObject);
+        var root=new GameObject("RC2 work-deck connector preview").transform;root.SetParent(generated,false);
+        void Cube(string name,Vector3 at,Vector3 size,Quaternion rotation,Material material){var go=GameObject.CreatePrimitive(PrimitiveType.Cube);go.name=name;go.transform.SetParent(root,true);go.transform.SetPositionAndRotation(at,rotation);go.transform.localScale=size;go.GetComponent<Renderer>().sharedMaterial=material;}
+        void Foundation(Vector3 top){var bottom=top-Vector3.up*5;var hits=Physics.RaycastAll(top-Vector3.up*.2f,Vector3.down,15,~0,QueryTriggerInteraction.Ignore).OrderBy(h=>h.distance);foreach(var hit in hits)if(!hit.transform.IsChildOf(deck.transform)&&hit.normal.y>.5f&&!hit.collider.GetComponentInParent<StormSim.Sibucao.SibucaoResident>()){bottom=hit.point;break;}Cube("Deck foundation post",(top+bottom)*.5f,new Vector3(.14f,Mathf.Max(.2f,top.y-bottom.y),.14f),Quaternion.identity,deck.metal);}
+        void Link(Vector3[] points,Vector3 center){if(points==null||points.Length==0)return;var end=(points[0]-center).sqrMagnitude<(points[points.Length-1]-center).sqrMagnitude?points[0]:points[points.Length-1];var local=Quaternion.Inverse(deck.transform.rotation)*(end-center);if(Mathf.Abs(local.x)<=1.8f&&Mathf.Abs(local.z)<=2.3f)return;var delta=end-center;if(delta.sqrMagnitude<.01f)return;var rotation=Quaternion.LookRotation(delta);Cube("Work deck connection",(center+end)*.5f-Vector3.up*.10f,new Vector3(1.5f,.18f,delta.magnitude+.12f),rotation,deck.timber);float edge=1/Mathf.Max(Mathf.Abs(local.x)/1.8f,Mathf.Abs(local.z)/2.3f);var footing=Vector3.Lerp(center,end,(Mathf.Clamp01(edge)+1)*.5f);for(int side=-1;side<=1;side+=2)Foundation(footing+rotation*new Vector3(side*.61f,-.18f,0));count++;}
+        var layout=(StormSim.Sibucao.RouteSectionLayout)typeof(StormSim.Sibucao.SibucaoRouteSection).GetField("levelLayout",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(section);
+        Link(section.left.route,section.left.transform.position);Link(section.right.route,section.right.transform.position);
+        if(layout!=null){Link(layout.leftApproach.Select(p=>p+Vector3.up*(section.left.transform.position.y-layout.left.y)).ToArray(),section.left.transform.position);Link(layout.rightApproach.Select(p=>p+Vector3.up*(section.right.transform.position.y-layout.right.y)).ToArray(),section.right.transform.position);}
+    }
+    Physics.SyncTransforms();return count;
+}

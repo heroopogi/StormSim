@@ -1,0 +1,7 @@
+var lines=new List<string>();
+foreach(var f in UnityEngine.Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None)) {
+if(!f.transform.parent||!f.transform.parent.name.StartsWith("Neighbourhood")||(f.name!="metal"&&f.name!="plaster"))continue;
+if(!f.GetComponent<Renderer>().bounds.Intersects(new Bounds(new Vector3(-50,2,680),new Vector3(100,30,120))))continue;
+lines.Add(f.transform.parent.name+"/"+f.name+" readable "+f.sharedMesh.isReadable+" submeshes "+f.sharedMesh.subMeshCount+" asset "+AssetDatabase.GetAssetPath(f.sharedMesh));
+}
+return string.Join("\n",lines);

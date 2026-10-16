@@ -1,0 +1,14 @@
+var lines=new List<string>();
+foreach(var f in UnityEngine.Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None))
+{
+ if(!AssetDatabase.GetAssetPath(f.sharedMesh).Contains("/Damaged neighborhood "))continue;
+ var r=f.GetComponent<MeshRenderer>();lines.Add(f.name+" static "+r.isPartOfStaticBatch+" streams "+r.additionalVertexStreams);
+ GameObjectUtility.SetStaticEditorFlags(f.gameObject,0);r.additionalVertexStreams=null;
+ // The new copies each contain one submesh; preserve its first surface material only.
+ r.sharedMaterials=new[]{r.sharedMaterials[0]};
+}
+UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+UnityEditor.SceneManagement.EditorSceneManager.SaveScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+var capture=typeof(StormSim.Sibucao.Editor.SibucaoAftermathBuilder).GetMethod("Capture",BindingFlags.Static|BindingFlags.NonPublic);
+capture.Invoke(null,new object[]{"damaged-houses-roofs",new Vector3(-28,16,677),new Vector3(-44,1,660)});
+return string.Join("\n",lines);

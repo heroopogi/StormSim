@@ -1,0 +1,29 @@
+var s=StormSim.Sibucao.SibucaoSession.Instance;if(!EditorApplication.isPlaying||!s)throw new Exception("Play Mode required");
+var director=s.physicalDecisions.GetComponent<StormSim.Sibucao.SibucaoRouteChoices>();int count=0,triangles=0;
+foreach(var section in director.sections)
+{
+    var layout=(StormSim.Sibucao.RouteSectionLayout)typeof(StormSim.Sibucao.SibucaoRouteSection).GetField("levelLayout",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(section);if(layout==null)continue;
+    var generated=(Transform)typeof(StormSim.Sibucao.SibucaoRouteDeck).GetField("generated",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(section.decks);if(!generated)continue;
+    var previous=generated.Find("Continuous walkway visual preview");if(previous)UnityEngine.Object.Destroy(previous.gameObject);
+    foreach(Transform child in generated)if(child.name=="Raised pedestrian walkway"||child.name=="Walkway edge marking")child.GetComponent<Renderer>().enabled=false;
+    float lift=section.left.transform.position.y-layout.left.y;
+    var allPaths=new[]{layout.leftApproach,layout.rightApproach,layout.leftPath,layout.rightPath}.Select(path=>path.Select(p=>p+Vector3.up*lift).ToArray()).ToArray();
+    var vertices=new List<Vector3>();var normals=new List<Vector3>();var uv=new List<Vector2>();var indices=new List<int>();var paint=new List<int>();
+    void Quad(Vector3 a,Vector3 b,Vector3 c,Vector3 d,Vector3 normal,bool edge=false){int index=vertices.Count;foreach(var p in new[]{a,b,c,d}){vertices.Add(generated.InverseTransformPoint(p));normals.Add(generated.InverseTransformDirection(normal));uv.Add(new Vector2(p.x,p.z));}var faces=edge?paint:indices;bool reverse=Vector3.Dot(Vector3.Cross(b-a,c-a),normal)<0;faces.AddRange(reverse?new[]{index,index+2,index+1,index,index+3,index+2}:new[]{index,index+1,index+2,index,index+2,index+3});}
+    bool Covered(Vector3 at,int source){foreach(var deckCenter in new[]{layout.left,layout.right}){var local=Quaternion.Inverse(section.transform.rotation)*(at-deckCenter-Vector3.up*lift);if(Mathf.Abs(local.x)<1.8f&&Mathf.Abs(local.z)<2.3f)return true;}for(int path=0;path<allPaths.Length;path++)if(path!=source)for(int i=1;i<allPaths[path].Length;i++){var a=allPaths[path][i-1];var delta=allPaths[path][i]-a;delta.y=0;var offset=at-a;offset.y=0;float t=Mathf.Clamp01(Vector3.Dot(offset,delta)/Mathf.Max(.001f,delta.sqrMagnitude));if((offset-delta*t).sqrMagnitude<.68f*.68f)return true;}return false;}
+    for(int pathIndex=0;pathIndex<allPaths.Length;pathIndex++)
+    {
+        var source=allPaths[pathIndex];if(source.Length<2)continue;var keep=new SortedSet<int>{0,source.Length-1};
+        void Simplify(int begin,int end){var delta=source[end]-source[begin];delta.y=0;float worst=.18f;int at=-1;for(int i=begin+1;i<end;i++){var offset=source[i]-source[begin];offset.y=0;float t=Mathf.Clamp01(Vector3.Dot(offset,delta)/Mathf.Max(.001f,delta.sqrMagnitude));float error=(offset-delta*t).magnitude;if(error>worst){worst=error;at=i;}}if(at>=0){keep.Add(at);Simplify(begin,at);Simplify(at,end);}}
+        Simplify(0,source.Length-1);var points=keep.Select(i=>source[i]).ToArray();var left=new Vector3[points.Length];var right=new Vector3[points.Length];
+        for(int i=0;i<points.Length;i++){var incoming=points[i]-points[Mathf.Max(0,i-1)];var outgoing=points[Mathf.Min(points.Length-1,i+1)]-points[i];incoming.y=outgoing.y=0;if(incoming.sqrMagnitude<.001f)incoming=outgoing;if(outgoing.sqrMagnitude<.001f)outgoing=incoming;var before=Vector3.Cross(Vector3.up,incoming.normalized);var after=Vector3.Cross(Vector3.up,outgoing.normalized);var miter=(before+after).normalized;float width=.75f/Mathf.Max(.5f,Vector3.Dot(miter,after));left[i]=points[i]-miter*width;right[i]=points[i]+miter*width;}
+        for(int i=1;i<points.Length;i++)
+        {
+            Quad(left[i-1],right[i-1],right[i],left[i],Vector3.up);
+            foreach(int side in new[]{-1,1}){var a=side<0?left[i-1]:right[i-1];var b=side<0?left[i]:right[i];var center=(a+b)*.5f;if(Covered(center,pathIndex))continue;var outward=(center-(points[i-1]+points[i])*.5f).normalized;Quad(a-Vector3.up*.18f,b-Vector3.up*.18f,b,a,outward);var insetA=Vector3.MoveTowards(a,points[i-1],.065f);var insetB=Vector3.MoveTowards(b,points[i],.065f);Quad(a+Vector3.up*.008f,b+Vector3.up*.008f,insetB+Vector3.up*.008f,insetA+Vector3.up*.008f,Vector3.up,true);}
+        }
+    }
+    var mesh=new Mesh{name="Continuous walkway preview"};mesh.SetVertices(vertices);mesh.SetNormals(normals);mesh.SetUVs(0,uv);mesh.subMeshCount=2;mesh.SetTriangles(indices,0);mesh.SetTriangles(paint,1);mesh.RecalculateBounds();var go=new GameObject("Continuous walkway visual preview");go.transform.SetParent(generated,false);go.AddComponent<MeshFilter>().sharedMesh=mesh;
+    var renderer=go.AddComponent<MeshRenderer>();var edge=(Material)typeof(StormSim.Sibucao.SibucaoRouteDeck).GetMethod("EdgeMaterial",BindingFlags.NonPublic|BindingFlags.Instance).Invoke(section.decks,null);renderer.sharedMaterials=new[]{section.decks.timber,edge};triangles+=(indices.Count+paint.Count)/3;count++;
+}
+return "Visual-only preview across "+count+" sections, "+triangles+" triangles. Existing walking colliders unchanged; inspect bends and surface alignment before adopting.";
