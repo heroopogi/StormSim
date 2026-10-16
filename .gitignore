@@ -3,6 +3,8 @@
 /[Tt]emp/
 /tmp/
 /[Oo]bj/
+**/[Oo]bj/
+**/[Bb]in/
 /[Bb]uild/
 /[Bb]uilds/
 /[Ll]ogs/
