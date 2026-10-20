@@ -1,0 +1,23 @@
+1
+00:00:00,000 --> 00:00:03,000
+B1 FIRST DECISION: inspect LEFT, AHEAD, and RIGHT before choosing.
+
+2
+00:00:03,000 --> 00:00:06,000
+LEFT — Check the barangay advisory. A tested radio or charged phone gives the update; the posted marker is always available.
+
+3
+00:00:06,000 --> 00:00:09,000
+AHEAD — Measure two wet locations with the depth stick, compare the readings, then choose whether to cross.
+
+4
+00:00:09,000 --> 00:00:12,000
+RIGHT — Help the parent and stroller. Packed equipment changes the action.
+
+5
+00:00:12,000 --> 00:00:15,000
+Work gloves keep the carry task. A whistle calls another adult to carry the bag. No item still allows careful teamwork.
+
+6
+00:00:15,000 --> 00:00:18,000
+All three options use the real street layout, rejoin after B1, and never soft-lock an unprepared player.

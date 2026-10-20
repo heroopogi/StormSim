@@ -22,8 +22,13 @@ namespace StormSim.Sibucao
             }
         }
         public bool HomeTarget=>S.home&&(S.home.MovementLocked||S.missionGuide&&S.missionGuide.InsideHome);
+        public SibucaoOptionalSideMission OptionalMission=>S?S.GetComponent<SibucaoOptionalSideMission>():null;
+        public SibucaoFloodedStreetIncident FloodedStreet=>S?S.GetComponent<SibucaoFloodedStreetIncident>():null;
+        public SibucaoRouteIncidentSequence RouteIncidents=>S?S.GetComponent<SibucaoRouteIncidentSequence>():null;
+        public bool HasSideMissionMarker=>OptionalMission&&OptionalMission.SideMissionVisible;
+        public Vector3 SideMissionMarker=>OptionalMission?OptionalMission.SideMissionTarget:Target;
         public Vector3 Target=>HomeTarget?S.home.doorPanel.position:S.missionGuide?S.missionGuide.NavigationTarget:TargetStation?TargetStation.NavigationTarget:S.route.Sample(S.route.length);
-        public string TargetLabel=>HomeTarget?(S.home.MovementLocked?"Weather bulletin":"Leave the house"):S.missionGuide&&S.missionGuide.RouteChoices&&S.missionGuide.RouteChoices.Working?S.missionGuide.RouteChoices.Working.title:TargetStation?(TargetStation.index==0&&!TargetStation.HasVisibleWater?"Rain-soaked street":TargetStation.title):"School evacuation center";
+        public string TargetLabel=>HomeTarget?(S.home.MovementLocked?"Weather bulletin":"Leave the house"):RouteIncidents&&RouteIncidents.WantsLocalGuidance?(RouteIncidents.ActiveChapter==2?"blocked drainage":"injured evacuee"):FloodedStreet&&FloodedStreet.WantsLocalGuidance?"flood assessment":OptionalMission&&OptionalMission.SideMissionActive?OptionalMission.ShortTitle:S.GetComponent<SibucaoContinuousChapterOne>() is SibucaoContinuousChapterOne chapter?chapter.ShortTitle:S.missionGuide&&S.missionGuide.RouteChoices&&S.missionGuide.RouteChoices.Working?S.missionGuide.RouteChoices.Working.title:TargetStation?(TargetStation.index==0&&!TargetStation.HasVisibleWater?"Rain-soaked street":TargetStation.title):"School evacuation center";
         public float Distance=>Vector3.Distance(S.player.transform.position,Target);
         readonly List<Vector3> guidance=new List<Vector3>();int pathFrame=-1;
         public IReadOnlyList<Vector3> GuidancePath

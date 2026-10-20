@@ -58,6 +58,25 @@ namespace StormSim.Sibucao
             state.drivenVehicle = player.vehicle ? player.vehicle.vehicleId : null;
         }
         public void RequestCheckpoint() { checkpointRequested = true; }
+        public void CaptureAssessmentReplay()
+        {
+            var experience=GetComponent<SibucaoEvacuationExperience>();if(!experience||!string.IsNullOrEmpty(experience.State.assessmentSnapshot))return;
+            CaptureRun();experience.State.assessmentSnapshot=JsonUtility.ToJson(state);
+        }
+        public void RetryAssessment()
+        {
+            var experience=GetComponent<SibucaoEvacuationExperience>();string snapshot=experience?experience.State.assessmentSnapshot:null;
+            if(string.IsNullOrEmpty(snapshot))return;
+            try
+            {
+                var loaded=JsonUtility.FromJson<RunState>(snapshot);ValidateSave(loaded);
+                if(loaded.experience==null)loaded.experience=new EvacuationExperienceState();
+                loaded.experience.assessmentSnapshot=snapshot;ApplyLoadedRun(loaded);
+                runStarted=true;checkpointRequested=true;nextCheckpoint=Time.unscaledTime+5;
+                Notify("Try another approach","Your equipment, weather and progress are restored to the flooded junction.");
+            }
+            catch(Exception ex){ShowError("Could not restore the junction: "+ex.Message);}
+        }
         void TickCheckpoint()
         {
             if (!runStarted || Time.unscaledTime < nextCheckpoint) return;
@@ -101,6 +120,7 @@ namespace StormSim.Sibucao
                 { loaded = SibucaoSaveStore.Read(path + ".bak", ValidateSave); recovered = true; }
                 // Validate completely before touching the current scene/run.
                 ApplyLoadedRun(loaded);
+                resumeOpenedFromDedicatedMenu=false;
                 runStarted = true; checkpointRequested = false; nextCheckpoint = Time.unscaledTime + 5;
                 bool updatedAccess=physicalDecisions&&physicalDecisions.RestoredLegacyAccess;
                 Notify(recovered ? "Recovered from backup" : updatedAccess ? "Raised access updated" : "Evacuation resumed",

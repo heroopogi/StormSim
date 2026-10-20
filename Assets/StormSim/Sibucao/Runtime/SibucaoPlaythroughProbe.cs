@@ -17,7 +17,7 @@ namespace StormSim.Sibucao.Editor
         SibucaoSession S=>SibucaoSession.Instance;
         public static SibucaoPlaythroughProbe Instance;
         public static SibucaoPlaythroughProbe Get(){if(!Instance)Instance=new GameObject("EDITOR ONLY playthrough probe").AddComponent<SibucaoPlaythroughProbe>();return Instance;}
-        void Awake(){Instance=this;SibucaoEditorInput.Active=true;if(System.IO.File.Exists("Documentation/SIBUCAO_GAMEPLAY_PROBE.txt"))log.AddRange(System.IO.File.ReadAllLines("Documentation/SIBUCAO_GAMEPLAY_PROBE.txt").Skip(1));}
+        void Awake(){Instance=this;SibucaoEditorInput.Reset();if(System.IO.File.Exists("Documentation/SIBUCAO_GAMEPLAY_PROBE.txt"))log.AddRange(System.IO.File.ReadAllLines("Documentation/SIBUCAO_GAMEPLAY_PROBE.txt").Skip(1));}
         void OnDestroy(){SibucaoEditorInput.Reset();}
         public void Run(string task,int index=0,int route=0)
         {
@@ -32,10 +32,10 @@ namespace StormSim.Sibucao.Editor
             {
                 object value=null;bool next=false;
                 try{next=stack.Peek().MoveNext();if(next)value=stack.Peek().Current;}
-                catch(Exception e){status="FAIL: "+e.Message;log.Add(status);Save();SibucaoEditorInput.Move=Vector2.zero;SibucaoEditorInput.GripHeld=false;yield break;}
+                catch(Exception e){status="FAIL: "+e.Message;log.Add(status);Save();SibucaoEditorInput.Reset();yield break;}
                 if(!next){stack.Pop();continue;}if(value is IEnumerator nested){stack.Push(nested);continue;}yield return value;
             }
-            status="PASS";Save();
+            status="PASS";Save();SibucaoEditorInput.Reset();
         }
         void Save(){System.IO.File.WriteAllLines("Documentation/SIBUCAO_GAMEPLAY_PROBE.txt",new[]{"SCRIPTED Play-mode input; no native/manual keyboard walkthrough."}.Concat(log));}
         void Assert(bool condition,string message){if(!condition)throw new Exception(message);}

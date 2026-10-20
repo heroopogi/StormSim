@@ -3,6 +3,7 @@ using StormSim.Sibucao;
 using UnityEngine.InputSystem;
 using UnityEngine.XR;
 using System.Collections.Generic;
+using System.Linq;
 using CommonUsages=UnityEngine.XR.CommonUsages;
 
 namespace StormSim.Preparedness
@@ -509,7 +510,7 @@ namespace StormSim.Preparedness
         {
             var tint=GUI.color;GUI.color=new Color(.02f,.04f,.05f,.92f);GUI.DrawTexture(new Rect(0,0,layout.Width,layout.Height),Texture2D.whiteTexture);GUI.color=tint;
             var r=layout.Modal;SibucaoDesktopHud.Panel(r);
-            SibucaoDesktopHud.Label(new Rect(r.x+22,r.y+18,r.width-44,40),bagPanel?"Go-bag":"Guide and preparation checklist",SibucaoDesktopHud.Heading);
+            SibucaoDesktopHud.Label(new Rect(r.x+22,r.y+18,r.width-44,40),bagPanel?"Go-bag":"Preparation guide",SibucaoDesktopHud.Heading);
             if(bagPanel)
             {
                 DrawSelectedBag(new Rect(r.x+22,r.y+62,r.width-44,r.height-140));
@@ -528,20 +529,15 @@ namespace StormSim.Preparedness
             if(GUILayout.Button(session.Guided?"Coaching: ON — switch to Explore":"Coaching: OFF — switch to Guided",SibucaoDesktopHud.ButtonStyle,GUILayout.MinHeight(44)))session.SetCoaching(!session.Guided);
             GUILayout.Label("Switch anytime. Your supplies and tutorial progress stay with you.",SibucaoDesktopHud.Small);
             GUILayout.Space(10);
-            GUILayout.Label(SibucaoControls.Prompt(session.PlanSummary),SibucaoDesktopHud.Text);
-            if(session.Guided)
-            {
-                GUILayout.Space(10);
-                GUILayout.Label(SibucaoControls.Prompt("Suggested next step: "+CurrentObjective),SibucaoDesktopHud.Text);
-                GUILayout.Label(SibucaoControls.Prompt(session.TutorialSummary),SibucaoDesktopHud.Small);
-            }
+            GUILayout.Label("CURRENT OBJECTIVE",SibucaoDesktopHud.Small);
+            GUILayout.Label(SibucaoControls.Prompt(CurrentObjective),SibucaoDesktopHud.Text);
             GUILayout.Space(10);
-            for(int g=0;g<guideGroups.Length;g++)
-            {
-                if(GUILayout.Button((guideGroups[g]?"− ":"+ ")+session.GroupHeading(g),SibucaoDesktopHud.ButtonStyle,GUILayout.MinHeight(38)))guideGroups[g]=!guideGroups[g];
-                if(guideGroups[g])GUILayout.Label(SibucaoControls.Prompt(session.GroupDetails(g)),SibucaoDesktopHud.Text);
-                GUILayout.Space(6);
-            }
+            GUILayout.Label("WARNING LEVEL",SibucaoDesktopHud.Small);
+            GUILayout.Label(session.WarningStageText,SibucaoDesktopHud.Text);
+            GUILayout.Space(10);
+            GUILayout.Label("BAG STATUS",SibucaoDesktopHud.Small);
+            GUILayout.Label(session.CapacityText+" · "+session.items.Count(i=>i.IsPacked)+" items packed",SibucaoDesktopHud.Text);
+            GUILayout.Label("Look at an item and press R (left secondary in VR) for its purpose. Optional work never blocks departure.",SibucaoDesktopHud.Small);
             DrawPreparationHelp();
             if(GUILayout.Button((controlsExpanded?"− ":"+ ")+"Controls and help",SibucaoDesktopHud.ButtonStyle,GUILayout.MinHeight(38)))controlsExpanded=!controlsExpanded;
             if(controlsExpanded)GUILayout.Label(SibucaoControls.Prompt("E  Interact, pick up, check or pack\nQ  Put down / cancel\nI / Tab  Bag    J  Plan    Esc  Settings\nF carry and P pack are optional shortcuts in both phases.\nIn preparation, check a held supply before packing it. In evacuation, E collects ready supplies into your bag.\nSwitch coaching above or in Settings. Interaction prompts have their own setting; essential warnings stay visible."),SibucaoDesktopHud.Text);

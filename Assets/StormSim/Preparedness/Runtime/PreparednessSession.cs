@@ -203,7 +203,7 @@ namespace StormSim.Preparedness
                 {Say("The weather bulletin is still playing. Listen for the preparation instructions that follow.");return;}
                 if(phase==PrepPhase.Peaceful){SetPhase(PrepPhase.Bulletin);SpeakCue("bulletin.open","Television","Listen to the training weather bulletin.");return;}
                 if(phase==PrepPhase.Bulletin){CompleteTelevisionBulletin();return;}
-                if(CanPrepare){advisoryRead=true;Say(evacuationOrdered?"Evacuation is advised. Take your bag and leave now.":"No evacuation instruction yet. Keep monitoring; you may prepare or leave early.");}return;
+                if(CanPrepare){advisoryRead=true;Say("Television advisory: "+WarningStageText);}return;
             }
             if(!CanPrepare){Say(phase==PrepPhase.ReadyForStorm?"Preparation saved. The typhoon is arriving.":"Wait for the weather bulletin before starting preparation.");return;}
             if(chapter && (target==chapter.family||target==chapter.shopkeeper||target==chapter.barangay||!chapter.Owns(target)) && chapter.TryOpen(target))return;
@@ -233,7 +233,7 @@ namespace StormSim.Preparedness
             {
                 case PrepKind.Flashlight:case PrepKind.Radio:
                     if(target.cells<2){Say("Hold a battery organizer and use this device to fit a pair first.");return;}
-                    target.prepared=true;Say(target.kind==PrepKind.Radio?"Radio test: the scenario weather bulletin is received.":"Flashlight tested. Pack it in the open go-bag.");break;
+                    target.prepared=true;Say(target.kind==PrepKind.Radio?"Radio test received. "+WarningStageText:"Flashlight tested. Pack it in the open go-bag.");break;
                 case PrepKind.Documents:if(target.closed&&!ConfirmUndo(target,"Reopening removes the pouch's rain protection."))return;target.closed=!target.closed;target.prepared=target.closed;Say(target.closed?"Document pouch sealed. Pack it in the go-bag.":"Pouch reopened; seal it again before packing.");break;
                 case PrepKind.FirstAid:target.prepared=true;target.closed=!target.closed;Say(target.closed?"First-aid contents checked and case closed.":"Case open: dressings and supplies inspected. Close before packing.");break;
                 case PrepKind.Medicine:target.prepared=true;Say("Matched to the fictional household care card. Pack the labelled medicine supply.");break;
@@ -273,6 +273,8 @@ namespace StormSim.Preparedness
                     if(Bag.closed){Say("Open the go-bag before packing.");return false;}
                     if(Bag.storageDoor&&Bag.storageDoor.closed){Say("Open the closet and retrieve the bag first.");return false;}
                     accepted=CanPackSupply(item);
+                    if(StormSim.Sibucao.SibucaoEvacuationExperience.IsSpecialist(item.id)&&items.Count(i=>i.IsPacked&&StormSim.Sibucao.SibucaoEvacuationExperience.IsSpecialist(i.id))>=StormSim.Sibucao.SibucaoEvacuationExperience.SpecialistLimit)
+                    {Say("Three specialist tools fit in the quick-access kit. Unpack one to swap. Water, food, medicine and documents use the regular bag allowance.");return false;}
                     destination="bag";
                     if(BagMass+item.mass>BagLimit){Say(PlacementHint(item,zone));return false;}break;
                 case PrepKind.SupplyZone:accepted=item.kind==PrepKind.Water||item.kind==PrepKind.Food;destination="supplies";break;
@@ -327,20 +329,56 @@ namespace StormSim.Preparedness
             if(!player.Grab(item)){item.transform.SetParent(Bag.transform,true);item.gameObject.SetActive(false);return false;}
             RefreshEvidence();Say(item.displayName+" retrieved. "+ItemReadiness(item));return true;
         }
-        public void Finish(bool evacuate)
+        public bool DropFromBag(PreparednessItem item)
         {
-            if(!CanPrepare)return;
+            if(!CanPrepare||!Bag||Bag.closed){Say("Open the bag before removing an item.");return false;}
+            if(player.held){Say("Put down the item in your hand first.");return false;}
+            if(player.carriedBag!=Bag&&Vector3.Distance(player.view.transform.position,Bag.WorldBounds().ClosestPoint(player.view.transform.position))>player.reach){Say("Move closer to the bag.");return false;}
+            if(!item||!items.Contains(item)||!item.IsPacked){Say("That item is no longer in the bag.");return false;}
+
+            var bounds=item.WorldBounds();
+            var localCenter=item.transform.InverseTransformPoint(bounds.center);
+            var extents=Vector3.Max(bounds.extents,new Vector3(.08f,.05f,.08f));
+            var origin=player.transform.position+Vector3.up*Mathf.Max(.35f,extents.y+.08f);
+            var forward=Vector3.ProjectOnPlane(player.view.transform.forward,Vector3.up).normalized;
+            if(forward.sqrMagnitude<.1f)forward=player.transform.forward;
+            var right=Vector3.Cross(Vector3.up,forward).normalized;
+            Vector3 chosen=origin-forward*.9f;bool found=false;
+            foreach(var direction in new[]{forward,right,-right,-forward})
+            {
+                var candidate=origin+direction*Mathf.Max(1.0f,extents.magnitude+.55f);
+                if(Physics.Raycast(candidate+Vector3.up*1.2f,Vector3.down,out var ground,2.5f,~0,QueryTriggerInteraction.Ignore))
+                    candidate.y=ground.point.y+extents.y+.025f;
+                var center=candidate+item.transform.rotation*localCenter;
+                bool blocked=Physics.OverlapBox(center,extents*.9f,item.transform.rotation,~0,QueryTriggerInteraction.Ignore)
+                    .Any(c=>c&&!c.transform.IsChildOf(player.transform)&&!c.transform.IsChildOf(item.transform));
+                if(!blocked){chosen=candidate;found=true;break;}
+            }
+            if(!found){Say("There is no clear space beside you. Move away from furniture and try again.");return false;}
+
+            // Change the single authoritative item's state before enabling it. This
+            // prevents a second click or stale UI event from creating duplicates.
+            item.storedIn="";item.transform.SetParent(transform,true);item.transform.position=chosen;
+            item.gameObject.SetActive(true);item.SynchronizePose();item.ResolveReleaseOverlap(player.transform);item.SetPhysics(true);
+            RefreshEvidence();Say(item.displayName+" placed safely nearby. Pick it up to pack it again.");return true;
+        }
+        public void Finish(bool evacuate)
+        {TryFinish(evacuate);}
+        public bool TryFinish(bool evacuate,bool confirmed=false)
+        {
+            if(!CanPrepare){Say("Finish the weather bulletin before confirming departure.");return false;}
             // The evacuation instruction itself is sufficient: never make someone return
             // to the television while an order is active.
-            if(!advisoryRead&&!evacuationOrdered){Say("Recheck the television advisory before deciding to rest or depart.");return;}
-            if(!evacuate&&evacuationOrdered){Say("An evacuation instruction is active. Leave now; resting is unavailable.");return;}
-            if(!evacuate&&player.held){Say("Put down the item you are holding before resting.");return;}
-            if(!evacuate&&!sleepConfirmationPending){sleepConfirmationPending=true;Say(items.Count(i=>i.IsPacked)+" items packed. Rest skips to tomorrow's evacuation advisory. Use the bed again to rest, or use the exit to leave early.");return;}
+            if(!advisoryRead&&!evacuationOrdered){Say("Review and acknowledge the weather advisory below before departing.");return false;}
+            if(!evacuate&&evacuationOrdered){Say("An evacuation instruction is active. Leave now; resting is unavailable.");return false;}
+            if(!evacuate&&player.held){Say("Put down the item you are holding before resting.");return false;}
+            if(!evacuate&&!sleepConfirmationPending&&!confirmed){sleepConfirmationPending=true;Say(items.Count(i=>i.IsPacked)+" items packed. Rest skips to tomorrow's evacuation advisory. Use the bed again to rest, or use the exit to leave early.");return false;}
             sleepConfirmationPending=false;
-            if(!evacuate&&!PreparationContinuity.StageBag(this))return;
+            if(!evacuate&&!PreparationContinuity.StageBag(this))return false;
             departure=evacuate?(phase==PrepPhase.MorningPacking?"morning-departure":evacuationOrdered?"ordered-evacuation":"early-evacuation"):"overnight";
             if(evacuate&&evacuationOrdered)advisoryRead=true;
             RefreshEvidence();SetPhase(PrepPhase.Fade);Save();
+            return true;
         }
         public void AdvancePreparation(float seconds)
         {

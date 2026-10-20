@@ -4,6 +4,12 @@ using UnityEngine;
 using UnityEngine.Events;
 namespace StormSim.Sibucao
 {
+    [Serializable] public sealed class RouteDecisionRecord
+    {
+        public string incidentId,branchId,phase;
+        public float routeDistance,time,healthAfter,staminaAfter;
+        public bool preparedTool,completed,bypassed;
+    }
     [Serializable] public sealed class PhysicalBodyState
     {
         public string id,parentId;public Vector3 position,velocity;public Quaternion rotation;
@@ -13,6 +19,7 @@ namespace StormSim.Sibucao
     {
         public int schemaVersion=4;
         public List<RouteMissionProgress> sideMissions=new List<RouteMissionProgress>();
+        public List<RouteDecisionRecord> routeDecisions=new List<RouteDecisionRecord>();
         public CausalRun causal;
         public FloodVariantState[] floodVariants=new FloodVariantState[9];
         public float health=100,stamina=100;
@@ -44,10 +51,15 @@ namespace StormSim.Sibucao
         public float[] detourDistance=new float[9],detourSeconds=new float[9];
         public float waterExposureMetres;
         public int waterLossChecks;
+        // Continuous during-typhoon exposure. These fields are deliberately
+        // part of the save state so shelter, fatigue, and near-falls cannot be
+        // erased by reloading in the middle of the evacuation route.
+        public float stormExposureSeconds,stormShelterSeconds,stormWetness,stormBalance;
+        public int stormBraceCount,stormStumbles;
     }
     public sealed partial class DecisionTreeManager : MonoBehaviour
     {
-        public PhysicalDecisionStation[] stations;
+        public PhysicalDecisionStation[] stations=Array.Empty<PhysicalDecisionStation>();
         public SibucaoDryRefuge evacuationCenter;
         public PhysicalGrabber Grabber;
         public UnityEvent onRiversideBoundary=new UnityEvent();
@@ -56,6 +68,10 @@ namespace StormSim.Sibucao
         public string playerRole="Resident";
         public float studentDirectionsMultiplier=1,parentAssistMultiplier=1,volunteerHelpMultiplier=1;
         public PhysicalRunData Data=>SibucaoSession.Instance.state.physical;
+        public SibucaoContinuousChapterOne ContinuousChapter=>SibucaoSession.Instance?SibucaoSession.Instance.GetComponent<SibucaoContinuousChapterOne>():null;
+        public SibucaoOptionalSideMission OptionalMission=>SibucaoSession.Instance?SibucaoSession.Instance.GetComponent<SibucaoOptionalSideMission>():null;
+        public SibucaoFloodedStreetIncident FloodedStreet=>SibucaoSession.Instance?SibucaoSession.Instance.GetComponent<SibucaoFloodedStreetIncident>():null;
+        public SibucaoRouteIncidentSequence RouteIncidents=>SibucaoSession.Instance?SibucaoSession.Instance.GetComponent<SibucaoRouteIncidentSequence>():null;
         public void EnsureNodeCapacity()
         {
             int count=9;foreach(var st in stations)if(st)count=Mathf.Max(count,st.index+1);
@@ -99,6 +115,10 @@ namespace StormSim.Sibucao
             if(s.inventory)s.inventory.RestoreInventory();
             if(s.passages)s.passages.Restore();
             lastTravelPoint=s.player.transform.position;
+            ContinuousChapter?.ResetRun();
+            OptionalMission?.ResetRun();
+            FloodedStreet?.ResetRun();
+            RouteIncidents?.ResetRun();
         }
         public void Layout()
         {
@@ -122,6 +142,8 @@ namespace StormSim.Sibucao
             }
             if(Application.isPlaying)foreach(var station in stations)if(station.branches!=null)foreach(var branch in station.branches)if(branch)branch.ApplyLayout(SibucaoSession.Instance.state.homeIndex);
             var routeChoices=GetComponent<SibucaoRouteChoices>();if(routeChoices)routeChoices.ApplyLayout();
+            ContinuousChapter?.Layout();
+            OptionalMission?.Layout();
             Physics.SyncTransforms();
         }
         public void SavePhysical()
@@ -159,14 +181,18 @@ namespace StormSim.Sibucao
             foreach(var item in initial.Keys)if(item){var body=Data.bodies.Find(x=>x.id==item.persistentId);if(body!=null&&!string.IsNullOrEmpty(body.parentId))foreach(var parent in initial.Keys)if(parent&&parent.persistentId==body.parentId)item.transform.SetParent(parent.transform,true);}
             foreach(var item in initial.Keys)if(item)
             {
-                if(Data.flags.Contains("spilled:"+item.persistentId)){item.station=stations[4];if(!item.secured)item.transform.SetParent(stations[4].spill.transform,true);}
-                if(Data.flags.Contains("broken_bag:"+item.persistentId)){stations[4].brokenBag=item;item.Body.constraints=RigidbodyConstraints.FreezeRotation;}
+                if(stations.Length>4&&stations[4]&&Data.flags.Contains("spilled:"+item.persistentId)){item.station=stations[4];if(!item.secured)item.transform.SetParent(stations[4].spill.transform,true);}
+                if(stations.Length>4&&stations[4]&&Data.flags.Contains("broken_bag:"+item.persistentId)){stations[4].brokenBag=item;item.Body.constraints=RigidbodyConstraints.FreezeRotation;}
             }
-            if(Data.flags.Contains("strap_broken")){var proxy=stations[4].spill.transform.Find("Go-bag with broken strap");if(proxy)proxy.gameObject.SetActive(false);}
+            if(stations.Length>4&&stations[4]&&Data.flags.Contains("strap_broken")){var proxy=stations[4].spill.transform.Find("Go-bag with broken strap");if(proxy)proxy.gameObject.SetActive(false);}
             foreach(var station in stations)if(station.branches!=null)foreach(var branch in station.branches)if(branch)branch.RestoreBinding();
             if(SibucaoSession.Instance.inventory)SibucaoSession.Instance.inventory.RestoreInventory();
             if(SibucaoSession.Instance.passages)SibucaoSession.Instance.passages.Restore();
             GetComponent<SibucaoRouteChoices>()?.ResumeSavedWork();
+            ContinuousChapter?.RestoreRun();
+            OptionalMission?.RestoreRun();
+            FloodedStreet?.RestoreRun();
+            RouteIncidents?.RestoreRun();
             Data.schemaVersion=4;
             lastTravelPoint=SibucaoSession.Instance.player.transform.position;
         }
@@ -226,12 +252,21 @@ namespace StormSim.Sibucao
                 var delta=s.player.transform.position-s.route.Sample(s.route.length);
                 if(new Vector2(delta.x,delta.z).magnitude>5||Mathf.Abs(delta.y)>4){arrivalBlockedShown=false;return;}
             }
-            if(causalModel&&NextCoreStage<9){if(!arrivalBlockedShown){arrivalBlockedShown=true;s.OpenRecovery(true);}return;}
+
+
             // Record bypassed situations as missed; do not leave the player at a dead waypoint.
             foreach(var station in stations)if(!station.Resolved){if(station.index==4&&Data.started[4]<0&&(!s.inventory||!s.inventory.HasBag))SetFlag("no_bag_to_break");Missed(station);}
             if(!Data.boundaryReached)ReachBoundary();
         }
         public void SetFlag(string flag){if(!Data.flags.Contains(flag))Data.flags.Add(flag);}
+        public void RecordRouteDecision(string incidentId,string branchId,string phase,bool preparedTool,bool completed=false,bool bypassed=false)
+        {
+            if(Data.routeDecisions==null)Data.routeDecisions=new List<RouteDecisionRecord>();
+            if(Data.routeDecisions.Exists(r=>r.incidentId==incidentId&&r.branchId==branchId&&r.phase==phase))return;
+            var s=SibucaoSession.Instance;var record=new RouteDecisionRecord{incidentId=incidentId,branchId=branchId,phase=phase,preparedTool=preparedTool,completed=completed,bypassed=bypassed,
+                routeDistance=s&&s.route&&s.player?s.route.Progress(s.player.transform.position):0,time=s&&s.state!=null?s.state.elapsed:0,healthAfter=Data.health,staminaAfter=Data.stamina};
+            Data.routeDecisions.Add(record);
+        }
         public bool SpillBag(PhysicalDecisionStation station)
         {
             var inventory=SibucaoSession.Instance.inventory;
@@ -264,7 +299,7 @@ namespace StormSim.Sibucao
         }
         void ReachBoundary()
         {
-            if(Data.boundaryReached||causalModel&&NextCoreStage<9)return;
+            if(Data.boundaryReached)return;
             EnterCausalStage(9);
             ApplyPending(9);
             if(!Data.arrivalReported){SibucaoSession.Instance.SetMode(SibucaoMode.ArrivalReview);return;}
@@ -276,6 +311,7 @@ namespace StormSim.Sibucao
         {
             if(SibucaoSession.Instance.Mode!=SibucaoMode.ArrivalReview)return;
             if(!Data.arrivalReceived){Data.arrivalReceived=true;SibucaoSession.Instance.Say("School volunteer: Welcome. We have recorded your arrival. Tell us who still needs help and what supplies you have.",7);return;}
+            SibucaoSession.Instance.GetComponent<SibucaoEvacuationExperience>()?.RecordReceptionReports();
             Data.arrivalReported=true;SetFlag("arrival_details_reported");ReachBoundary();
         }
         public void AddConsequenceNotice(string id,int destination,string message)

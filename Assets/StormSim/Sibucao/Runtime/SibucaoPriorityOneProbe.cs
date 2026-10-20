@@ -22,11 +22,24 @@ namespace StormSim.Sibucao.Editor
         public void Run(string mode,int choice=1)
         {
             StopAllCoroutines();input=SibucaoPlaythroughProbe.Get();Application.runInBackground=true;
-            StartCoroutine(Guard(mode,mode=="durations"?Durations():mode=="cancel"?CancelAll():mode=="probe"?ProbeFixture():mode=="edges"?Edges():mode=="contrast"?Contrast():Fresh(choice)));
+            StartCoroutine(Guard(mode,mode=="durations"?Durations():mode=="cancel"?CancelAll():mode=="probe"?ProbeFixture():mode=="complete_probe"?CompleteProbeFixture():mode=="edges"?Edges():mode=="contrast"?Contrast():Fresh(choice)));
         }
         void Save(){System.IO.File.WriteAllLines("Documentation/SIBUCAO_PRIORITY1_CHECKS.txt",new[]{"AUTOMATED production-input Play Mode checks, not native/manual or visibility-only play. "+DateTime.Now,status}.Concat(results));}
         void Record(string text){results.Add(text);Save();}
         void Check(bool condition,string message){if(!condition)throw new Exception(message);}
+        void StartStormRun()
+        {
+            var preparation=S.GetComponent<StormSim.Preparedness.SibucaoPreparationBridge>();
+            if(!preparation){S.StartRun();return;}
+            if(preparation.Active)
+            {
+                if(preparation.CanSkipToDuring){preparation.SkipToDuring();return;}
+                throw new InvalidOperationException("Enable temporary development controls so the B1 regression can leave PREPARATION without changing task results.");
+            }
+            var handingOff=typeof(StormSim.Preparedness.SibucaoPreparationBridge).GetField("<HandingOff>k__BackingField",BindingFlags.NonPublic|BindingFlags.Instance);
+            handingOff.SetValue(preparation,true);
+            try{S.StartRun();}finally{handingOff.SetValue(preparation,false);}
+        }
         IEnumerator Guard(string name,IEnumerator work)
         {
             status=name;var stack=new Stack<IEnumerator>();stack.Push(work);Exception error=null;
@@ -36,19 +49,21 @@ namespace StormSim.Sibucao.Editor
                 try{next=stack.Peek().MoveNext();if(next)value=stack.Peek().Current;}catch(Exception e){error=e;break;}
                 if(!next){stack.Pop();continue;}if(value is IEnumerator nested){stack.Push(nested);continue;}yield return value;
             }
-            SibucaoEditorInput.Move=Vector2.zero;SibucaoEditorInput.GripHeld=SibucaoEditorInput.UseHeld=SibucaoEditorInput.Sprint=false;
+            SibucaoEditorInput.Reset();
             status=error==null?"PASS "+name:"FAIL "+name+": "+error.GetBaseException().Message;Record(status);
         }
         IEnumerator Invoke(MonoBehaviour host,string method,params object[] args)=>(IEnumerator)host.GetType().GetMethod(method,BindingFlags.NonPublic|BindingFlags.Instance).Invoke(host,args);
         IEnumerator Fixture(int node,bool wet=false,int home=0)
         {
-            SibucaoEditorInput.Reset();SibucaoEditorInput.Active=true;S.StartRun();
+            SibucaoEditorInput.Reset();SibucaoEditorInput.Active=true;StartStormRun();
             S.home.Suspend();S.home=S.homes[home];S.state.homeIndex=home;S.home.Begin();S.physicalDecisions.ResetRun();
-            S.state.homeSeconds=wet?SibucaoStormTimeline.FloodStart(S.home)+70:90;S.home.Restore();S.state.physical.seed=23421;
+            if(wet)S.state.difficultyLevel=5; // Exercise the real wet interaction independently of the menu default.
+            S.state.homeSeconds=wet?SibucaoStormTimeline.FloodStart(S.home)+Mathf.Max(70,S.home.floodRiseDuration):90;S.home.Restore();S.state.physical.seed=23421;
             foreach(var st in S.physicalDecisions.stations)if(st.index!=node)S.state.physical.results[st.index]=99;
             foreach(var item in S.home.GetComponentsInChildren<PhysicalGrabbable>(true).OrderBy(i=>i.kind==PhysicalItemKind.Bag?0:1))if(item.kind==PhysicalItemKind.Bag||SibucaoInventory.Storable(item))S.inventory.Collect(item);
             yield return null;var flood=S.GetComponent<FloodSimulationManager>();while(flood.IsCatchingUp)yield return null;
             yield return new WaitForSeconds(.5f);
+            if(wet)Check(B1.HasVisibleWater,"Wet B1 fixture finished without visible water.");
         }
         IEnumerator Durations()
         {
@@ -92,7 +107,9 @@ namespace StormSim.Sibucao.Editor
             var b=B1.branches[0];var legacy=SibucaoFirstCrossingProbe.Get();
             typeof(SibucaoFirstCrossingProbe).GetField("input",BindingFlags.NonPublic|BindingFlags.Instance).SetValue(legacy,input);
             yield return Invoke(legacy,"GripVisibleTool",b.tool);
-            Check(b.Engaged&&b.Prompt.Contains("two wet spots"),"Held probe prompt missing");
+            float engageUntil=Time.realtimeSinceStartup+1.5f;
+            while(!b.Engaged&&Time.realtimeSinceStartup<engageUntil)yield return null;
+            Check(b.Engaged&&b.Prompt!=null&&b.Prompt.Contains("two wet spots"),"Held probe prompt missing; engaged="+b.Engaged+" prompt="+b.Prompt+" active="+B1.Active);
             Record("PASS held stick retains two-location guidance; B1 has visible water.");
             for(int sample=0;sample<2;sample++)
             {
@@ -111,9 +128,30 @@ namespace StormSim.Sibucao.Editor
             Check(!S.player.grabber.held&&!B1.EngagedBranch&&!B1.Resolved&&B1.Attempt.probeSamples==0,"Q did not release/reset probe");
             SibucaoEditorInput.GripHeld=false;Record("PASS Q released physical stick, cleared readings and branch lock without recording a choice.");
         }
+        IEnumerator CompleteProbeFixture()
+        {
+            yield return Fixture(0,true);var b=B1.branches[0];var legacy=SibucaoFirstCrossingProbe.Get();
+            typeof(SibucaoFirstCrossingProbe).GetField("input",BindingFlags.NonPublic|BindingFlags.Instance).SetValue(legacy,input);
+            S.player.Teleport(b.tool.transform.position-B1.transform.forward*1.2f+Vector3.up*.12f,B1.transform.forward);yield return new WaitForSeconds(.35f);
+            yield return Invoke(legacy,"GripVisibleTool",b.tool);
+            float engageUntil=Time.realtimeSinceStartup+1.5f;while(!b.Engaged&&Time.realtimeSinceStartup<engageUntil)yield return null;
+            Check(b.Engaged,"Probe route did not engage after gripping the stick");
+            for(int sample=0;sample<2;sample++)
+            {
+                var wet=B1.transform.TransformPoint(-2.5f,-.1f,sample*1.4f);
+                yield return input.Aim(wet);yield return input.MoveTo(B1.transform.TransformPoint(-2.5f,0,sample*1.4f-1),20);yield return input.Aim(wet);
+                float settle=Time.time+5;while(B1.Attempt.probeSamples<sample+1&&Time.time<settle)yield return null;
+            }
+            Check(B1.Attempt.probeSamples==2,"Probe route needs two real wet readings");
+            yield return input.MoveTo(b.path[0].position,25);
+            foreach(var point in b.path.Skip(1))yield return input.MoveTo(point.position,25);
+            yield return input.MoveTo(b.path.Last().position+B1.transform.forward*1.5f,20);
+            Check(B1.Resolved&&S.state.physical.results[0]==0&&S.state.physical.history.Count(x=>x.node==0)==1,"Probe route did not complete exactly once");
+            SibucaoEditorInput.GripHeld=false;Record("PASS B1 depth route sampled two real wet spots, crossed the raised boards, resolved once, and released the route state.");
+        }
         IEnumerator Fresh(int choice)
         {
-            SibucaoEditorInput.Reset();SibucaoEditorInput.Active=true;if(freshSeed>=0)UnityEngine.Random.InitState(freshSeed);S.StartRun();
+            SibucaoEditorInput.Reset();SibucaoEditorInput.Active=true;if(freshSeed>=0)UnityEngine.Random.InitState(freshSeed);StartStormRun();
             int home=S.state.homeIndex;float started=Time.realtimeSinceStartup;
             status="Fresh home "+home+": wake / TV skip / stand";Save();
             yield return new WaitForSeconds(7);S.home.SkipTV();

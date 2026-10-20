@@ -17,14 +17,17 @@ namespace StormSim.Sibucao
         public float carryDistance;
         public Vector3[] companionPositions;
         public Quaternion[] companionRotations;
+        public string preparationChoice;
     }
 
-    public enum RouteWork { Talk, Slide, Turn, Carry, Escort, Check }
+    public enum RouteWork { Talk, Slide, Turn, Carry, Escort, Check, Preparation }
+    public enum RoutePreparationUse { None, Advisory, ParentAssist }
 
     [Serializable] public sealed class RouteMissionStep
     {
         public string instruction, response;
         public RouteWork work;
+        public RoutePreparationUse preparationUse;
         public Transform item, target;
         public Transform originalParent;
         public Transform attachAfter;
@@ -52,6 +55,8 @@ namespace StormSim.Sibucao
         public SibucaoRouteSection[] sections;
         public SibucaoSideMission Working { get; private set; }
         public SibucaoSideMission HeldBy { get; private set; }
+        // Informational preview only. The player still commits by physically entering a passage.
+        public int PreviewSelection { get; private set; } = 1;
         float nextCall;
         int callCursor;
         public SibucaoRouteSection Current
@@ -101,13 +106,32 @@ namespace StormSim.Sibucao
         }
         public string Objective => Working ? "WORK — "+Working.title : Previewing ? "NOTICE — inspect LEFT, AHEAD and RIGHT." : null;
         public string Hint => Working ? Working.Hint : Previewing ? "INSPECT: looking is safe and records nothing. COMMIT: approach one passage and use its person or object. WORK: finish its 2–3 actions. CONSEQUENCE: reach the exit and see what changed." : null;
-        public Vector3 NavigationTarget => Working ? Working.WorkTarget : Current ? Current.AccessTarget(SibucaoSession.Instance.player.transform.position) : transform.position;
+        public Vector3 NavigationTarget => Working ? Working.WorkTarget : Previewing ? PreviewTarget(PreviewSelection) : Current ? Current.AccessTarget(SibucaoSession.Instance.player.transform.position) : transform.position;
+        public void SelectPreview(int index) { PreviewSelection = Mathf.Clamp(index, 0, 2); }
+        public Vector3 PreviewTarget(int index)
+        {
+            var section = Current;
+            if (!section) return transform.position;
+            if (index <= 0 && section.left) return section.left.transform.position;
+            if (index >= 2 && section.right) return section.right.transform.position;
+            return section.station ? section.station.NavigationTarget : section.transform.position;
+        }
         public string Prompt
         {
             get
             {
                 if (HeldBy) return HeldBy.Hint;
                 var m = Focused(); return m ? m.Hint : null;
+            }
+        }
+        public Transform ContextTarget
+        {
+            get
+            {
+                var mission=HeldBy?HeldBy:Focused();
+                if(!mission)return null;
+                var step=mission.Step;
+                return step!=null&&step.item?step.item:mission.caller;
             }
         }
         public static float Flat(Vector3 a, Vector3 b) { a.y = b.y; return Vector3.Distance(a, b); }
@@ -196,7 +220,7 @@ namespace StormSim.Sibucao
         }
         public void ApplyLayout()
         {
-            Working = HeldBy = null; nextCall = 0; callCursor = 0;
+            Working = HeldBy = null; PreviewSelection = 1; nextCall = 0; callCursor = 0;
             if (sections == null) return;
             foreach (var section in sections) if (section) section.ApplyLayout(SibucaoSession.Instance.state.homeIndex);
         }

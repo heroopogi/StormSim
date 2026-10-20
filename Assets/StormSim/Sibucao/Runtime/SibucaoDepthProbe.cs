@@ -65,7 +65,10 @@ namespace StormSim.Sibucao
                 depth<.85f?"Water reaches the middle marks.":depth<1.3f?"Water reaches the upper marks.":"Water is beyond the upper marks here.";
             LastReaction=second?(depth>previousDepth+.08f?"This spot is deeper than the first.":depth<previousDepth-.08f?
                 "This spot is shallower than the first.":"The water is about the same depth here."):height;
-            SibucaoSession.Instance.Say(LastReaction,5);
+            var s=SibucaoSession.Instance;
+            s.Say(LastReaction,5);
+            if(second)s.Notify("Depth check complete",LastReaction+" Follow the raised boards to dry ground.");
+            else s.Notify("Depth check 1 of 2",LastReaction+" Test a second wet spot at least one step away.");
         }
         void OnDestroy(){if(material)Destroy(material);}
     }

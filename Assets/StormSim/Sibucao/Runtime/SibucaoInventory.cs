@@ -77,6 +77,12 @@ namespace StormSim.Sibucao
             if(!Storable(item))return false;
             if(!HasBag){S.Notify("A bag is needed","Pick up your go-bag before collecting items.");return true;}
             EnsureSlots();int index=Array.IndexOf(Data.inventorySlots,item.persistentId);bool newlyCollected=index<0;
+            var specialist=item.GetComponent<StormSim.Preparedness.PreparednessItem>();
+            if(newlyCollected&&specialist&&SibucaoEvacuationExperience.IsSpecialist(specialist.id))
+            {
+                int count=0;for(int n=0;n<Capacity;n++){var existing=Slot(n);var gear=existing?existing.GetComponent<StormSim.Preparedness.PreparednessItem>():null;if(gear&&SibucaoEvacuationExperience.IsSpecialist(gear.id))count++;}
+                if(count>=SibucaoEvacuationExperience.SpecialistLimit){S.Notify("Specialist kit is full","Swap one specialist tool in your bag before packing this one. Essential supplies keep their regular allowance.");return true;}
+            }
             if(newlyCollected&&Data.backpackId=="prep:bag")
             {
                 float Weight(PhysicalGrabbable value){var prepItem=value.GetComponent<StormSim.Preparedness.PreparednessItem>();return prepItem?prepItem.mass:value.Body.mass;}

@@ -34,7 +34,7 @@ namespace StormSim.Sibucao
                 if (!blocked) { landing = candidate; break; }
             }
             if (!landing.HasValue) { Notify("Junction footing is obstructed", "Resume and follow the guide, or load a checkpoint from Pause."); return false; }
-            RouteChoices.Working?.Cancel();
+            if(RouteChoices)RouteChoices.Working?.Cancel();
             foreach (var station in physicalDecisions.stations) if (station.EngagedBranch) station.EngagedBranch.CancelInteraction();
             physicalDecisions.Grabber.Release(false);
             if(player.vehicle)player.vehicle.Release();

@@ -9,6 +9,12 @@ namespace StormSim.Preparedness
         bool departureReview,reviewEvacuate;
         bool householdHelp,layoutHelp;
         Vector2 reviewScroll,bagScroll;
+        public bool StormglassDepartureOpen=>departureReview;
+        public void StormglassConfirmDeparture()
+        {
+            if(!departureReview)return;
+            if(session.TryFinish(reviewEvacuate,true))CloseDesktopPanels();
+        }
         public void OpenDepartureReview(bool evacuate)
         {
             if(XRActive){session.Say(session.CapacityText+". Hold left primary to review the household plan. Use again to confirm.");session.Finish(evacuate);return;}
@@ -25,15 +31,18 @@ namespace StormSim.Preparedness
             if(GUILayout.Button(bag&&bag.closed?"Open bag to retrieve items":"Close bag",SibucaoDesktopHud.ButtonStyle,GUILayout.MinHeight(40)))session.Use(bag);
             GUI.enabled=previous;
             GUILayout.Label(!accessible?"Collect the bag or stand within reach to change its contents.":held?"Put down your held item before retrieving another.":bag.closed?"Open the bag first.":"Choose the item you want to retrieve.",SibucaoDesktopHud.Small);
-            var contents=session.items.Where(i=>i.IsPacked).ToArray();
+            var contents=session.items.Where(i=>i.IsPacked).OrderBy(i=>session.ItemCategory(i)).ThenBy(i=>i.displayName).ToArray();
             if(contents.Length==0)GUILayout.Label("Your bag is empty.",SibucaoDesktopHud.Text);
+            string category=null;
             foreach(var item in contents)
             {
+                var nextCategory=session.ItemCategory(item);
+                if(nextCategory!=category){category=nextCategory;GUILayout.Space(10);GUILayout.Label(category.ToUpperInvariant(),SibucaoDesktopHud.Small);}
                 GUILayout.Space(8);
                 GUILayout.Label($"{item.displayName} · {item.mass:0.0} kg\n"+session.ItemReadiness(item),SibucaoDesktopHud.Text);
                 GUI.enabled=previous&&accessible&&!bag.closed&&!held;
-                if(GUILayout.Button("Take out this item",SibucaoDesktopHud.ButtonStyle,GUILayout.MinHeight(38)))
-                    if(session.Unpack(item))CloseDesktopPanels();
+                if(GUILayout.Button("Remove from bag and place nearby",SibucaoDesktopHud.ButtonStyle,GUILayout.MinHeight(38)))
+                    if(session.DropFromBag(item))CloseDesktopPanels();
                 GUI.enabled=previous;
             }
             GUILayout.Space(8);GUILayout.Label("Preparation time pauses while reading. Items packed without checking may still need preparation.",SibucaoDesktopHud.Small);
@@ -49,9 +58,7 @@ namespace StormSim.Preparedness
             float w=(r.width-56)/2;
             if(GUI.Button(new Rect(r.x+22,r.yMax-64,w,44),reviewEvacuate?"Leave now":"Rest until morning",SibucaoDesktopHud.ButtonStyle))
             {
-                session.Finish(reviewEvacuate);
-                if(!reviewEvacuate&&session.phase!=PrepPhase.Fade)session.Finish(false);
-                CloseDesktopPanels();
+                if(session.TryFinish(reviewEvacuate,true))CloseDesktopPanels();
             }
             if(GUI.Button(new Rect(r.x+34+w,r.yMax-64,w,44),"Keep preparing",SibucaoDesktopHud.ButtonStyle))CloseDesktopPanels();
         }

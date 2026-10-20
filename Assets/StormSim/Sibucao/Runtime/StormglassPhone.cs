@@ -12,7 +12,7 @@ namespace StormSim.UI
         {
             var r=Rect(name,phoneFrame,size);r.anchoredPosition=position;
             var label=r.gameObject.AddComponent<TextMeshProUGUI>();label.font=theme.bodyFont;
-            label.fontSize=fontSize;label.color=Color.white;label.text=value;
+            label.fontSize=fontSize*S.settings.textScale;label.color=Color.white;label.text=value;
             label.alignment=TextAlignmentOptions.Center;label.raycastTarget=false;return label;
         }
         void BuildPhone()
@@ -32,7 +32,7 @@ namespace StormSim.UI
             var screen=Rect("Odette video screen",phoneFrame,new Vector2(368,650));screen.anchoredPosition=new Vector2(0,22);
             var raw=screen.gameObject.AddComponent<RawImage>();raw.color=Color.white;raw.texture=media?media.Texture:null;raw.raycastTarget=false;
             phoneStatus=PhoneLabel("Video status",media?media.Status:"Video unavailable",new Vector2(0,22),new Vector2(340,80),22);
-            PhoneLabel("Video title","Typhoon Odette in Southern Cebu",new Vector2(0,-320),new Vector2(365,32),18);
+            PhoneLabel("Video title","Typhoon Odette in Southern Cebu",new Vector2(0,-320),new Vector2(365,58),18);
             var pause=Action("Pause",()=>{if(media)media.TogglePlayback();rebuild=false;},media,parent:phoneFrame,height:50);
             var pauseRect=(RectTransform)pause.transform;pauseRect.sizeDelta=new Vector2(164,50);pauseRect.anchoredPosition=new Vector2(-89,-366);
             phonePlaybackLabel=pause.GetComponentInChildren<TMP_Text>();

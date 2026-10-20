@@ -13,7 +13,7 @@ namespace StormSim.Preparedness
         public GameObject[] hiddenDuringPreparation;
         public PreparednessItem[] houseDoors;
         [Tooltip("Temporary desktop testing shortcut. Disable to hide the button and F8 shortcut.")]
-        public bool showTemporarySkip=true;
+        public bool showTemporarySkip=false;
         public bool CanSkipToDuring=>SibucaoDevelopmentControls.Enabled&&showTemporarySkip&&Active&&!HandingOff;
         public Rect SkipButtonRect=>new Rect(Mathf.Max(12,Screen.width-282),18,Mathf.Min(264,Screen.width-24),42);
         public bool PointerOverSkip(Vector2 screenPosition)=>CanSkipToDuring&&SkipButtonRect.Contains(new Vector2(screenPosition.x,Screen.height-screenPosition.y));
@@ -105,6 +105,20 @@ namespace StormSim.Preparedness
             game.physicalDecisions.SetFlag("temporary_preparation_skip");
             game.Notify("Preparation skipped","DURING phase started with your current supplies and preparations.");
         }
+#if UNITY_EDITOR
+        /// <summary>Editor-only entry used by the temporary outdoor playtest start.</summary>
+        public void SkipToDuringForEditorTesting()
+        {
+            if(!Active)return;
+            preparation.departure="temporary-outdoor-test";
+            // The outdoor shortcut bypasses packing, but the DURING phase still contains
+            // supply-recovery tasks that require the shared bag. Hand off that same bag empty.
+            if(preparation.Bag&&preparation.player&&!preparation.player.carriedBag)
+                preparation.player.GrabBag(preparation.Bag,true);
+            TransitionToStorm(false);
+            game.physicalDecisions.SetFlag("temporary_preparation_skip");
+        }
+#endif
         public void BeginStorm()
         {
             TransitionToStorm(true);
@@ -137,6 +151,10 @@ namespace StormSim.Preparedness
             bool waking=snapshot.departure=="overnight";
             game.state.homeSeconds=DepartureClock(firstHome,snapshot.departure);
             game.state.elapsed=game.state.homeSeconds;
+            // Early departure advances past the wake-up presentation only. Do not
+            // silently simulate that skipped introduction as outdoor rainfall.
+            game.state.floodClockOffset=snapshot.departure=="early-evacuation"?game.state.homeSeconds:0;
+            game.GetComponent<FloodSimulationManager>()?.RestoreClock();
             game.state.preparationSnapshot=JsonUtility.ToJson(snapshot);
             int doorIndex=System.Array.IndexOf(game.homes,firstHome);
             game.state.homeDoorOpen=doorIndex>=0&&doorIndex<houseDoors.Length&&!houseDoors[doorIndex].closed;
@@ -150,7 +168,7 @@ namespace StormSim.Preparedness
             if(departure=="overnight")return 0; // Compatibility with existing storm saves.
             float start=SibucaoStormTimeline.FloodStart(home);
             // A bounded head start in compressed scenario time, not a forecast.
-            return departure=="early-evacuation"?Mathf.Max(home.wakeDuration+home.newsDuration+home.standDuration,start-60):start;
+            return departure=="early-evacuation"?Mathf.Max(home.wakeDuration+home.newsDuration+home.standDuration,start-180):start;
         }
         public void RestoreStormSnapshot(string json)
         {

@@ -64,8 +64,16 @@ namespace StormSim.Sibucao
             }
             strength=Mathf.MoveTowards(strength,target,Time.deltaTime*.3f);
             float severity=Mathf.InverseLerp(.6f,1.35f,strength);
-            if(rain){rain.transform.position=player.position+Vector3.up*10;var emission=rain.emission;emission.rateOverTime=(quality==0?1200:quality==1?2600:4000)*strength;var v=rain.velocityOverLifetime;v.x=5+severity*4+Mathf.Sin(Time.time*.8f)*2;v.z=2;}
-            rainAudio.volume=Mathf.Clamp01(.6f*strength+tierSwell)*SibucaoAudioMix.Environment;windAudio.volume=Mathf.Clamp01(.55f*strength+tierSwell)*SibucaoAudioMix.Environment;thunderAudio.volume=SibucaoAudioMix.Environment;
+            var exposure=session?session.GetComponent<SibucaoTyphoonExposure>():null;
+            float gust=exposure?exposure.Gust01:SibucaoTyphoonExposure.GustEnvelope(session?session.state.homeSeconds:0);
+            Vector3 wind=exposure?exposure.WindDirection:new Vector3(.82f,0,.57f).normalized;
+            if(rain){rain.transform.position=player.position+Vector3.up*10;var emission=rain.emission;emission.rateOverTime=(quality==0?1200:quality==1?2600:4000)*strength;var v=rain.velocityOverLifetime;v.space=ParticleSystemSimulationSpace.World;v.x=wind.x*Mathf.Lerp(2,11,gust);v.z=wind.z*Mathf.Lerp(2,11,gust);}
+            var experience=session?session.GetComponent<SibucaoEvacuationExperience>():null;
+            float cover=exposure&&exposure.UnderCover?.32f:1;
+            float windCover=exposure&&exposure.WindSheltered?.4f:1;
+            if(rainAudio)rainAudio.volume=Mathf.Clamp01(.6f*strength+tierSwell)*SibucaoAudioMix.Environment*cover;
+            if(windAudio)windAudio.volume=Mathf.Clamp01((.2f+.55f*gust)*strength+tierSwell)*SibucaoAudioMix.Environment*windCover;
+            if(thunderAudio)thunderAudio.volume=SibucaoAudioMix.Environment;
             if(storm && Time.time>=nextThunder){flash=1;thunderDelay=Time.time+Random.Range(.6f,1.8f);nextThunder=Time.time+Mathf.Lerp(48,20,severity)+Random.Range(0,12);}
             if(thunderDelay>=0 && Time.time>=thunderDelay){if(thunder.Length>0)thunderAudio.PlayOneShot(thunder[Random.Range(0,thunder.Length)],.65f);thunderDelay=-1;}
             flash=Mathf.MoveTowards(flash,0,Time.deltaTime*5);ApplyLighting();

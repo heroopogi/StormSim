@@ -67,7 +67,8 @@ namespace StormSim.Sibucao
         public bool RefreshFocus(out RaycastHit targetHit)
         {
             targetHit=default;FocusedItem=null;CanReach=false;
-            var hits=Physics.RaycastAll(player.view.transform.position,player.view.transform.forward,reach,~0,QueryTriggerInteraction.Ignore);
+            var ray=StormSim.UI.StormglassInteractionRay.From(player.view);
+            var hits=Physics.RaycastAll(ray,reach,~0,QueryTriggerInteraction.Ignore);
             System.Array.Sort(hits,(a,b)=>a.distance.CompareTo(b.distance));
             foreach(var hit in hits)
             {

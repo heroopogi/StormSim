@@ -29,7 +29,7 @@ namespace StormSim.Preparedness
                 if(flood.GetWaterDepth(point)>.05f)Observe(game,item);
                 if(game.state.physical.flags.Contains("prep_wet:"+item.id))Tint(item);
             }
-            if(game.state.homeSeconds>=SibucaoStormTimeline.FloodStart(game.home))
+            if(game.home&&game.state.homeSeconds>=SibucaoStormTimeline.FloodStart(game.home))
             {
                 bool closed=bridge.preparation.items.Where(i=>i.kind==PrepKind.Window).All(i=>i.closed&&i.prepared);
                 string key=closed?"prep_windows_latched":"prep_window_rain";

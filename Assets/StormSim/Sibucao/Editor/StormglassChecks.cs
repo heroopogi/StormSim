@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UnityEngine.XR;
 using StormSim.UI;
 
 namespace StormSim.Editor
@@ -42,8 +44,9 @@ namespace StormSim.Editor
         {
             var ui=StormglassUI.Active;if(!ui)throw new Exception("Stormglass UI missing");
             UnityEngine.Canvas.ForceUpdateCanvases();var problems=new List<string>();
-            if(ui.Canvas.renderMode!=RenderMode.WorldSpace)problems.Add("Canvas not world-space");
-            if(!ui.Canvas.worldCamera)problems.Add("Canvas camera missing");
+            if(XRSettings.isDeviceActive&&ui.Canvas.renderMode!=RenderMode.WorldSpace)problems.Add("XR canvas not world-space");
+            if(XRSettings.isDeviceActive&&!ui.Canvas.worldCamera)problems.Add("XR canvas camera missing");
+            if(!XRSettings.isDeviceActive&&ui.Canvas.renderMode!=RenderMode.ScreenSpaceOverlay)problems.Add("Desktop canvas not screen-space overlay");
             foreach(var b in ui.Buttons)
             {
                 var r=(RectTransform)b.transform;
@@ -52,7 +55,22 @@ namespace StormSim.Editor
                 if(!text||!text.font)problems.Add(b.name+" missing font");
                 else if(text.isTextOverflowing)problems.Add(b.name+" text overflow");
             }
+            if(ui.ScreenKey=="Menu")
+            {
+                var labels=ui.Buttons.Where(b=>b).Select(b=>b.GetComponentInChildren<TMPro.TMP_Text>()?.text??"").ToArray();
+                foreach(var expected in new[]{"Start","Continue","Choose training location","Comfort & settings","About & credits"})
+                    if(!labels.Any(label=>label.StartsWith(expected,StringComparison.OrdinalIgnoreCase)))problems.Add("Main menu missing "+expected);
+                if(labels.Distinct().Count()!=labels.Length)problems.Add("Main menu contains duplicate actions");
+            }
             return "Screen="+ui.ScreenKey+"; Buttons="+ui.Buttons.Count+"; "+(problems.Count==0?"PASS":string.Join("; ",problems));
+        }
+        public static string CheckDedicatedMainMenuScene()
+        {
+            var scenes=EditorBuildSettings.scenes.Where(scene=>scene.enabled).ToArray();
+            if(scenes.Length==0)throw new Exception("No enabled build scenes");
+            if(scenes[0].path!="Assets/Scenes/STORMSIM_MainMenu.unity")throw new Exception("Dedicated Main Menu is not the first enabled build scene");
+            if(!System.IO.File.Exists(scenes[0].path))throw new Exception("Dedicated Main Menu scene file is missing");
+            return "PASS: dedicated Main Menu is the first enabled build scene";
         }
     }
 }

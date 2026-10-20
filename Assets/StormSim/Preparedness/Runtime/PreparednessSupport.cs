@@ -7,8 +7,7 @@ using StormSim.Sibucao;
 namespace StormSim.Preparedness
 {
     public enum PreparationWeather { Calm, WindRising, UnsafeOutside, Evacuate }
-    [Serializable] public sealed class PrepWorkSave { public string id; public float seconds; }
-
+    public enum DRRMOWarningStage { Monitoring, Alert, Evacuate }
     public sealed partial class PreparednessSession
     {
         public const float BagLimit=8, UsefulCharge=80;
@@ -16,12 +15,18 @@ namespace StormSim.Preparedness
         public const string QuantityGuide="Home reserve practice: 4 people × 3 days × about 3.8 L = 45.4 L; ten 5 L containers provide 50 L. This is a short training baseline, not a complete home emergency supply.\nThree food packs represent three household-day sets in this scenario; actual nutrition and portions are not simulated.\nThe small 1 L travel bottle belongs in your bag. It is only a demonstration share; the other adult carries additional travel supplies. One bottle is not the household's full requirement.\nBag limit: 8 kg in this scenario. Real carrying needs and abilities vary.";
         public const string BulletinText="A strong typhoon may bring heavy rain, wind and flooding. Prepare essential supplies, plan how the household will leave, and follow evacuation advisories. Property tasks are optional. You can leave early after checking this update.";
         public PreparationWeather Weather=>evacuationOrdered?PreparationWeather.Evacuate:preparationSeconds>=evacuationAfterSeconds*.75f?PreparationWeather.UnsafeOutside:preparationSeconds>=evacuationAfterSeconds*.5f?PreparationWeather.WindRising:PreparationWeather.Calm;
+        public DRRMOWarningStage WarningStage=>evacuationOrdered?DRRMOWarningStage.Evacuate:preparationSeconds>=evacuationAfterSeconds*.5f?DRRMOWarningStage.Alert:DRRMOWarningStage.Monitoring;
+        public string WarningStageText=>WarningStage==DRRMOWarningStage.Monitoring
+            ? "MONITORING — Follow television and radio updates. Prepare essentials and review the marked route."
+            : WarningStage==DRRMOWarningStage.Alert
+                ? "ALERT — Conditions are worsening. Stop unsafe outdoor work, keep the go-bag ready, and prepare to leave."
+                : "EVACUATE — Leave now by the marked safe route. Unfinished tasks must be abandoned.";
         public bool ElevatedWorkSafe=>CanPrepare&&Weather==PreparationWeather.Calm;
         public string WeatherText=>Weather==PreparationWeather.Calm?"Calm and dry — optional ground-level work only while safe.":Weather==PreparationWeather.WindRising?"Wind rising — stop elevated work; prepare to leave.":Weather==PreparationWeather.UnsafeOutside?"Wind and rain increasing — stop outdoor work and return inside.":"Evacuation advised — leave now. Do not finish chores.";
         public float BagMass=>items.Where(i=>i.IsPacked).Sum(i=>i.mass);
         public float HomeWater=>items.Where(i=>i.kind==PrepKind.Water&&i.id!="travel-water"&&i.storedIn=="supplies").Sum(i=>i.litres);
         public bool TravelWaterPacked=>items.Any(i=>i.id=="travel-water"&&i.IsPacked);
-        public string CapacityText=>$"Go-bag: {BagMass:0.0} / {BagLimit:0.0} kg (scenario limit)";
+        public string CapacityText=>$"Go-bag: {BagMass:0.0} / {BagLimit:0.0} kg · Specialist tools: {items.Count(i=>i.IsPacked&&SibucaoEvacuationExperience.IsSpecialist(i.id))} / {SibucaoEvacuationExperience.SpecialistLimit}";
         public string CheckpointText {get;private set;}="No preparation checkpoint yet";
         public bool HasPreparationSave=>File.Exists(SavePath)||File.Exists(SavePath+".bak");
         float nextPreparationCheckpoint=45;
@@ -79,6 +84,73 @@ namespace StormSim.Preparedness
                 case PrepKind.Phone:case PrepKind.PowerBank:return $"{item.charge:0}% — "+(item.charge>=99.9f?"fully charged":item.charge>=UsefulCharge?"useful charge; top up if safe":"partial charge; top up if time allows")+(item.storedIn=="charger"?" · charging (time compressed)":"");
                 case PrepKind.Water:return item.id=="travel-water"?"Sealed travel bottle; 1 L demonstration share":"Home reserve; not for this go-bag";
                 default:return CanPackSupply(item)?"Ready to pack":"Household item — use its matching storage";
+            }
+        }
+        public string ItemPurpose(PreparednessItem item)
+        {
+            if(!item)return "No item selected.";
+            if(!string.IsNullOrWhiteSpace(item.purpose))return item.purpose.Trim();
+            var poster=item.GetComponent<PosterSupply>();
+            if(poster)switch(poster.supply)
+            {
+                case PosterSupplyType.DryClothes:return "A protected change of clothing for warmth and comfort after exposure to rain or flood conditions.";
+                case PosterSupplyType.Raincoat:return "Wearable rain protection for the evacuation journey. It does not make floodwater safe to enter.";
+                case PosterSupplyType.Blanket:return "Dry warmth for a household member at the evacuation center.";
+                case PosterSupplyType.Boots:return "Foot protection from wet ground and debris. Boots do not make moving through floodwater safe.";
+                case PosterSupplyType.EmergencyCash:return "A small protected household reserve for essential purchases when electronic payment is unavailable.";
+                case PosterSupplyType.Candles:return "Backup household light for controlled use. Keep away from children, fuel, wind, and flammable materials.";
+                case PosterSupplyType.Matches:return "Water-protected ignition for appropriate household use. Store securely and never use near fuel or gas leaks.";
+                case PosterSupplyType.Whistle:return "A signalling tool. Three short blasts can attract attention, but signalling does not guarantee rescue.";
+            }
+            switch(item.kind)
+            {
+                case PrepKind.Water:return item.id=="travel-water"
+                    ? "Drinking water for the evacuation journey. This 1 L bottle is only the player's share in the training scenario."
+                    : "Household drinking-water reserve for use at home. Keep these large containers on the supply shelf instead of overloading the go-bag.";
+                case PrepKind.Food:return "Ready-to-eat food that supports the household when cooking or normal food access is disrupted.";
+                case PrepKind.Flashlight:return "Battery-powered light for blackouts and dark routes. Fit batteries and test it before packing.";
+                case PrepKind.Radio:return "Receives Monitoring, Alert, and Evacuate updates when television or mobile service is unavailable. Fit batteries and test it.";
+                case PrepKind.Batteries:return "Spare cells for the flashlight and radio. Keep at least one matching pair after fitting devices.";
+                case PrepKind.FirstAid:return "Basic supplies for minor injuries during evacuation. Inspect the contents and close the case before packing.";
+                case PrepKind.Medicine:return "Labelled medicine for the household member in the care plan. Check it against the care card before packing.";
+                case PrepKind.Documents:return "Protects important household documents from rain and splash. Seal the pouch before packing it.";
+                case PrepKind.Phone:return "Communication for advisories, location reporting, and family contact. A partial charge is useful; never delay evacuation to charge it.";
+                case PrepKind.PowerBank:return "Backup power for the phone when mains electricity is unavailable. Charge it only while conditions are safe.";
+                case PrepKind.Cable:return "Connects the phone to its power source or power bank. Pack it with the charging equipment.";
+                case PrepKind.Hygiene:return "Keeps basic hygiene and dry personal supplies together during displacement.";
+                case PrepKind.Bag:return "Carries portable evacuation supplies. Keep within the scenario's 8 kg limit and close it before leaving.";
+                case PrepKind.Electronics:return "Household electrical equipment. Disconnect it only while dry, then raise it away from possible water.";
+                case PrepKind.Valuables:return "A household keepsake or valuable that can be moved to a higher, safer shelf without delaying evacuation.";
+                case PrepKind.Outdoor:return "A loose outdoor object that can become debris in strong wind. Bring it indoors only while outside conditions are safe.";
+                case PrepKind.Litter:return "Dry surface litter that may block drainage. Handle it with tongs and stop outdoor work when conditions worsen.";
+                case PrepKind.Tool:return "A handling tool for dry cleanup tasks. It is not an evacuation essential and should never delay departure.";
+                case PrepKind.Window:return "A closed, checked latch reduces wind-driven rain entry; it does not stop floodwater.";
+                case PrepKind.Door:return "Keeps the home secure while preserving a clear, usable evacuation exit.";
+                case PrepKind.Plan:return "Explains a marked route to the school reception point and what to do if a passage becomes unsafe.";
+                case PrepKind.Advisory:return "Provides the current training warning and tells the household when evacuation takes priority over unfinished tasks.";
+                case PrepKind.Bed:return "Ends the evening preparation period and advances to the next advisory after a review.";
+                case PrepKind.Exit:return "Leaves the home with the supplies already prepared. Unfinished optional tasks never block evacuation.";
+                default:return "A household preparation object. Use the contextual action and readiness message to decide where it belongs.";
+            }
+        }
+        public string ItemCategory(PreparednessItem item)
+        {
+            if(!item)return "Other";
+            var poster=item.GetComponent<PosterSupply>();
+            if(poster)switch(poster.supply)
+            {
+                case PosterSupplyType.DryClothes:case PosterSupplyType.Raincoat:case PosterSupplyType.Blanket:case PosterSupplyType.Boots:return "Clothing and protection";
+                case PosterSupplyType.Candles:case PosterSupplyType.Matches:return "Light and communication";
+                case PosterSupplyType.Whistle:return "Signalling";
+                case PosterSupplyType.EmergencyCash:return "Documents and cash";
+            }
+            switch(item.kind)
+            {
+                case PrepKind.Water:case PrepKind.Food:return "Food and water";
+                case PrepKind.Flashlight:case PrepKind.Radio:case PrepKind.Batteries:case PrepKind.Phone:case PrepKind.PowerBank:case PrepKind.Cable:return "Light and communication";
+                case PrepKind.FirstAid:case PrepKind.Medicine:case PrepKind.Hygiene:return "Health and personal care";
+                case PrepKind.Documents:return "Documents";
+                default:return item.id=="raincoat"?"Clothing and protection":item.id=="whistle"?"Signalling":"Other";
             }
         }
         public string LocationOf(PreparednessItem item)

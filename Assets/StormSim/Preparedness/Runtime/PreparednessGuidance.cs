@@ -57,9 +57,9 @@ namespace StormSim.Preparedness
                 ((tutorialProgress&4)!=0?"[done] ":"[  ] ")+"Check or seal it so it is ready to use.\n"+
                 ((tutorialProgress&8)!=0?"[done] ":"[  ] ")+"Pack it in the open go-bag to carry it safely.";
         public bool TutorialComplete=>(tutorialProgress&15)==15;
-        public string PlanSummary=>evacuationOrdered
-            ? "LEAVE NOW — Take your bag to the exit. Unfinished chores and neighbor visits must not delay departure."
-            : "FIRST: prepare supplies and your go-bag; review your household route.\nOPTIONAL: protect property and warn neighbors while safe.\nTHEN: recheck the TV and leave early, or rest until the morning advisory. An advisory also arrives if you keep preparing. Reading this guide pauses preparation time.";
+        public string PlanSummary=>WarningStageText+"\n\n"+(evacuationOrdered
+            ? "Take your bag to the exit. Unfinished chores and neighbor visits must not delay departure."
+            : "Prepare the supplies you judge useful, keep the bag within its carrying limit, and review the household route. Property work and neighbor visits are optional. Reading this guide pauses preparation time.");
         public string GroupHeading(int group)=>GroupNames[group]+"  "+GroupChecks[group].Count(i=>decisions[i])+" / "+GroupChecks[group].Length+
             (group==2?" · optional while safe":group==4?" · choose when to leave":" · priority");
         public string GroupDetails(int group)

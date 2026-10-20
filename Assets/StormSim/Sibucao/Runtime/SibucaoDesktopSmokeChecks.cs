@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using StormSim.UI;
 
 namespace StormSim.Sibucao
 {
@@ -21,16 +22,35 @@ namespace StormSim.Sibucao
         void Awake(){Application.logMessageReceived+=Log;}
         void Log(string message,string stack,LogType type){if(type==LogType.Error||type==LogType.Exception||type==LogType.Assert)errors++;}
         void Check(bool value,string label){checks.Add((value?"PASS ":"FAIL ")+label);}
+        bool MenuAction(string prefix)
+        {
+            IReadOnlyList<UnityEngine.UI.Button> menuButtons=null;
+            var dedicated=FindAnyObjectByType<StormSimMainMenuScene>();
+            if(dedicated)menuButtons=dedicated.Buttons;
+            else if(StormglassUI.InUse)menuButtons=StormglassUI.Active.Buttons;
+            if(menuButtons==null)return false;
+            foreach(var button in menuButtons)
+            {
+                var text=button?button.GetComponentInChildren<TMPro.TMP_Text>():null;
+                if(text&&text.text.StartsWith(prefix,StringComparison.OrdinalIgnoreCase))return true;
+            }
+            return false;
+        }
         IEnumerator Start()
         {
             Application.runInBackground=true;
             var args=Environment.GetCommandLineArgs();int i=Array.IndexOf(args,"-stormsim-report");
             string folder=i>=0&&i+1<args.Length?args[i+1]:Path.Combine(Application.persistentDataPath,"startup-validation");Directory.CreateDirectory(folder);
             float until=Time.realtimeSinceStartup+180;
-            while(!SibucaoSession.Instance&&Time.realtimeSinceStartup<until)yield return null;
+            while(!SibucaoSession.Instance&&!FindAnyObjectByType<StormSimMainMenuScene>()&&Time.realtimeSinceStartup<until)yield return null;
             yield return new WaitForSecondsRealtime(10);
             var s=SibucaoSession.Instance;
-            Check(s&&s.Mode==SibucaoMode.Menu,"Desktop opens at the main menu");
+            var dedicated=FindAnyObjectByType<StormSimMainMenuScene>();
+            Check(dedicated||(s&&s.Mode==SibucaoMode.Menu),"Desktop opens at the main menu");
+            Check(dedicated&&dedicated.PageKey=="Home"||StormglassUI.InUse&&StormglassUI.Active.ScreenKey=="Menu","Stormglass is the active shipped main menu");
+            Check(MenuAction("Start")&&MenuAction("Continue")&&MenuAction("Choose training location")&&MenuAction("Comfort & settings")&&MenuAction("About & credits")&&MenuAction("Exit game"),"Main menu exposes every desktop action");
+            bool menuLayout=true;IReadOnlyList<UnityEngine.UI.Button> buttons=dedicated?dedicated.Buttons:StormglassUI.InUse?StormglassUI.Active.Buttons:null;if(buttons!=null)foreach(var button in buttons){var text=button?button.GetComponentInChildren<TMPro.TMP_Text>():null;if(text&&text.isTextOverflowing)menuLayout=false;}
+            Check(menuLayout,"Main menu button text does not overflow");
             Check(!Debug.isDebugBuild,"Candidate is a non-development player");
             Check(!SibucaoDevelopmentControls.Enabled,"Development controls remain unavailable");
             Check(!UnityEngine.XR.XRSettings.isDeviceActive,"Desktop starts without an active XR device");

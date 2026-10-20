@@ -137,7 +137,8 @@ namespace StormSim.Sibucao
         {
             var s=SibucaoSession.Instance;if(!s||!s.player)return null;
             var view=s.player.view.transform;
-            var hits=Physics.RaycastAll(view.position,view.forward,2.8f,~0,QueryTriggerInteraction.Ignore);
+            var ray=StormSim.UI.StormglassInteractionRay.From(s.player.view);
+            var hits=Physics.RaycastAll(ray,2.8f,~0,QueryTriggerInteraction.Ignore);
             System.Array.Sort(hits,(a,b)=>a.distance.CompareTo(b.distance));
             foreach(var hit in hits)
             {
@@ -151,8 +152,8 @@ namespace StormSim.Sibucao
             foreach(var part in FindObjectsByType<DiegeticWorkPart>(FindObjectsSortMode.None))
             {
                 if(!part||!part.gameObject.activeInHierarchy||!part.owner||part.index!=part.owner.CurrentIndex)continue;
-                Vector3 delta=part.GetComponent<Collider>().bounds.center-view.position;float distance=delta.magnitude;
-                if(distance<nearestDistance&&Vector3.Dot(view.forward,delta.normalized)>.72f){nearest=part;nearestDistance=distance;}
+                Vector3 delta=part.GetComponent<Collider>().bounds.center-ray.origin;float distance=delta.magnitude;
+                if(distance<nearestDistance&&Vector3.Dot(ray.direction,delta.normalized)>.72f){nearest=part;nearestDistance=distance;}
             }
             if(nearest)return nearest;
             return null;

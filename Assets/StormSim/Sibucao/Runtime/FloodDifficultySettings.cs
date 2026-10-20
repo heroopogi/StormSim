@@ -14,6 +14,21 @@ namespace StormSim.Sibucao
             return Mathf.SmoothStep(0,1,t);
         }
         public float Limit(float seconds)=>peakDepth*Fraction(seconds);
+        public float RequiredStageLimit(int completedRequiredStages)
+        {
+            if(completedRequiredStages<0)return 0;
+            // Ten authored depths: departure plus each of the nine ordered core
+            // missions. Side missions never change completedRequiredStages.
+            float[][] depths={
+                new[]{.05f,.09f,.14f,.20f,.27f,.34f,.42f,.50f,.56f,.60f},
+                new[]{.06f,.12f,.19f,.27f,.36f,.46f,.57f,.67f,.75f,.80f},
+                new[]{.08f,.17f,.28f,.40f,.54f,.70f,.87f,1.02f,1.13f,1.20f},
+                new[]{.10f,.22f,.36f,.52f,.70f,.92f,1.15f,1.36f,1.50f,1.60f},
+                new[]{.15f,.35f,.65f,1.00f,1.40f,1.85f,2.30f,2.75f,3.15f,3.50f}
+            };
+            return depths[Mathf.Clamp(level,1,5)-1][Mathf.Clamp(completedRequiredStages,0,9)];
+        }
+        public float EffectiveLimit(float seconds,int completedRequiredStages)=>Mathf.Max(Limit(seconds),RequiredStageLimit(completedRequiredStages));
         public float RainRate(float seconds)
         {
             float t=Mathf.Clamp01(seconds/Mathf.Max(1,peakSeconds));

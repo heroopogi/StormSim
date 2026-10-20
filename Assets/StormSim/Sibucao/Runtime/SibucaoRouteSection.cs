@@ -11,7 +11,7 @@ namespace StormSim.Sibucao
         public RouteSectionLayout[] layouts;
         public RouteSectionLayout[] floodLayouts;
         public Transform approachMarker, mergeMarker;
-        public Transform leftSign, rightSign;
+        public Transform leftSign, centerSign, rightSign;
         public AudioSource centerVoice;
         public string centerLine;
         public SibucaoRouteDeck decks;
@@ -31,9 +31,10 @@ namespace StormSim.Sibucao
             left.route = layout.leftPath; right.route = layout.rightPath;
             left.Restore(); right.Restore();
             if(decks)decks.Rebuild(layout);
-            FitApproachSign(leftSign); FitApproachSign(rightSign);
+            FitApproachSign(leftSign); FitApproachSign(centerSign); FitApproachSign(rightSign);
             ImproveDestinationContrast(left.transform); ImproveDestinationContrast(right.transform);
             PositionSign(leftSign, layout.left, layout.approach, -1);
+            PositionSign(centerSign, station.transform.position, layout.approach, 0);
             PositionSign(rightSign, layout.right, layout.approach, 1);
             PrepareAccess();
         }
@@ -43,7 +44,7 @@ namespace StormSim.Sibucao
         void PositionSign(Transform sign, Vector3 destination, Vector3 approach, int side)
         {
             if (!sign) return;
-            sign.position = approach + station.transform.forward + station.transform.right * side * (FloodLift>0?3.6f:2.4f);
+            sign.position = approach + station.transform.forward + station.transform.right * side * (FloodLift>0?4.2f:3.2f);
             sign.rotation = station.transform.rotation;
         }
         static void ImproveDestinationContrast(Transform mission)

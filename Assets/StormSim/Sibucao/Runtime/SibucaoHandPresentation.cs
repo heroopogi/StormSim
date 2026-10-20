@@ -9,8 +9,20 @@ namespace StormSim.Sibucao
     {
         public SibucaoPlayer player;
         readonly List<Mesh> meshes = new List<Mesh>();
+        readonly List<Transform> presentedHands = new List<Transform>();
+        readonly List<Vector3> baseHandPositions = new List<Vector3>();
+        readonly List<Quaternion> baseHandRotations = new List<Quaternion>();
         Vector3 shownPosition;
         bool reaching, releasing;
+        Transform incidentTarget;
+        int incidentAction=-1,incidentFrame=-10;
+        float incidentProgress;
+
+        public bool IncidentAnimationActive=>incidentTarget&&Time.frameCount-incidentFrame<=2;
+        public void DriveIncident(Transform target,int action,float progress)
+        {
+            incidentTarget=target;incidentAction=action;incidentProgress=Mathf.Clamp01(progress);incidentFrame=Time.frameCount;
+        }
 
         void Start()
         {
@@ -28,6 +40,9 @@ namespace StormSim.Sibucao
                 renderer.sharedMesh = mesh;
                 renderer.localBounds = new Bounds(new Vector3(0, 0, -.02f), new Vector3(.32f, .35f, .5f));
                 meshes.Add(mesh);
+                presentedHands.Add(renderer.transform);
+                baseHandPositions.Add(renderer.transform.localPosition);
+                baseHandRotations.Add(renderer.transform.localRotation);
             }
             shownPosition = transform.localPosition;
         }
@@ -45,9 +60,31 @@ namespace StormSim.Sibucao
             }
             var routes = s.physicalDecisions ? s.physicalDecisions.GetComponent<SibucaoRouteChoices>() : null;
             var work = routes ? routes.Working : null;
-            bool active = work && work.Step != null && (work.Manipulating || routes.HeldBy == work);
+            bool incidentActive=IncidentAnimationActive;
+            bool active = incidentActive||work && work.Step != null && (work.Manipulating || routes.HeldBy == work);
             var wanted = transform.localPosition;
-            if (active)
+            Quaternion wantedRotation=Quaternion.identity;
+            if(incidentActive)
+            {
+                var shape=incidentTarget.GetComponentInChildren<Collider>();
+                var target=shape?shape.bounds.center:incidentTarget.position;
+                wanted=transform.parent.InverseTransformPoint(target);
+                wanted=Vector3.ClampMagnitude(wanted,1.08f);wanted.z=Mathf.Max(.28f,wanted.z);
+                float pulse=Mathf.Sin(Time.time*(incidentAction==2||incidentAction==4?11:6));
+                if(incidentAction==1){wanted.y+=.18f;wanted.x+=pulse*.035f;wantedRotation=Quaternion.Euler(-18,0,pulse*9);}
+                else if(incidentAction==2){wanted.z+=.08f;wanted.y-=.04f;wantedRotation=Quaternion.Euler(-13,0,pulse*2);}
+                else if(incidentAction==3){wanted.x+=pulse*.09f;wantedRotation=Quaternion.Euler(7,pulse*8,0);}
+                else if(incidentAction==4){wanted.y-=.15f;wanted.z+=.04f;wantedRotation=Quaternion.Euler(19,0,pulse*2);}
+                else if(incidentAction==5){wanted.y+=.02f;wanted.z+=.07f;wantedRotation=Quaternion.Euler(-6,0,0);}
+                else if(incidentAction==6){wanted.y-=.07f;wantedRotation=Quaternion.Euler(12,0,pulse*3);}
+                else wantedRotation=Quaternion.Euler(4,pulse*3,0);
+                // Keep desktop hands readable in-frame even when the world target is at ground level.
+                wanted.x=Mathf.Clamp(wanted.x,-.32f,.32f);wanted.y=Mathf.Clamp(wanted.y,-.41f,.22f);wanted.z=Mathf.Clamp(wanted.z,.3f,.76f);
+                player.Gesture(incidentAction==1||incidentAction==5?1:2);
+                if(!reaching)shownPosition=transform.localPosition;
+                reaching=true;releasing=true;
+            }
+            else if (active)
             {
                 var item = work.Step.item;
                 var shape = item.GetComponentInChildren<Collider>();
@@ -64,7 +101,29 @@ namespace StormSim.Sibucao
             {
                 shownPosition = Vector3.Lerp(shownPosition, wanted, 1 - Mathf.Exp(-Time.deltaTime * 12));
                 transform.localPosition = shownPosition;
+                transform.localRotation=Quaternion.Slerp(transform.localRotation,wantedRotation,1-Mathf.Exp(-Time.deltaTime*14));
                 if (!active && (shownPosition - wanted).sqrMagnitude < .00001f) releasing = false;
+            }
+            AnimatePresentedHands(incidentActive?incidentAction:-1,incidentProgress);
+        }
+
+        void AnimatePresentedHands(int action,float progress)
+        {
+            float blend=1-Mathf.Exp(-Time.deltaTime*14),pulse=Mathf.Sin(Time.time*(action==2||action==4?11:6));
+            for(int i=0;i<presentedHands.Count;i++)
+            {
+                var hand=presentedHands[i];if(!hand)continue;
+                float side=Mathf.Sign(baseHandPositions[i].x);if(Mathf.Approximately(side,0))side=i%2==0?-1:1;
+                Vector3 offset=Vector3.zero;Quaternion rotation=baseHandRotations[i];
+                if(action==0){offset=new Vector3(side*.015f,side<0?.015f:-.02f,side>0?.08f:.015f);rotation*=Quaternion.Euler(-8,side*8,side*5);}
+                else if(action==1){offset=new Vector3(side*.035f,(side>0?.08f:.01f)+pulse*.012f,side>0?.06f:0);rotation*=Quaternion.Euler(-18,side*18,side*pulse*10);}
+                else if(action==2){offset=new Vector3(side*.025f,pulse*.006f,.105f+pulse*.012f);rotation*=Quaternion.Euler(-22,side*4,side*7);}
+                else if(action==3){offset=new Vector3(side*(.025f+pulse*.035f),-.025f,.045f);rotation*=Quaternion.Euler(12,side*(12+pulse*10),0);}
+                else if(action==4){offset=new Vector3(side*.025f,-.06f,.06f-pulse*.018f);rotation*=Quaternion.Euler(28,side*4,side*3);}
+                else if(action==5){offset=new Vector3(side*.055f,.015f,.085f);rotation*=Quaternion.Euler(-8,side*22,side*14);}
+                else if(action==6){offset=new Vector3(side*.018f,-.025f,.07f+Mathf.Sin(progress*Mathf.PI)*.035f);rotation*=Quaternion.Euler(18,side*5,side*5);}
+                hand.localPosition=Vector3.Lerp(hand.localPosition,baseHandPositions[i]+offset,blend);
+                hand.localRotation=Quaternion.Slerp(hand.localRotation,rotation,blend);
             }
         }
 

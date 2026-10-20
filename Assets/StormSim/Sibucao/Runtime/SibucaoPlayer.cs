@@ -78,7 +78,7 @@ namespace StormSim.Sibucao
                 {look=Vector2.zero;break;}
             }
             if(!driven&&StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.F).wasPressedThisFrame&&TryCarry())return;
-            if(!driven&&StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.P).wasPressedThisFrame&&grabber&&grabber.PackCarried())return;
+            if(!driven&&!s.DebugTimeInputThisFrame&&StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.P).wasPressedThisFrame&&grabber&&grabber.PackCarried())return;
             if(interact&&(!SibucaoControls.GripReleasedThisFrame||s.passages&&s.passages.Held&&s.passages.Held.State.opening>=.98f)&&TryInteract())return;
             bool cancel=StormSim.Sibucao.SibucaoControls.Button(UnityEngine.InputSystem.Key.Q).wasPressedThisFrame;
 #if UNITY_EDITOR
@@ -130,8 +130,12 @@ namespace StormSim.Sibucao
                     if(option&&option.Drive(controller,move,UseHeld,jump,ascend,Time.deltaTime*WaterSpeedFactor(WaterDepthAtFeet))){ActivePhysicalOption=option;return;}
             }
             float speed=walkSpeed*s.state.speedMultiplier*(sprint&&!s.state.companion?1.6f:1);
+            var incidentDirector=s.GetComponent<SibucaoIncidentDirector>();
+            if(incidentDirector)speed*=incidentDirector.MovementFactor;
             if(grabber)speed*=grabber.MovementScale;
             speed*=WaterSpeedFactor(WaterDepthAtFeet);
+            var typhoon=s.GetComponent<SibucaoTyphoonExposure>();
+            if(typhoon)speed*=typhoon.MovementFactor;
             if(s.state.companion)speed=Mathf.Min(speed,2.6f);
             if(ActivePhysicalOption)speed=Mathf.Min(speed,ActivePhysicalOption.SpeedLimit);
             if(s.passages&&s.passages.Held)speed=Mathf.Min(speed,.6f);
@@ -141,7 +145,8 @@ namespace StormSim.Sibucao
             if(controller.isGrounded){vertical=-2;lastGrounded=transform.position;}else vertical=Mathf.Max(-35,vertical-20*Time.deltaTime);
             if(grabber&&controller.isGrounded&&jump&&WaterDepthAtFeet<.35f&&(!grabber.held||grabber.held.kind!=PhysicalItemKind.Assist))vertical=5.5f;
             var current=flood?Vector3.ClampMagnitude(flood.GetFlowVelocity(transform.position),.7f)*Mathf.Clamp01(WaterDepthAtFeet):Vector3.zero;current.y=0;
-            controller.Move((transform.right*move.x*speed+transform.forward*move.y*speed+current+Vector3.up*vertical)*Time.deltaTime);
+            var windDrift=typhoon?typhoon.DriftVelocity:Vector3.zero;
+            controller.Move((transform.right*move.x*speed+transform.forward*move.y*speed+current+windDrift+Vector3.up*vertical)*Time.deltaTime);
             if(transform.position.y < -35 || (transform.position-lastGrounded).sqrMagnitude>1600 && !controller.isGrounded){Teleport(lastGrounded+Vector3.up*.2f,transform.forward);s.Notify("Footing recovered","You return to the last stable footing.");}
             float bob=s.settings.reducedMotion?0:move.magnitude*Mathf.Sin(Time.time*8)*.008f;
             if(hands){hands.localPosition=new Vector3(0,-.25f+bob,.44f-gesture*.03f);hands.localRotation=Quaternion.identity;}
@@ -160,7 +165,19 @@ namespace StormSim.Sibucao
         {
             var s=SibucaoSession.Instance;
             if(!s||s.Mode!=SibucaoMode.Playing||s.home&&s.home.MovementLocked||s.missionGuide&&s.missionGuide.BlocksInput||s.inventory&&s.inventory.BlocksInput)return false;
+            var incidentDirector=s.GetComponent<SibucaoIncidentDirector>();
+            if(incidentDirector&&incidentDirector.Interact())return true;
+            var experience=s.GetComponent<SibucaoEvacuationExperience>();
+            if(experience&&experience.Interact())return true;
             if(s.home&&s.home.TryInteract())return true;
+            var optional=s.GetComponent<SibucaoOptionalSideMission>();
+            if(optional&&optional.Interact())return true;
+            var floodedStreet=s.GetComponent<SibucaoFloodedStreetIncident>();
+            if(floodedStreet&&floodedStreet.Interact())return true;
+            var routeIncidents=s.GetComponent<SibucaoRouteIncidentSequence>();
+            if(routeIncidents&&routeIncidents.Interact())return true;
+            var chapter=s.GetComponent<SibucaoContinuousChapterOne>();
+            if(chapter&&chapter.Interact())return true;
             var choices=s.physicalDecisions?s.physicalDecisions.GetComponent<SibucaoRouteChoices>():null;
             if(choices&&choices.Interact())return true;
             if(s.GetComponent<StormSim.Preparedness.PreparationContinuity>()?.Interact()==true)return true;
@@ -170,6 +187,8 @@ namespace StormSim.Sibucao
             {var current=station.EngagedBranch;if(current&&current.TryEncounterInput())return true;}
             if(s.passages&&s.passages.Interact())return true;
             if(grabber&&grabber.ToggleGrab())return true;
+            var typhoon=s.GetComponent<SibucaoTyphoonExposure>();
+            if(typhoon&&typhoon.Interact())return true;
             return !vehicle&&s.physicalDecisions&&s.physicalDecisions.TryInteract();
         }
         void OnApplicationFocus(bool focused){

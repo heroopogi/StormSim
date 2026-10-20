@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEngine;
 namespace StormSim.Sibucao.Editor
 {
@@ -20,6 +21,19 @@ namespace StormSim.Sibucao.Editor
         public void Run(string filter="",bool retainPrevious=false){StopAllCoroutines();StartCoroutine(Suite(filter,retainPrevious));}
         void OnDestroy(){SibucaoEditorInput.Reset();}
         void Check(bool value,string message){if(!value)throw new Exception(message);}
+        void StartStormRun()
+        {
+            var preparation=S.GetComponent<StormSim.Preparedness.SibucaoPreparationBridge>();
+            if(!preparation){S.StartRun();return;}
+            if(preparation.Active)
+            {
+                if(preparation.CanSkipToDuring){preparation.SkipToDuring();return;}
+                throw new InvalidOperationException("Enable temporary development controls so the crossing regression can leave PREPARATION.");
+            }
+            var handingOff=typeof(StormSim.Preparedness.SibucaoPreparationBridge).GetField("<HandingOff>k__BackingField",BindingFlags.NonPublic|BindingFlags.Instance);
+            handingOff.SetValue(preparation,true);
+            try{S.StartRun();}finally{handingOff.SetValue(preparation,false);}
+        }
         void Save(){System.IO.File.WriteAllLines("Documentation/SIBUCAO_FIRST_CROSSING_CHECKS.txt",new[]{"Scripted production-input Play Mode regression, not native manual input. "+DateTime.Now,status}.Concat(results));}
         IEnumerator Suite(string filter,bool retainPrevious)
         {
@@ -28,6 +42,7 @@ namespace StormSim.Sibucao.Editor
                 results.AddRange(System.IO.File.ReadAllLines("Documentation/SIBUCAO_FIRST_CROSSING_CHECKS.txt").Skip(2));
             input=SibucaoPlaythroughProbe.Get();Application.runInBackground=true;
             var cases=new List<(string,IEnumerator)>();
+            cases.Add(("Home 0 road centre",Cross(0,1,0)));
             for(int home=0;home<S.homes.Length;home++)
             {
                 cases.Add(("Home "+home+" road shoulder +1.2m",Cross(home,1,1.2f)));
@@ -58,10 +73,11 @@ namespace StormSim.Sibucao.Editor
         }
         IEnumerator Setup(int home)
         {
-            SibucaoEditorInput.Reset();SibucaoEditorInput.Active=true;S.StartRun();
+            SibucaoEditorInput.Reset();SibucaoEditorInput.Active=true;StartStormRun();
             S.home.Suspend();S.home=S.homes[home];S.state.homeIndex=home;S.home.Begin();S.physicalDecisions.ResetRun();
             S.state.homeSeconds=72;S.home.Restore();S.state.physical.seed=23421;
-            yield return null;yield return new WaitForFixedUpdate();yield return new WaitForSeconds(1);
+            yield return null;var flood=S.GetComponent<FloodSimulationManager>();while(flood.IsCatchingUp)yield return null;
+            yield return new WaitForFixedUpdate();yield return new WaitForSeconds(1);
         }
         IEnumerator Cross(int home,int choice,float shoulder)
         {
@@ -80,7 +96,7 @@ namespace StormSim.Sibucao.Editor
             Check(Station.Resolved&&S.state.physical.results[0]==choice,"Crossing did not record choice "+choice+"; step="+b.Attempt.step+" distance="+b.Attempt.distance);
             Check(Station.EngagedBranch==null&&float.IsPositiveInfinity(b.SpeedLimit),"Crossing left a speed limit/engagement");
             Check(S.state.homeSeconds>before,"Shared clock did not advance");
-            Check(S.toastTitle=="Route updated","Missing neutral completion feedback");
+            Check(S.state.physical.history.Count(x=>x.node==0)==1,"Crossing did not record exactly one neutral result");
         }
         IEnumerator NoShortcut()
         {

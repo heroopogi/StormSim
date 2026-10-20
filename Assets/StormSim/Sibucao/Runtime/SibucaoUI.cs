@@ -217,7 +217,10 @@ namespace StormSim.Sibucao
             bool locked=S.home&&S.home.MovementLocked;
             var choices=guide?guide.RouteChoices:null;
             string title=choices&&choices.Working?"SIDE MISSION":choices&&choices.Previewing?"CHOOSE A PASSAGE":"CURRENT OBJECTIVE";
-            SibucaoDesktopHud.Objective(layout,title,guide?guide.Objective:"Reach the school evacuation center.");
+            var floodStatus=S.GetComponent<FloodSimulationManager>();
+            var objective=guide?guide.Objective:"Reach the school evacuation center.";
+            if(floodStatus)objective+="\n"+floodStatus.WarningStage+" — "+floodStatus.RouteCondition;
+            SibucaoDesktopHud.Objective(layout,title,objective);
             if(!locked)
             {
                 SignalStationUI.Draw(new Rect(layout.Width/2-10,layout.Height/2-10,20,20),"crosshair");
@@ -522,7 +525,7 @@ namespace StormSim.Sibucao
                 string label=S.state.chosen[i]>=0?n.choices[S.state.chosen[i]].label:"Not encountered";Label(new Rect(6,y+32,575,39),label,small);Label(new Rect(6,y+72,575,41),S.state.outcomes[i]??"",small,Hex("CBCBCB"));
             }
             GUI.EndScrollView();Label(new Rect(146,705,1100,30),"Preparedness reflects the supplies packed at home. Scores are revealed only here.",small);
-            if(Button(new Rect(146,766,262,50),"Play Again",true,"play"))S.SelectRole();if(Button(new Rect(431,766,262,50),"Main Menu",false,"home")){S.SetMode(SibucaoMode.Menu);S.weather.SetStorm(false);}
+            if(Button(new Rect(146,766,262,50),"Play Again",true,"play"))S.SelectRole();if(Button(new Rect(431,766,262,50),"Main Menu",false,"home"))S.ReturnToMainMenu();
         }
         void About()
         {

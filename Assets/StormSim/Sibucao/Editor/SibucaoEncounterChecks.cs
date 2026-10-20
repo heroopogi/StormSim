@@ -9,7 +9,11 @@ namespace StormSim.Sibucao.Editor
         public static string Run()
         {
             int count=0;int[] choices={3,4,4,3,3};
-            for(int station=0;station<5;station++)for(int choice=0;choice<choices[station];choice++)
+            var session=UnityEngine.Object.FindAnyObjectByType<SibucaoSession>();
+            if(session&&session.physicalDecisions&&session.physicalDecisions.stations.Length>0)
+                foreach(var branch in session.physicalDecisions.stations[0].branches)
+                    Require(branch&&!branch.HasEncounter,"B1 must use its dedicated observe/probe/cross loop, not a generic debris routine");
+            for(int station=1;station<5;station++)for(int choice=0;choice<choices[station];choice++)
             {
                 var d=PhysicalEncounterCatalog.Create(station,choice);
                 try

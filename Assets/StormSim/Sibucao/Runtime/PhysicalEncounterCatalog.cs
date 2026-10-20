@@ -4,8 +4,11 @@ namespace StormSim.Sibucao
 {
     public static class PhysicalEncounterCatalog
     {
+        // B1 already has a complete embodied loop: observe, optionally compare
+        // two real depths, then traverse a chosen lane. Layering the generic
+        // three-piece debris routine over it made the first lesson feel arbitrary.
         public static bool Supports(SibucaoPhysicalOption option) => option && option.station && !option.station.supplementary &&
-            option.station.index >= 0 && option.station.index < 5 && option.station.node &&
+            option.station.index > 0 && option.station.index < 5 && option.station.node &&
             option.station.node.id == "sibucao_b" + (option.station.index + 1) && option.Choice;
 
         static PhysicalEncounterPhase Phase(string title,EncounterWork work,float seconds,float route,string action) =>

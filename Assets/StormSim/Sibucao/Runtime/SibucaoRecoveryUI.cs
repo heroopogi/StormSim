@@ -43,7 +43,7 @@ namespace StormSim.Sibucao
                 if (PanelButton(r, y, h, label)) S.LoadSlot(checkpoint, backup);
                 GUI.enabled = enabled; y += h + 6;
             }
-            if (PanelButton(r, r.yMax - 58, 36, "Back / Esc")) S.SetMode(S.resumeReturn);
+            if (PanelButton(r, r.yMax - 58, 36, "Back / Esc")) S.CancelResumeSelection();
             GUI.matrix = old;
         }
         void DrawPlacementTarget()

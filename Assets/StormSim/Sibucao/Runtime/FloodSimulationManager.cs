@@ -26,23 +26,32 @@ namespace StormSim.Sibucao
         public double RainVolume {get;private set;}
         public double DrainedVolume {get;private set;}
         public double CapOverflowVolume {get;private set;}
-        public float DepthLimit=>FloodDifficultySettings.Current.Limit(SimulatedSeconds);
+        public int RequiredMissionStage=>S&&S.Mode==SibucaoMode.Playing&&(!S.home||!S.home.MovementLocked)&&S.physicalDecisions?Mathf.Clamp(S.physicalDecisions.NextCoreStage,0,9):-1;
+        public float DepthLimit=>FloodDifficultySettings.Current.EffectiveLimit(SimulatedSeconds,RequiredMissionStage);
+        public string WarningStage=>DepthLimit<.15f?"MONITORING":DepthLimit<.60f?"ALERT":"EVACUATE";
+        public string RouteCondition=>DepthLimit<.15f
+            ? "Marked routes are being monitored; inspect each passage before entering."
+            : DepthLimit<.60f
+                ? "Low passages may be unsafe. Use marked raised or side access and do not enter floodwater."
+                : "Low routes are unavailable. Follow raised marked access; if no safe passage exists, stop at a safe point and seek help.";
         public float MaximumSimulatedDepth {get;private set;}
         public double InitialVolume {get;private set;}
         public float RainfallRate=>S?FloodDifficultySettings.Current.RainRate(SimulatedSeconds):0;
         public float LastStepMilliseconds {get;private set;}
         public float PeakStepMilliseconds {get;private set;}
         public float LastFrameMilliseconds {get;private set;}
-        public float CatchUpProgress => S ? Mathf.Clamp01(SimulatedSeconds / Mathf.Max(.1f,S.state.homeSeconds)) : 1;
+        public float SimulationClock=>S?Mathf.Max(0,S.state.homeSeconds-S.state.floodClockOffset):0;
+        public float CatchUpProgress => S ? Mathf.Clamp01(SimulatedSeconds / Mathf.Max(.1f,SimulationClock)) : 1;
         public string ModelDescription => groundRelativeInundation ? "Authored storm depths with terrain variation; currents are gameplay cues, not a flood forecast." : "Cellular automata flood model: four-neighbor rainfall/runoff over terrain; not a calibrated flood forecast.";
         byte[] kind;
         public Mesh SurfaceMesh=>mesh;
-        public bool IsCatchingUp=>S&&depth!=null&&S.state.homeSeconds>SimulatedSeconds+.5f;
+        public bool IsCatchingUp=>S&&depth!=null&&SimulationClock>SimulatedSeconds+.5f;
         bool replayingSave;
         float[] depth,delta,outgoing,qx,qz,surfaceHeight,scenarioScale;
         Vector2[] currents,wetness;
         Vector3[] vertices;
         Mesh mesh;Material material;GameObject surface;float lastClock=-1,nextMesh;
+        SibucaoEvacuationExperience experience;
         float waveHeight,waveSpeed;
         FloodDifficultyProfile profile;
         const float Step=.1f,Wet=.018f;
@@ -54,6 +63,7 @@ namespace StormSim.Sibucao
         public float GetWaterDepth(Vector3 p)=>TrySurface(p,out float h,out _)?Mathf.Max(0,h-p.y):0;
         void Start()
         {
+            experience=GetComponent<SibucaoEvacuationExperience>();
             if(!terrain||terrain.ground==null||terrain.ground.Length!=terrain.width*terrain.height||!temporaryWaterMaterial){Debug.LogError("Sibucao flood needs a baked terrain grid.",this);return;}
             int count=terrain.ground.Length;
             // Copy the baked classifications: the shared terrain asset remains unchanged.
@@ -109,7 +119,7 @@ namespace StormSim.Sibucao
         void Update()
         {
             if(depth==null||!S)return;
-            float clock=S.state.homeSeconds;
+            float clock=SimulationClock;
             if(clock<lastClock-.2f||profile!=FloodDifficultySettings.Current)ResetWater();lastClock=clock;
             float target=Mathf.Max(0,clock); // The storm also develops during the home preparation phase.
             long frameStart=System.Diagnostics.Stopwatch.GetTimestamp();
@@ -134,7 +144,7 @@ namespace StormSim.Sibucao
         // This mode does not solve rainfall hydraulics; its bounded currents are gameplay cues.
         void EvaluateScenario(float seconds)
         {
-            float limit=Mathf.Max(0,profile.Limit(seconds)-Mathf.Abs(waveHeight));
+            float limit=Mathf.Max(0,profile.EffectiveLimit(seconds,RequiredMissionStage)-Mathf.Abs(waveHeight));
             double area=terrain.cellSize*terrain.cellSize,volume=0;int exposed=0;
             MaximumSimulatedDepth=0;
             for(int i=0;i<depth.Length;i++)
@@ -197,7 +207,7 @@ namespace StormSim.Sibucao
         {
             // Controlled overflow is accounted as outflow, never silently discarded.
             // Reserve the full small-wave amplitude so visual crests also respect the peak.
-            float limit=Mathf.Max(0,FloodDifficultySettings.Current.Limit(seconds)-Mathf.Abs(waveHeight));
+            float limit=Mathf.Max(0,FloodDifficultySettings.Current.EffectiveLimit(seconds,RequiredMissionStage)-Mathf.Abs(waveHeight));
             double area=terrain.cellSize*terrain.cellSize;WaterVolume=0;MaximumSimulatedDepth=0;
             for(int i=0;i<depth.Length;i++)if(kind[i]==1)
             {
@@ -233,6 +243,9 @@ namespace StormSim.Sibucao
         {
             int w=terrain.width;
             var toLocal=transform.worldToLocalMatrix;
+            if(!experience)experience=GetComponent<SibucaoEvacuationExperience>();
+            float drainStrength=experience?experience.DrainStrength:0;
+            var drainCenter=drainStrength>0?experience.DrainCenter:Vector3.zero;
             for(int i=0;i<depth.Length;i++)
             {
                 float h=terrain.ground[i]+depth[i];
@@ -242,7 +255,9 @@ namespace StormSim.Sibucao
                     if(x>0)Neighbor(i-1,ref total,ref n);if(x<w-1)Neighbor(i+1,ref total,ref n);if(z>0)Neighbor(i-w,ref total,ref n);if(z<terrain.height-1)Neighbor(i+w,ref total,ref n);
                     if(n>0)h=Mathf.Min(h,total/n);
                 }
-                surfaceHeight[i]=h;var p=terrain.Position(i);p.y=h;vertices[i]=toLocal.MultiplyPoint3x4(p);wetness[i]=new Vector2(h-terrain.ground[i],0);
+                var p=terrain.Position(i);
+                if(drainStrength>0)h=Mathf.Max(terrain.ground[i],h-SibucaoEvacuationExperience.ReliefAt(p,drainCenter,drainStrength));
+                surfaceHeight[i]=h;p.y=h;vertices[i]=toLocal.MultiplyPoint3x4(p);wetness[i]=new Vector2(h-terrain.ground[i],0);
             }
             mesh.vertices=vertices;mesh.uv=wetness;mesh.uv2=currents;mesh.RecalculateBounds();
         }

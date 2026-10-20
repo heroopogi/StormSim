@@ -26,6 +26,33 @@ namespace StormSim.Sibucao
             if(r.lostItems!=null&&r.lostItems.Length>0)text.Append("\nLost supplies: "+string.Join(", ",r.lostItems)+".");
             return text.ToString();
         }
+        public static string DecisionTitle(SibucaoSession s,PhysicalChoiceResult r)
+        {
+            string title=r.node>=0&&r.node<9?DecisionTreeManager.Titles[r.node]:r.nodeId;
+            if(r.choice>=100)return title+" • Side passage";
+            return title+" • "+(r.success?"Completed":"Setback recorded");
+        }
+        public static string DecisionOutcome(PhysicalChoiceResult r)
+        {
+            var text=new StringBuilder(string.IsNullOrEmpty(r.choiceId)?"Recorded choice":r.choiceId);
+            if(!string.IsNullOrEmpty(r.consequence))text.Append("\nConsequence: "+ConsequenceText(r.consequence));
+            if(r.lostItems!=null&&r.lostItems.Length>0)text.Append("\nLost supplies: "+string.Join(", ",r.lostItems)+".");
+            text.Append("\n"+r.category+": "+r.appliedPoints.ToString("+0;-0;0"));
+            return text.ToString();
+        }
+        public static string ArrivalSummary(SibucaoSession s)
+        {
+            var d=s.state.physical;int completed=d.history?.Count??0;
+            int unresolved=0;if(d.results!=null)for(int i=0;i<Mathf.Min(9,d.results.Length);i++)if(d.results[i]<0||d.results[i]>=99)unresolved++;
+            return "Reception will record your arrival, "+completed+" completed route outcome(s), and "+unresolved+" situation(s) requiring follow-up. Confirming arrival does not automatically mark every resident as safe.";
+        }
+        public static string Section(SibucaoSession s,string heading,string nextHeading)
+        {
+            string summary=Summary(s);int start=summary.IndexOf(heading,StringComparison.Ordinal);
+            if(start<0)return "No information was recorded.";start+=heading.Length;
+            int end=string.IsNullOrEmpty(nextHeading)?summary.Length:summary.IndexOf(nextHeading,start,StringComparison.Ordinal);
+            if(end<0)end=summary.Length;string value=summary.Substring(start,end-start).Trim();return string.IsNullOrEmpty(value)?"No information was recorded.":value;
+        }
         public static string ConsequenceText(string value)
         {
             if(!Enum.TryParse(value,out PhysicalConsequence flags))return value;
@@ -50,9 +77,11 @@ namespace StormSim.Sibucao
         public static string Summary(SibucaoSession s)
         {
             var d=s.state.physical;var b=new StringBuilder();
+            var experience=s.GetComponent<SibucaoEvacuationExperience>();
+            if(experience)b.AppendLine(experience.Review()+"\n");
             b.AppendLine(StormSim.Preparedness.PreparationExposure.Summary(s));b.AppendLine();
             b.AppendLine("RESIDENTS & FOLLOW-UP");
-            foreach(int stage in new[]{5,7})
+            foreach(int stage in s.GetComponent<SibucaoOptionalSideMission>()?Array.Empty<int>():new[]{5,7})
             {
                 string name=stage==5?"Wheelchair resident":"Collapsed evacuee";
                 var record=d.history.FindLast(r=>r.node==stage);
@@ -65,10 +94,10 @@ namespace StormSim.Sibucao
                 if(d.sideMissions.Exists(x=>x.id==mission.id&&x.complete)&&mission.companions!=null&&mission.companions.Length>0)
                     b.AppendLine(mission.title+": "+mission.companions.Length+" resident(s) escorted through this passage.");
             b.AppendLine("\nUNRESOLVED SITUATIONS");bool unresolved=false;
-            for(int i=0;i<Mathf.Min(9,d.results.Length);i++)if(d.results[i]<0||d.results[i]>=99)
+            for(int i=0;i<(s.GetComponent<SibucaoOptionalSideMission>()?0:Mathf.Min(9,d.results.Length));i++)if(d.results[i]<0||d.results[i]>=99)
             {unresolved=true;b.AppendLine(DecisionTreeManager.Titles[i]+(d.results[i]>=100?": center outcome unconfirmed; another passage was completed.":": no completed outcome recorded."));}
             foreach(var mission in d.sideMissions)if(mission.started&&!mission.complete){unresolved=true;b.AppendLine(mission.id+": side work was started but not completed.");}
-            if(!unresolved)b.AppendLine("Every core situation has a recorded outcome. See resident follow-up above.");
+            if(!unresolved)b.AppendLine(s.GetComponent<SibucaoOptionalSideMission>()?"See the evacuation timeline above for observed actions and confirmed outcomes.":"Every core situation has a recorded outcome. See resident follow-up above.");
             b.AppendLine("\nSUPPLIES AT HANDOVER");var ids=new HashSet<string>();
             if(s.inventory)for(int i=0;i<SibucaoInventory.Capacity;i++){var item=s.inventory.Slot(i);if(item&&ids.Add(item.persistentId))b.AppendLine(SibucaoInventory.ItemName(item)+" — "+s.inventory.ItemStatus(item));}
             if(s.inventory){var item=s.inventory.Find(d.equippedInventoryId);if(item&&ids.Add(item.persistentId))b.AppendLine(SibucaoInventory.ItemName(item)+" — equipped");}

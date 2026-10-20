@@ -48,7 +48,7 @@ namespace StormSim.UI
         {
             bool visible=screenKey=="HUD";
             aimCircle.gameObject.SetActive(visible&&!XRSettings.isDeviceActive);
-            preparationProgress.gameObject.SetActive(visible && Prep);
+            preparationProgress.gameObject.SetActive(visible && Prep && !objectiveHeld);
             if(phoneStatus && Prep){var media=Prep.GetComponent<PreparationPhoneMedia>();if(media){phoneStatus.text=media.Status;if(phonePlaybackLabel)phonePlaybackLabel.text=media.Paused?"Play":"Pause";}}
             if(!Prep)return;
             if(progressRun!=Prep.runId)
@@ -64,23 +64,18 @@ namespace StormSim.UI
                 }
                 previousTasks[i]=Prep.decisions[i];
             }
-            preparationProgressText.text="<color=#80E2E1>CURRENT INSTRUCTION</color>\n"+
-                VRText(Prep.CurrentInstructionText)+"\n<size=14>J / X: open field guide</size>";
+            preparationProgressText.text="<color=#65DAC2>NEXT STEP</color>\n"+
+                VRText(Prep.CurrentInstructionText)+"\n<size=85%>"+(XRSettings.isDeviceActive?"X":"J")+": open field guide</size>";
+            FitHud(preparationProgress,preparationProgressText,420,110,280,20);
             if(visible && Time.unscaledTime<completionUntil)
-            {notice.gameObject.SetActive(true);noticeText.text=completionText+"\nPreparation updated.";}
+            {OfferNotice(completionText,"Preparation updated.",20);}
         }
-        void BuildPreparationChecklist()
+        void BuildPreparationOverview()
         {
-            MeterCard("PREPARATION",Prep.decisions.Count(v=>v)+" / 20 checked",Prep.decisions.Count(v=>v)/20f);
-            MessageCard("NEXT BEST ACTION",Prep.NextPreparationStep,StormglassTheme.Accent);
-            Action("Hear the next checklist step",()=>Prep.NarrateChecklist(),height:72);
-            Text("Checks update only from physical supplies and completed actions. Optional chores can stay unfinished. Leave when advised.",20);
-            for(int g=0;g<5;g++)
-            {
-                Text(Prep.GroupHeading(g),24,StormglassTheme.Accent);
-                foreach(int i in PreparednessSession.GroupChecks[g])
-                    Text((Prep.decisions[i]?"[DONE] ":"[TO DO] ")+PreparednessSession.Titles[i]+(Prep.decisions[i]?"":"\n"+Prep.evidence[i]),20);
-            }
+            MessageCard("CURRENT OBJECTIVE",Prep.NextPreparationStep,StormglassTheme.Accent);
+            MessageCard("WARNING LEVEL",Prep.WarningStageText,Prep.evacuationOrdered?StormglassTheme.Warning:StormglassTheme.Accent);
+            MeterCard("GO-BAG",Prep.BagMass.ToString("0.#")+" / "+PreparednessSession.BagLimit.ToString("0.#")+" kg",Prep.BagMass/PreparednessSession.BagLimit,Prep.BagMass>PreparednessSession.BagLimit*.85f);
+            Text("Look at an item and use Item Info for its purpose. Optional property work and neighbour visits never block departure.",20);
         }
     }
 }

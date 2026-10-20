@@ -81,6 +81,24 @@ namespace StormSim.Sibucao
             var content=new Rect(r.x+14,r.y+12,r.width-28,r.height-20);
             Label(content,text,Text.CalcHeight(new GUIContent(text),content.width)>content.height?Small:Text);
         }
+        public static void SideMission(SibucaoHudLayout layout,SibucaoOptionalSideMission mission)
+        {
+            if(!mission||!mission.SideMissionVisible)return;
+            var r=layout.Routes;Panel(r);
+            Label(new Rect(r.x+12,r.y+8,r.width-24,17),mission.SideMissionActive?"OPTIONAL SIDE MISSION":"OPTIONAL NEARBY",Small,new Color(.95f,.73f,.2f));
+            Label(new Rect(r.x+12,r.y+26,r.width-24,22),mission.SideMissionTitle,Text);
+            float y=r.y+51;
+            for(int i=0;i<mission.TaskCount;i++)
+            {
+                float progress=mission.TaskProgress(i);
+                Label(new Rect(r.x+12,y,r.width-24,16),(progress>=.999f?"✓  ":"○  ")+mission.TaskLabel(i),Small,progress>=.999f?Accent:Ink);
+                var bar=new Rect(r.x+30,y+17,r.width-42,4);var previous=GUI.color;
+                GUI.color=new Color(.1f,.18f,.19f);GUI.DrawTexture(bar,Texture2D.whiteTexture);
+                GUI.color=progress>=.999f?Accent:new Color(.95f,.73f,.2f);GUI.DrawTexture(new Rect(bar.x,bar.y,bar.width*Mathf.Clamp01(progress),bar.height),Texture2D.whiteTexture);GUI.color=previous;
+                y+=27;
+            }
+            Label(new Rect(r.x+12,r.yMax-18,r.width-24,16),mission.EquipmentNote,Small,Muted);
+        }
         public static void Instruction(SibucaoHudLayout layout,string text)
         {
             if(string.IsNullOrWhiteSpace(text))return;
@@ -118,7 +136,6 @@ namespace StormSim.Sibucao
             var r=layout.Vitals; Panel(r);
             Vital(r,0,"Health",health,new Color(.85f,.36f,.34f));
             Vital(r,1,"Stamina",stamina,Accent);
-            Vital(r,2,"Hunger",hunger,new Color(.95f,.68f,.25f));
         }
         static void Vital(Rect r,int row,string name,float value,Color color)
         {

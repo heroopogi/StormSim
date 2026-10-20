@@ -13,6 +13,11 @@ namespace StormSim.Sibucao
         public int graphics=1;
         public float textScale=1,speechVolume=1,environmentVolume=1,effectsVolume=1,fieldOfView=70;
         public bool invertLook,toggleGrip,reducedFlashes,reducedMotion;
+        // Stored now so the desktop-first experience can be authored and reviewed
+        // with the same comfort vocabulary that the eventual headset build uses.
+        public int snapTurnAngle=30;
+        public bool leftHanded,smoothTurn,handRelativeMovement,seatedMode;
+        public float smoothTurnSpeed=60,vignetteStrength=.35f,subtitleBackground=.86f;
         public string[] keyBindings;
     }
     [Serializable] public sealed class RunState
@@ -31,11 +36,13 @@ namespace StormSim.Sibucao
         public string drivenVehicle;
         public bool homeSequence,homeDoorOpen;
         public float homeSeconds;
+        public float floodClockOffset;
         public int homeSupplies;
         public int homeIndex;
         public string preparationSnapshot;
         public System.Collections.Generic.List<StormSim.Preparedness.PreparationActionRecord> preparationActions=new System.Collections.Generic.List<StormSim.Preparedness.PreparationActionRecord>();
         public PhysicalRunData physical=new PhysicalRunData();
+        public EvacuationExperienceState experience=new EvacuationExperienceState();
     }
     [DefaultExecutionOrder(-100)]
     public sealed partial class SibucaoSession : MonoBehaviour
@@ -65,6 +72,7 @@ namespace StormSim.Sibucao
         public SibucaoMode Mode {get;private set;}=SibucaoMode.Menu;
         public SibucaoMode settingsReturn=SibucaoMode.Menu;
         int settingsTransitionFrame=-1;
+        bool resumeOpenedFromDedicatedMenu;
         public bool SettingsTransitionThisFrame=>settingsTransitionFrame==Time.frameCount;
         public SibucaoEncounter nearby,activeEncounter;
         public string toastTitle="",toastText="",subtitle="",error="";
@@ -75,6 +83,9 @@ namespace StormSim.Sibucao
         bool quitting;
         public bool HasSave=>!string.IsNullOrEmpty(savePath)&&(SlotExists(false)||SlotExists(true)||SlotExists(false,true)||SlotExists(true,true));
         public bool CanMove=>Mode==SibucaoMode.Playing;
+        // P is the regular pack control. Development-only time controls can
+        // override this in a dedicated input path without stealing the press.
+        public bool DebugTimeInputThisFrame=>false;
         public string SavePrefix => GetComponent<CoastalAreaProfile>() ? GetComponent<CoastalAreaProfile>().SavePrefix : "sibucao-rain";
         void Awake()
         {
@@ -85,7 +96,14 @@ namespace StormSim.Sibucao
             if(!story)story=gameObject.AddComponent<SibucaoStoryPlayback>();
             if(!passages)passages=GetComponent<SibucaoPassageDirector>();
         }
-        void Start(){if(!GetComponent<SibucaoSoundFeedback>())gameObject.AddComponent<SibucaoSoundFeedback>();if(!GetComponent<SibucaoInteractionOutline>())gameObject.AddComponent<SibucaoInteractionOutline>();ApplySettings();if(initialPlayerSpawn)player.Teleport(initialPlayerSpawn.position,initialPlayerSpawn.forward);else player.Teleport(route.spawnPoints[0],route.Sample(10)-route.Sample(0));weather.SetStorm(false);SetMode(SibucaoMode.Menu);}
+        void Start()
+        {
+            if(!GetComponent<SibucaoSoundFeedback>())gameObject.AddComponent<SibucaoSoundFeedback>();if(!GetComponent<SibucaoInteractionOutline>())gameObject.AddComponent<SibucaoInteractionOutline>();ApplySettings();if(initialPlayerSpawn)player.Teleport(initialPlayerSpawn.position,initialPlayerSpawn.forward);else player.Teleport(route.spawnPoints[0],route.Sample(10)-route.Sample(0));weather.SetStorm(false);
+            var launch=StormSimLaunchRequest.Consume(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+            if(launch==StormSimLaunchMode.NewSimulation)SelectRole();
+            else if(launch==StormSimLaunchMode.Continue){resumeOpenedFromDedicatedMenu=true;LoadRun();}
+            else SetMode(SibucaoMode.Menu);
+        }
         public void SetMode(SibucaoMode mode)
         {
             if(Mode==SibucaoMode.Settings||mode==SibucaoMode.Settings)settingsTransitionFrame=Time.frameCount;
@@ -141,6 +159,7 @@ namespace StormSim.Sibucao
         }
         void Update()
         {
+            if (StormSim.UI.StormglassSceneTransition.IsLoading) return;
             if(Keyboard.current!=null && Keyboard.current.escapeKey.wasPressedThisFrame)
             {
                 if(SettingsTransitionThisFrame)return;
@@ -149,7 +168,7 @@ namespace StormSim.Sibucao
                 if(Mode==SibucaoMode.Playing)Pause();else if(Mode==SibucaoMode.Paused)SetMode(SibucaoMode.Playing);
                 else if(Mode==SibucaoMode.Settings){ApplySettings();SetMode(settingsReturn);}else if(Mode==SibucaoMode.Decision){activeEncounter=null;SetMode(SibucaoMode.Playing);}
                 else if(Mode==SibucaoMode.Confirm)SetMode(confirmReturn);
-                else if(Mode==SibucaoMode.ResumeSelection)SetMode(resumeReturn);
+                else if(Mode==SibucaoMode.ResumeSelection)CancelResumeSelection();
                 else if(Mode==SibucaoMode.Recovery)SetMode(SibucaoMode.Playing);
             }
             if(Mode!=SibucaoMode.Playing){nearby=null;return;}
@@ -237,6 +256,10 @@ namespace StormSim.Sibucao
         public void ApplySettings()
         {
             SibucaoControls.Ensure(settings);settings.textScale=Mathf.Clamp(settings.textScale,1,1.3f);settings.fieldOfView=Mathf.Clamp(settings.fieldOfView,60,100);
+            if(settings.snapTurnAngle!=15&&settings.snapTurnAngle!=30&&settings.snapTurnAngle!=45)settings.snapTurnAngle=30;
+            settings.smoothTurnSpeed=Mathf.Clamp(settings.smoothTurnSpeed,30,120);
+            settings.vignetteStrength=Mathf.Clamp01(settings.vignetteStrength);
+            settings.subtitleBackground=Mathf.Clamp(settings.subtitleBackground,.35f,1);
             if(player&&player.view&&!UnityEngine.XR.XRSettings.isDeviceActive)player.view.fieldOfView=settings.fieldOfView;
             settings.speechVolume=Mathf.Clamp01(settings.speechVolume);settings.environmentVolume=Mathf.Clamp01(settings.environmentVolume);settings.effectsVolume=Mathf.Clamp01(settings.effectsVolume);
             settings.volume=Mathf.Clamp01(settings.volume);settings.sensitivity=Mathf.Clamp(settings.sensitivity,.03f,.3f);
@@ -275,8 +298,16 @@ namespace StormSim.Sibucao
         {
             if(runStarted&&confirmReturn==SibucaoMode.Paused)SaveCheckpoint();
             if(confirmation=="exit"){quitting=true;Application.Quit();if(Application.isEditor){SetMode(SibucaoMode.Menu);Notify("Desktop exit","Stop Play mode to leave the editor preview.");}}
-            else{SetMode(SibucaoMode.Menu);weather.SetStorm(false);}
+            else if(confirmation=="restart")
+            {
+                string scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+                StormSimLaunchRequest.Set(scene,StormSimLaunchMode.NewSimulation);
+                StormSim.UI.StormglassSceneTransition.Load(scene);
+            }
+            else ReturnToMainMenu();
         }
+        public void ReturnToMainMenu(){weather.SetStorm(false);StormSimMainMenuScene.Load();}
+        public void CancelResumeSelection(){if(resumeOpenedFromDedicatedMenu){resumeOpenedFromDedicatedMenu=false;ReturnToMainMenu();}else SetMode(resumeReturn);}
         void OnDestroy(){if(Instance==this)Instance=null;if(!quitting){Time.timeScale=1;AudioListener.volume=1;Cursor.lockState=CursorLockMode.None;Cursor.visible=true;}}
     }
 }

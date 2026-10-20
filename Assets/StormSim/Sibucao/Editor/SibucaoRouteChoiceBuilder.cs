@@ -16,7 +16,7 @@ namespace StormSim.Sibucao.Editor
         static readonly List<RouteMissionStep> work = new List<RouteMissionStep>();
         static readonly List<Transform> people = new List<Transform>();
         public static readonly string[] Titles = {
-            "Open the evacuation courtyard", "Help a parent with a stroller", "Secure the loose storm shutter", "Recover a frightened pet",
+            "Open the raised courtyard route", "Help a parent with a stroller", "Secure the loose storm shutter", "Recover a frightened pet",
             "Mark the exposed drain", "Open the covered passage", "Report the fallen cable", "Redirect approaching residents",
             "Protect medicine and documents", "Restore the battery lantern", "Reunite a separated child", "Guide a resident with low vision",
             "Prepare life jackets", "Complete the headcount", "Deliver responder equipment", "Bring the family under cover",
@@ -31,8 +31,8 @@ namespace StormSim.Sibucao.Editor
             "Help us fit these life jackets before boarding.", "Please help check who is here before the group moves on.",
             "The responders need the folded stretcher from this rack.", "We are soaked. Can you help us into the shelter?",
             "The inland signs have fallen. The warden needs them put back.", "The caretaker has the key. Help open this school entrance." };
-        static readonly string[] Places = { "OPEN COURTYARD", "STROLLER HELP", "SECURE SHUTTER", "PET RESCUE", "SIDE LANE", "COVERED PASSAGE", "BARANGAY RADIO", "DIVERSION", "WAITING SHED", "LIT PASSAGE", "REUNION POINT", "VOLUNTEER POST", "BOARDING QUEUE", "HEADCOUNT", "AID POST", "SHELTER", "INLAND ROUTE", "SCHOOL ENTRANCE" };
-        public static readonly string[] CenterCalls = { "Check the condition of the road ahead.", "The stalled cars are blocking the road.", "The canal runs beside this junction.", "There is a fallen cable on the road ahead.", "There is a damaged bag and scattered supplies here.", "A wheelchair user is waiting at the curb.", "The rescue checkpoint is ahead.", "An evacuee has collapsed on the road.", "The path ahead runs along the creek." };
+        static readonly string[] Places = { "RAISED COURTYARD", "HELP PARENT", "SECURE SHUTTER", "PET RESCUE", "SIDE LANE", "COVERED PASSAGE", "BARANGAY RADIO", "DIVERSION", "WAITING SHED", "LIT PASSAGE", "REUNION POINT", "VOLUNTEER POST", "BOARDING QUEUE", "HEADCOUNT", "AID POST", "SHELTER", "INLAND ROUTE", "SCHOOL ENTRANCE" };
+        public static readonly string[] CenterCalls = { "Check the water depth or choose a marked crossing.", "The stalled cars are blocking the road.", "The canal runs beside this junction.", "There is a fallen cable on the road ahead.", "There is a damaged bag and scattered supplies here.", "A wheelchair user is waiting at the curb.", "The rescue checkpoint is ahead.", "An evacuee has collapsed on the road.", "The path ahead runs along the creek." };
 
         [MenuItem("StormSim/Route choices/Build all nine sections")]
         public static void Build()
@@ -66,11 +66,14 @@ namespace StormSim.Sibucao.Editor
                 section.mergeMarker = Empty(root.transform, "Passages rejoin", Vector3.forward * 14);
                 section.left = BuildMission(section, i * 2); section.right = BuildMission(section, i * 2 + 1);
                 section.leftSign = Sign(root.transform, "< " + Places[i * 2], new Vector3(-2.4f, 0, -11),1.55f);
+                section.centerSign = Sign(root.transform, i==0?"AHEAD · MEASURE WATER":"AHEAD · ROAD HAZARD", new Vector3(0, 0, -11),1.55f);
                 section.rightSign = Sign(root.transform, Places[i * 2 + 1] + " >", new Vector3(2.4f, 0, -11),1.55f);
                 // Keep layout references, but omit decorative route indicators from the scene.
                 section.leftSign.gameObject.SetActive(false);
+                section.centerSign.gameObject.SetActive(false);
                 section.rightSign.gameObject.SetActive(false);
                 SibucaoRouteSection.FitApproachSign(section.leftSign);
+                SibucaoRouteSection.FitApproachSign(section.centerSign);
                 SibucaoRouteSection.FitApproachSign(section.rightSign);
                 section.layouts = new RouteSectionLayout[4];
                 EditorUtility.SetDirty(section);
@@ -100,6 +103,7 @@ namespace StormSim.Sibucao.Editor
                 section.left.route = layout.leftPath; section.right.route = layout.rightPath;
                 section.decks.Rebuild(layout);
                 section.leftSign.position = layout.approach + -section.station.transform.forward * 2 - section.station.transform.right * 1.4f;
+                section.centerSign.position = layout.approach + -section.station.transform.forward * 2;
                 section.rightSign.position = layout.approach + -section.station.transform.forward * 2 + section.station.transform.right * 1.4f;
                 EditorUtility.SetDirty(section);
             }
@@ -130,15 +134,25 @@ namespace StormSim.Sibucao.Editor
                     Undo.RegisterCreatedObjectUndo(fresh.gameObject, "Replace side mission props");
                     fresh.transform.SetPositionAndRotation(old.transform.position, old.transform.rotation);
                     fresh.route = (Vector3[])old.route.Clone();
-                    fresh.closureDepth = old.closureDepth;
+                    // B1's raised/courtyard alternatives remain usable through shallow
+                    // ankle water, but close before the route becomes a wading task.
+                    fresh.closureDepth = i==0 ? .32f : old.closureDepth;
                     if (side == 0) section.left = fresh; else section.right = fresh;
                     Undo.DestroyObjectImmediate(old.gameObject);
                     var sign = side == 0 ? section.leftSign : section.rightSign;
-                    var label = side == 0 ? "< " + Places[i * 2] : Places[i * 2 + 1] + " >";
+                    var label = i==0?(side==0?"< LEFT · ADVISORY":"RIGHT · HELP PARENT >"):(side == 0 ? "< " + Places[i * 2] : Places[i * 2 + 1] + " >");
                     Undo.RecordObject(sign.GetComponentInChildren<TextMesh>(), "Update passage sign");
                     sign.GetComponentInChildren<TextMesh>().text = label;
                     sign.name = label;
                     EditorUtility.SetDirty(fresh);
+                }
+                if(i==0)
+                {
+                    if(!section.centerSign)section.centerSign=Sign(section.transform,"AHEAD · MEASURE WATER",Vector3.zero,1.55f);
+                    var centerText=section.centerSign.GetComponentInChildren<TextMesh>();centerText.text="AHEAD · MEASURE WATER";section.centerSign.name=centerText.text;
+                    section.centerSign.gameObject.SetActive(false);SibucaoRouteSection.FitApproachSign(section.centerSign);
+                    var layout=section.layouts[0];section.centerSign.position=layout.approach+section.station.transform.forward;
+                    EditorUtility.SetDirty(section.centerSign.gameObject);
                 }
                 EditorUtility.SetDirty(section);
             }
@@ -234,7 +248,8 @@ namespace StormSim.Sibucao.Editor
             mission.voice.clip=AssetDatabase.LoadAssetAtPath<AudioClip>(Folder+"/Calls/"+mission.id+".wav");
             // Old unfinished work must not skip a new interaction after an update.
             // Section results remain unchanged, so completed junctions stay completed.
-            if (id == 1 || id == 2) mission.id += "_v2";
+            if (id == 0 || id == 1) mission.id += "_v3";
+            else if (id == 2) mission.id += "_v2";
             var closure=Sign(mission.transform,"PASSAGE FLOODED",new Vector3(-1.2f,0,-1.8f));mission.floodClosure=closure.gameObject;closure.gameObject.SetActive(false);
             Sign(mission.transform,Places[id],new Vector3(-1.5f,0,1.7f)).gameObject.SetActive(false);
             if(new[]{3,5,6,8,9,10,12,13,14,15}.Contains(id))Shelter();
@@ -249,11 +264,14 @@ namespace StormSim.Sibucao.Editor
             {
                 case 0:
                 {
+                    var advisory=Sign(mission.transform,"CHECK ADVISORY",new Vector3(.65f,0,-1.3f),1.7f);
+                    var check=Add(RouteWork.Preparation,advisory,"check the latest barangay route instruction");check.preparationUse=RoutePreparationUse.Advisory;
                     var gate=Gate("Courtyard gate",new Vector3(-.85f,0,.2f));
-                    for(int i=0;i<2;i++){var crate=Prop("Light crate "+(i+1),new Vector3(i*.65f-.35f,.3f,-.6f),new Vector3(.58f,.6f,.55f),wood);Carry(crate,"move the crate off the gate swing",Target("crate storage recess",new Vector3(-1.3f,.3f,-1.4f+i*.65f)));}
+                    var crate=Prop("Light crate",new Vector3(-.35f,.3f,-.6f),new Vector3(.58f,.6f,.55f),wood);
+                    Carry(crate,"move the crate off the gate swing",Target("crate storage recess",new Vector3(-1.3f,.3f,-1.4f)));
                     var bolt=Box(gate,"Sliding bolt",new Vector3(1.25f,1,.1f),new Vector3(.3f,.07f,.08f),orange);
                     Slide(bolt,"slide the gate bolt to the right",Vector3.right*.25f);Turn(gate,"swing the courtyard gate open",100,5);
-                    var hook=Prop("Gate retaining hook",new Vector3(-.85f,1,.4f),new Vector3(.16f,.1f,.1f),metal);Turn(hook,"secure the gate retaining hook");break;
+                    break;
                 }
                 case 1:
                 {
@@ -261,8 +279,9 @@ namespace StormSim.Sibucao.Editor
                     var stroller=Cart("Stroller",new Vector3(.65f,0,1.3f),cloth);people.Add(stroller);
                     Box(stroller,"Stroller canopy",new Vector3(0,.95f,0),new Vector3(.62f,.13f,.65f),cloth);
                     var brake=Box(stroller,"Stroller parking brake",new Vector3(.4f,-.18f,-.42f),new Vector3(.16f,.1f,.2f),orange);
-                    Talk(resident,"agree on help with the parent","Please release the stroller brake and carry my supply bag. I will keep hold of the stroller and push it along the raised passage.");
-                    Turn(brake,"release the stroller parking brake while the parent holds the handle",45,3);
+                    Talk(resident,"agree on help with the parent","Please carry my supply bag. I will keep hold of the stroller and push it along the raised passage.");
+                    var prepare=Add(RouteWork.Preparation,resident,"choose a safe way to help the parent");prepare.preparationUse=RoutePreparationUse.ParentAssist;
+                    brake.name="Stroller brake - held by parent";
                     var bag=Prop("Parent's supply bag",new Vector3(.2f,.3f,.9f),new Vector3(.4f,.55f,.3f),cloth);
                     Carry(bag,"carry the supply bag",Target("sheltered bag shelf",new Vector3(-1.1f,.85f,1.9f)));
                     Escort(resident,"walk with the parent and stroller");break;

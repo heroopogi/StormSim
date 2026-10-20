@@ -19,12 +19,21 @@ namespace StormSim.Sibucao
                 delta.y=0;float segment=delta.magnitude;
                 if(segment<.001f)continue;
                 Vector3 offset=position-start;offset.y=0;
-                float t=Mathf.Clamp01(Vector3.Dot(offset,delta)/(segment*segment));
+                float rawT=Vector3.Dot(offset,delta)/(segment*segment);
+                float t=Mathf.Clamp01(rawT);
                 float lateral=(offset-delta*t).magnitude;
+                // Keep the far-side exit as a corridor extension. Without this,
+                // a player who walks naturally beyond the final marker becomes
+                // "outside" the polyline before the completion frame can record.
+                if(i==path.Length-1&&rawT>1)
+                {
+                    t=1;
+                    lateral=(offset-delta*rawT).magnitude;
+                }
                 if(lateral<distance)
                 {
                     distance=lateral;progress=length+segment*t;
-                    bestHeight=Mathf.Lerp(start.y,end.y,t);
+                    bestHeight=rawT>1&&i==path.Length-1?end.y:Mathf.Lerp(start.y,end.y,t);
                 }
                 length+=segment;
             }

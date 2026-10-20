@@ -10,6 +10,7 @@ namespace StormSim.UI
     public sealed class StormglassPointer
     {
         public Button Hovered { get; private set; }
+        public bool ClickedThisFrame { get; private set; }
         Button pressed;
         bool wasHeld, armed;
         readonly PointerEventData data;
@@ -22,6 +23,7 @@ namespace StormSim.UI
         }
         public bool Process(Ray ray, bool held, System.Collections.Generic.IReadOnlyList<Button> buttons, RectTransform viewport, out Vector3 hitPoint)
         {
+            ClickedThisFrame = false;
             hitPoint = ray.GetPoint(2); Button hit = null; float nearest = 10;
             foreach (var b in buttons)
             {
@@ -52,7 +54,10 @@ namespace StormSim.UI
                 var released = pressed; pressed = null;
                 if (released) ExecuteEvents.Execute(released.gameObject, data, ExecuteEvents.pointerUpHandler);
                 if (released && released == hit && released.IsInteractable())
+                {
                     ExecuteEvents.Execute(released.gameObject, data, ExecuteEvents.pointerClickHandler);
+                    ClickedThisFrame = true;
+                }
                 armed = true;
             }
             wasHeld = held;
@@ -75,6 +80,26 @@ namespace StormSim.UI
                 if (aimPosition != null && aimRotation != null) { position = aimPosition.ReadValue(); rotation = aimRotation.ReadValue(); }
             }
             ray = new Ray(origin.TransformPoint(position), origin.rotation * rotation * Vector3.forward); return true;
+        }
+    }
+
+    public static class StormglassInteractionRay
+    {
+        public static XRNode PreferredHand
+        {
+            get
+            {
+                var session=StormSim.Sibucao.SibucaoSession.Instance;
+                return session&&session.settings.leftHanded?XRNode.LeftHand:XRNode.RightHand;
+            }
+        }
+
+        // Desktop deliberately remains camera/mouse driven. In XR the visible
+        // dominant controller ray becomes the single source of world targeting.
+        public static Ray From(Camera view)
+        {
+            if(XRSettings.isDeviceActive&&view&&StormglassPointer.TrackedRay(PreferredHand,view.transform.parent,out Ray ray,out _))return ray;
+            return new Ray(view.transform.position,view.transform.forward);
         }
     }
 }

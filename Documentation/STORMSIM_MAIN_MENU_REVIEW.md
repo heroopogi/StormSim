@@ -6,9 +6,9 @@ The Main Menu uses **world-space uGUI**. Its standalone prefab is:
 
 The supplied `stormsim_ui_kit.html` is retained as `Reference.html` beside the prefab. The four SVGs are extracted directly from that reference and retained beside their high-resolution transparent PNGs. Sora Bold and Inter Medium are included, with their SIL Open Font License files. The background, text, water accent, orb borders, icon strokes and hover colors come from the reference. The location subtitle is omitted to keep permanent text to the wordmark; action labels appear on hover or gaze.
 
-## Preview
+## Editable main-menu scene
 
-- Open `Assets/Scenes/STORMSIM_MainMenu_Preview.unity` for the isolated menu. It includes a camera, XR Origin, tracked head pose, and an XR/mouse UI EventSystem. The buttons are visual/input previews in this isolated scene; starting the simulation and opening its settings require SIBUCAO_RAIN.
+- Open `Assets/Scenes/STORMSIM_MainMenu.unity` to edit the menu. It contains the camera, XR Origin, tracked head pose, directional light, editable menu prefab, XR/mouse UI EventSystem, and runtime controller.
 - Open `Assets/Scenes/SIBUCAO_RAIN.unity` and enter Play mode for the integrated menu. The center Play button starts a new run. Locations cycles the location name in its hover label. Settings opens the existing settings screen.
 - On desktop, hover and click the circles. In a headset, gaze reveals labels and controller trigger/A activates the focused action. XR UI raycasters are attached so an existing XR UI-ray interactor can also drive the buttons.
 - A working OpenXR/Meta loader must be enabled for the platform in Project Settings > XR Plug-in Management. The menu prefab does not change the project's platform/loader settings. This Unity installation currently lacks Android build support, so standalone Quest builds require that module; a compatible desktop XR loader/headset connection is a separate preview option.
@@ -27,7 +27,7 @@ The requested new HUD, Decision Prompt, Flood Alert, and Debrief designs are del
 - Kitchenware, rice cookers, fans with rotating blades/cages, brooms with fibers, bag seams/straps, paper stacks, gutters/downpipes, masonry, roof fastenings, and meter fittings replace or supplement the earlier plain forms. The family frame now contains a modeled keepsake rather than a text label.
 - Twenty-eight stylized adult residents have varied heights, builds, skin tones, everyday shirts/trousers/shorts, sandals, hairstyles and some backpacks. Their articulated procedural animation drives knees, elbows, foot lift, body motion and gaze. Behaviors include walking, running, initial panic followed by evacuation, and walking toward shelter. These are authored stylized models and procedural animation, not scanned people or motion-capture assets.
 
-The existing flood implementation remains a timed local rising-water basin; these changes do not implement or validate the thesis Cellular Automata model. The desktop gameplay controller is also retained; the menu preview is XR-ready, but full gameplay locomotion and headset comfort need a separate headset validation pass.
+The existing flood implementation remains a timed local rising-water basin; these changes do not implement or validate the thesis Cellular Automata model. The desktop gameplay controller is also retained; the main-menu scene is XR-ready, but full gameplay locomotion and headset comfort need a separate headset validation pass.
 
 ## Package compatibility repair
 
@@ -48,7 +48,7 @@ The user handled Meta's telemetry-consent dialog. No telemetry preference was ch
 These are Editor checks, not headset performance benchmarks. Existing imported-city mesh warnings are outside these changes.
 
 ## Current development target: desktop
-Mouse and keyboard are the default until the end-of-project VR conversion. Both scenes use the standard Input System UI module with mouse point/click actions. Open SIBUCAO_RAIN to click Play and enter the simulation; the isolated preview is only for appearance. Use WASD to move, mouse to look, E to interact, and Escape to pause. Headset review is deferred.
+Mouse and keyboard are the default until the end-of-project VR conversion. The main menu and simulation use the standard Input System UI module with mouse point/click actions. Open `STORMSIM_MainMenu` to review or edit the menu and enter Play mode to launch the simulation. Use WASD to move, mouse to look, E to interact, and Escape to pause. Headset review is deferred.
 
 
 ## Player-led home preparation and neighbour warning

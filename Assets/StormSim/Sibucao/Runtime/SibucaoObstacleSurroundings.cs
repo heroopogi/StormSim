@@ -83,6 +83,27 @@ namespace StormSim.Sibucao
                         if ((row + offset) % 2 == 0) FallenFence(pocket); else RoofingPile(pocket);
                         Physics.SyncTransforms();
                     }
+            // Very dense junctions can consume every close roadside pocket after
+            // route fitting. Keep a few small, solid storm remnants farther out so
+            // the setting does not become bare, while preserving every playable lane.
+            for (int side = -1; side <= 1 && PocketCount < 4; side += 2)
+                for (int lane = 0; lane < 6 && PocketCount < 4; lane++)
+                    for (int row = -5; row <= 5 && PocketCount < 4; row++)
+                    {
+                        var at = transform.TransformPoint(new Vector3(side * (13 + lane * 2.5f), 0, row * 3.5f));
+                        if (!FindGround(ref at) || !ClearOfRoutes(at, 3.8f)) continue;
+                        bool separated = true;
+                        foreach (Transform other in generated)
+                            if (FlatDistance(at, other.position) < 4) { separated = false; break; }
+                        if (!separated || Physics.CheckBox(at + Vector3.up * .5f, new Vector3(1.05f, .35f, .8f),
+                            transform.rotation, ~0, QueryTriggerInteraction.Ignore)) continue;
+                        var pocket = new GameObject("Outer roadside wreckage " + side + " " + row).transform;
+                        pocket.SetParent(generated, false);
+                        pocket.SetPositionAndRotation(at, transform.rotation * Quaternion.Euler(0, side * 8, 0));
+                        pocket.localScale = Vector3.one * .5f;
+                        if ((lane + row) % 2 == 0) FallenTimber(pocket); else RoofingPile(pocket);
+                        Physics.SyncTransforms();
+                    }
             layoutSignature = Signature();
         }
 

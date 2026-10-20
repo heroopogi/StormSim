@@ -152,7 +152,7 @@ namespace StormSim.Sibucao
         }
         public static SibucaoVehicle LookAt(SibucaoPlayer p)
         {
-            if(Physics.Raycast(p.view.transform.position,p.view.transform.forward,out var hit,4.5f,~0,QueryTriggerInteraction.Ignore))return hit.collider.GetComponentInParent<SibucaoVehicle>();
+            if(Physics.Raycast(StormSim.UI.StormglassInteractionRay.From(p.view),out var hit,4.5f,~0,QueryTriggerInteraction.Ignore))return hit.collider.GetComponentInParent<SibucaoVehicle>();
             return null;
         }
     }

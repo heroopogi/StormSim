@@ -15,8 +15,13 @@ namespace StormSim.Sibucao
             if(Time.unscaledTime<next)return;next=Time.unscaledTime+.08f;var s=SibucaoSession.Instance;
             if(!s||s.Mode!=SibucaoMode.Playing||!s.settings.interactPrompts||s.inventory&&s.inventory.IsOpen||s.missionGuide&&s.missionGuide.IsOpen){line.enabled=false;return;}
             var grab=s.player.grabber;Transform target=grab&&grab.CanReach&&grab.FocusedItem?grab.FocusedItem.transform:null;
-            var routes=s.physicalDecisions?s.physicalDecisions.GetComponent<SibucaoRouteChoices>():null;if(!target&&routes){var mission=routes.Focused();if(mission&&mission.Step!=null)target=mission.Step.item;}
-            if(!target||Vector3.Distance(s.player.view.transform.position,target.position)>3.4f){line.enabled=false;return;}
+            var optional=s.GetComponent<SibucaoOptionalSideMission>();if(!target&&optional)target=optional.ContextTarget;
+            var floodedStreet=s.GetComponent<SibucaoFloodedStreetIncident>();if(!target&&floodedStreet)target=floodedStreet.ContextTarget;
+            var routeIncidents=s.GetComponent<SibucaoRouteIncidentSequence>();if(!target&&routeIncidents)target=routeIncidents.ContextTarget;
+            var chapter=s.GetComponent<SibucaoContinuousChapterOne>();if(!target&&chapter)target=chapter.ContextTarget;
+            var routes=s.physicalDecisions?s.physicalDecisions.GetComponent<SibucaoRouteChoices>():null;if(!target&&routes)target=routes.ContextTarget;
+            var typhoon=s.GetComponent<SibucaoTyphoonExposure>();if(!target&&typhoon)target=typhoon.ContextTarget;
+            if(!target||Vector3.Distance(s.player.view.transform.position,target.position)>5f){line.enabled=false;return;}
             var renderer=target.GetComponentInChildren<Renderer>();if(!renderer||renderer.bounds.size.magnitude>4){line.enabled=false;return;}
             Bounds b=renderer.bounds;b.Expand(.024f);Vector3 a=b.min,z=b.max;
             points[0]=new Vector3(a.x,a.y,a.z);points[1]=new Vector3(z.x,a.y,a.z);points[2]=new Vector3(z.x,a.y,z.z);points[3]=new Vector3(a.x,a.y,z.z);points[4]=points[0];

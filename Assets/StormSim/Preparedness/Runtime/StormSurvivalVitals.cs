@@ -18,7 +18,7 @@ namespace StormSim.Preparedness
         public static void StepVitals(PhysicalRunData data,float dt,bool moving,bool running,bool swimming,bool underwater,float depth,bool carrying)
         {
             data.stamina=Mathf.Clamp(data.stamina+dt*StaminaRate(moving,running,swimming,depth,carrying,data.hunger),0,100);
-            data.hunger=Mathf.Clamp(data.hunger+dt*(moving&&running?.07f:.05f),0,100);
+            // The short evacuation is about safe choices and exertion; hunger is retained for old saves and food interactions.
             data.submergedSeconds=underwater?data.submergedSeconds+dt:Mathf.Max(0,data.submergedSeconds-dt*4);
             if(underwater&&data.submergedSeconds>BreathSeconds)data.health=Mathf.Max(0,data.health-dt*10);
             if(data.health<=0)data.needsRescue=true;
@@ -77,7 +77,7 @@ namespace StormSim.Preparedness
             if(S.Mode==SibucaoMode.Playing&&((S.inventory&&S.inventory.IsOpen)||(S.missionGuide&&S.missionGuide.IsOpen)))return;
             if(S.Mode==SibucaoMode.Preparation&&Bridge&&Bridge.preparation&&Bridge.preparation.player.DesktopPanelOpen)return;
             var layout=SibucaoHudLayout.Current;var previous=SibucaoDesktopHud.Begin(layout);var d=S.state.physical;
-            SibucaoDesktopHud.Vitals(layout,d.health,d.stamina,d.hunger);GUI.matrix=previous;
+            if(d.health<99||d.stamina<80)SibucaoDesktopHud.Vitals(layout,d.health,d.stamina,0);GUI.matrix=previous;
         }
 
         static void Bar(float x,float y,string label,float value,Color color)

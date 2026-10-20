@@ -149,7 +149,7 @@ namespace StormSim.Sibucao
                 if(!flood||!flood.IsCatchingUp)S.state.homeSeconds+=Time.deltaTime;
                 if(wasWatching&&!Watching)S.LockCursor();
                 if(!MovementLocked&&wasLying)ReleasePose(true);
-                if(prepBefore&&!Preparing)S.Notify("Floodwater is rising","The typhoon has arrived. Follow the route to the school.");
+                if(prepBefore&&!Preparing)S.Notify("Floodwater is rising","Take your go-bag, open the front door, and evacuate to the school.");
             }
             if(MovementLocked && playing)ApplyLyingPose();
             if(!Active || S.Mode==SibucaoMode.Menu || S.Mode==SibucaoMode.Complete)ReleasePose(false);
@@ -165,7 +165,7 @@ namespace StormSim.Sibucao
         public bool TryInteract(){return Active&&!MovementLocked&&FindInteraction(true);}
         bool FindInteraction(bool use)
         {
-            var ray=new Ray(S.player.view.transform.position,S.player.view.transform.forward);
+            var ray=StormSim.UI.StormglassInteractionRay.From(S.player.view);
             RaycastHit hit=default;float closest=float.PositiveInfinity;
             foreach(var candidate in Physics.RaycastAll(ray,2.8f,~0,QueryTriggerInteraction.Ignore))
             {

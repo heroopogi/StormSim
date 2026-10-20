@@ -30,11 +30,12 @@ namespace StormSim.Sibucao
             reviewScroll=GUI.BeginScrollView(new Rect(464,252,868,505),reviewScroll,new Rect(0,0,835,Mathf.Max(505,height)));
             Label(new Rect(8,8,816,height),content,body);GUI.EndScrollView();
             if(Button(new Rect(80,790,265,48),"Play again",true))S.SelectRole();
-            if(Button(new Rect(362,790,265,48),"Main menu")){S.SetMode(SibucaoMode.Menu);S.weather.SetStorm(false);}
+            if(Button(new Rect(362,790,265,48),"Main menu"))S.ReturnToMainMenu();
             Label(new Rect(685,798,650,34),"STORMSIM · desktop candidate 2026.09.30-b4-7",small);
         }
         string DecisionReview()
         {
+            var experience=S.GetComponent<SibucaoEvacuationExperience>();if(experience)return experience.Review();
             var records=S.state.physical.history;
             var b=new System.Text.StringBuilder("The physical action and its eventual outcome are recorded separately. A setback can follow a completed action.\n\n");
             if(records.Count==0)b.AppendLine("No route decisions were recorded.");

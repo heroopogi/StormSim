@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using StormSim.Preparedness;
 
 namespace StormSim.Sibucao
 {
@@ -93,6 +94,13 @@ namespace StormSim.Sibucao
                 var step = Step;
                 if (step == null) return "Continue through the passage to the next section.";
                 if(step.work==RouteWork.Check)return "Observe: "+step.instruction+" · keep looking briefly, or E to inspect.";
+                if(step.work==RouteWork.Preparation)
+                {
+                    if(step.preparationUse==RoutePreparationUse.Advisory)
+                        return HasReadyRadio()?"E: listen to your tested radio at the advisory post.":HasReadyPhone()?"E: check the charged phone alert at the advisory post.":"E: inspect the posted barangay route marker.";
+                    if(step.preparationUse==RoutePreparationUse.ParentAssist)
+                        return HasPreparedItem("gloves")?"E: put on your packed work gloves and offer help.":HasPreparedItem("whistle")?"E: use your packed whistle to call a nearby adult helper.":"E: agree on a careful two-person carry with the parent.";
+                }
                 if (holding) return (PlacementReady?"Ready to place · E / F":"Carry to "+step.target.name+" · "+Vector3.Distance(step.item.position,step.target.position).ToString("0.0")+" m")+" / Q: put down";
                 if (step.work == RouteWork.Turn || step.work == RouteWork.Slide) return State.amount>=.999f?"At end stop · release E to finish / Q: pause":"Hold E + drag RIGHT: "+step.instruction+" · "+Mathf.RoundToInt(State.amount*100)+"% / left reverses / release pauses";
                 if (step.work == RouteWork.Escort && section.director.Working == this) return (string.IsNullOrEmpty(EscortStatus)?"Walk with the group. Stay close at each turn.":EscortStatus)+" / Q: pause / Esc: recovery";
@@ -132,6 +140,7 @@ namespace StormSim.Sibucao
             section.director.Begin(this);
             var step = Step; if (step == null) return true;
             if (step.work == RouteWork.Talk || step.work == RouteWork.Check) { Advance(); return true; }
+            if(step.work==RouteWork.Preparation){Advance(ResolvePreparation(step));return true;}
             if (step.work == RouteWork.Carry)
             {
                 step.item.SetParent(transform,true);
@@ -350,7 +359,68 @@ namespace StormSim.Sibucao
             Physics.SyncTransforms();
             SibucaoSession.Instance.Notify("Current action recovered","Completed actions are kept. Use the highlighted item or resident to resume.");
         }
-        void Advance()
+        PhysicalGrabbable Packed(string tag)
+        {
+            var inventory=SibucaoSession.Instance.inventory;
+            if(!inventory)return null;
+            for(int i=0;i<SibucaoInventory.Capacity;i++)
+            {var item=inventory.Slot(i);if(item&&item.inventoryTag==tag)return item;}
+            return null;
+        }
+        PhysicalGrabbable PackedPreparationItem(string id)
+        {
+            var inventory=SibucaoSession.Instance.inventory;if(!inventory)return null;
+            for(int i=0;i<SibucaoInventory.Capacity;i++)
+            {var item=inventory.Slot(i);var prepared=item?item.GetComponent<PreparednessItem>():null;if(prepared&&prepared.id==id)return item;}
+            return null;
+        }
+        bool HasPreparedItem(string id)
+        {var item=PackedPreparationItem(id);return item&&item.GetComponent<PreparednessItem>().prepared;}
+        bool HasReadyRadio()
+        {
+            var item=Packed("radio");if(!item)return false;
+            var prepared=item.GetComponent<PreparednessItem>();return prepared&&prepared.prepared&&prepared.cells>=2;
+        }
+        bool HasReadyPhone()
+        {
+            var item=Packed("phone");if(!item)return false;
+            var phone=item.GetComponent<PreparednessItem>();
+            if(phone&&phone.charge>=PreparednessSession.UsefulCharge)return true;
+            var power=Packed("powerbank")?.GetComponent<PreparednessItem>();
+            return phone&&phone.charge>0&&power&&power.charge>=PreparednessSession.UsefulCharge&&Packed("cable");
+        }
+        int ResolvePreparation(RouteMissionStep step)
+        {
+            var s=SibucaoSession.Instance;
+            if(step.preparationUse==RoutePreparationUse.Advisory)
+            {
+                if(HasReadyRadio())
+                {State.preparationChoice="radio";s.physicalDecisions.SetFlag("b1_advisory_radio");s.Say("Your tested radio repeats the barangay instruction: use the raised route and keep away from the deeper road centre.",7);}
+                else if(HasReadyPhone())
+                {State.preparationChoice="phone";s.physicalDecisions.SetFlag("b1_advisory_phone");s.Say("The charged phone shows the latest barangay alert: the raised route remains open. Do not enter the deeper road centre.",7);}
+                else
+                {State.preparationChoice="posted-marker";s.physicalDecisions.SetFlag("b1_advisory_marker");s.Say("The physical barangay marker points to the raised route. Without a working device, use the posted local instruction.",7);}
+                return 0;
+            }
+            if(step.preparationUse==RoutePreparationUse.ParentAssist)
+            {
+                if(HasPreparedItem("gloves"))
+                {State.preparationChoice="gloves";s.physicalDecisions.SetFlag("b1_parent_gloves");s.Say("You put on the packed work gloves. Carry the supply bag while the parent keeps both hands on the stroller.",7);return 0;}
+                if(HasPreparedItem("whistle"))
+                {
+                    State.preparationChoice="whistle";s.physicalDecisions.SetFlag("b1_parent_whistle");
+                    var whistle=PackedPreparationItem("whistle").GetComponent<PosterSupply>();if(whistle)whistle.Signal();
+                    int next=State.step+1;
+                    if(next<steps.Length&&steps[next].work==RouteWork.Carry)
+                    {var carry=steps[next];carry.item.SetPositionAndRotation(carry.target.position,carry.target.rotation);carry.item.SetParent(carry.target,true);}
+                    s.Say("Three short whistle signals bring a nearby adult. They take the supply bag while you guide the parent and stroller.",7);return 1;
+                }
+                State.preparationChoice="shared-carry";s.physicalDecisions.SetFlag("b1_parent_shared_carry");
+                s.Say("You have no suitable gloves or whistle. The parent steadies the stroller while you carry only the separate supply bag.",7);
+            }
+            return 0;
+        }
+        void Advance(int additionalSteps=0)
         {
             var step = Step;
             SibucaoControls.ResetGrip();SibucaoSoundFeedback.Play(step.work==RouteWork.Carry?SibucaoSoundKind.Placement:SibucaoSoundKind.Mechanism);
@@ -359,7 +429,7 @@ namespace StormSim.Sibucao
             if (step.reveal) step.reveal.SetActive(true);
             if (step.lamp) step.lamp.enabled = true;
             if (!string.IsNullOrEmpty(step.response)) SibucaoSession.Instance.Say(step.response, 5);
-            State.step++; State.amount = 0; State.carryDistance=0; State.hasCarriedPosition = false; manipulating = false;observationSeconds=0;
+            State.step=Mathf.Min(steps.Length,State.step+1+additionalSteps); State.amount = 0; State.carryDistance=0; State.hasCarriedPosition = false; manipulating = false;observationSeconds=0;
             SibucaoSession.Instance.RequestCheckpoint();
             if (State.step == steps.Length) SibucaoSession.Instance.Notify("Work finished · outcome pending", "Reach the merge marker to record this passage.");
         }

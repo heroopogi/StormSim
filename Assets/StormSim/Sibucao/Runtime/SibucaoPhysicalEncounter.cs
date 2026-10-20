@@ -4,7 +4,7 @@ namespace StormSim.Sibucao
 {
     public sealed partial class SibucaoPhysicalOption
     {
-        [Tooltip("Optional physical-only override. B1-B5 use the encounter catalog by default.")]
+        [Tooltip("Optional physical-only override. B2-B5 use the encounter catalog by default; B1 has its own observe/probe/cross loop.")]
         public PhysicalEncounterDefinition encounterDefinition;
         PhysicalEncounterRunner encounterRunner;
         public bool HasEncounter => encounterDefinition || PhysicalEncounterCatalog.Supports(this);

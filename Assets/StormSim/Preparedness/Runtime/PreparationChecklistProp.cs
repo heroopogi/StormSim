@@ -120,10 +120,9 @@ namespace StormSim.Preparedness
         void LateUpdate()
         {
             if(!player||!player.view||!session)return;
-            DetectCompletedChecks();UpdatePencilAnimation();
+            SetPencilRest();
             bool requestedOpen=player.GuideOpen;
             bool open=requestedOpen||activeCheck>=0;
-            if(requestedOpen&&!wasOpen)session.NarrateChecklist();
             wasOpen=requestedOpen;
             blend=Mathf.MoveTowards(blend,open?1:0,Time.unscaledDeltaTime*3.4f);
             if(blend<=0){root.gameObject.SetActive(false);return;}
@@ -197,15 +196,11 @@ namespace StormSim.Preparedness
 
         void RefreshText()
         {
-            int complete=session.decisions.Count(value=>value);
-            int anchor=activeCheck>=0?activeCheck:session.decisions.TakeWhile(value=>value).Count();
-            if(activeCheck<0)displayStart=Mathf.Clamp(anchor-2,0,Mathf.Max(0,PreparednessSession.Titles.Length-6));
-            var rows=Enumerable.Range(displayStart,Mathf.Min(6,PreparednessSession.Titles.Length-displayStart))
-                .Select(i=>(inked!=null&&inked[i]?"[✓] ":"[ ] ")+PreparednessSession.Titles[i]);
-            leftPage.text="PREPARATION GUIDE\n"+complete+" / 20 READY\n\n"+string.Join("\n",rows)+
-                "\n\nChecklist "+(displayStart+1)+"–"+Mathf.Min(displayStart+6,PreparednessSession.Titles.Length);
-            rightPage.text="NEXT STEP\n\n"+PreparationGuidanceText.Wrap(session.NextPreparationStep,27,6)+
-                "\n\nCONTROLS\nJ / LEFT X  CLOSE\nE / TRIGGER  USE\nQ / RELEASE  PUT DOWN";
+            leftPage.text="CURRENT OBJECTIVE\n\n"+PreparationGuidanceText.Wrap(session.NextPreparationStep,27,7)+
+                "\n\nBAG STATUS\n"+session.BagMass.ToString("0.0")+" / "+PreparednessSession.BagLimit.ToString("0.0")+" KG\n"+
+                session.items.Count(i=>i.IsPacked)+" ITEMS PACKED";
+            rightPage.text="WARNING LEVEL\n\n"+PreparationGuidanceText.Wrap(session.WarningStageText,27,8)+
+                "\n\nLOOK AT AN ITEM\nUSE ITEM INFO FOR PURPOSE";
         }
 
         void OnDestroy(){if(root)Destroy(root.gameObject);}
